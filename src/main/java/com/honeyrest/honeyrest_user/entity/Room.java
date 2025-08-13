@@ -1,4 +1,4 @@
-package com.honeyrest.honeyrest_host.entity;
+package com.honeyrest.honeyrest_user.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

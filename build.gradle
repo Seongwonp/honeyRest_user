@@ -17,6 +17,10 @@ configurations {
     compileOnly {
         extendsFrom annotationProcessor
     }
+    // Remove default logging (Logback) to avoid conflict with Log4j2
+    all {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
 }
 
 repositories {
@@ -24,20 +28,84 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
-    implementation 'org.springframework.boot:spring-boot-starter-security'
+    // 웹 기능 (컨트롤러, REST API)
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+    // 보안 및 인증 (OAuth2, JWT)
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5' // JWT 토큰 처리
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    // 데이터베이스 (JPA, MyBatis, MariaDB)
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.5'
-    compileOnly 'org.projectlombok:lombok'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
+
+    // 문자 발송 (Nurigo API)
+    implementation 'net.nurigo:sdk:4.3.2'
+
+    // JPA QueryDSL
+    implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
+    annotationProcessor 'com.querydsl:querydsl-apt:5.0.0:jakarta'
+    annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
+    annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
+
+    // 개발 편의 기능 (자동 리시빙, 핫 리로드)
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // API 문서화 (Swagger UI)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
+
+    // 실시간 통신 (WebSocket)
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+    // 이메일 발송
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+    // 유효성 검사
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // 객체 매핑
+    implementation 'org.modelmapper:modelmapper:3.2.0'
+
+    // 로그 처리 (Log4j2)
+    implementation 'org.springframework.boot:spring-boot-starter-log4j2'
+
+    // 파일 업로드 및 이미지 처리
+    implementation 'software.amazon.awssdk:s3:2.25.0'
+    implementation 'net.coobird:thumbnailator:0.4.19'
+
+
+    // 롬복
+    compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+
+    // 테스트 관련
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.5'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+
+    // 캐싱 기능 (Spring Cache)
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+
+    // Redis 연동 (세션, 캐싱, 실시간 처리)
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+    // 서버 모니터링 및 헬스 체크
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // 외부 API 재시도 처리
+    implementation 'org.springframework.retry:spring-retry'
+    implementation 'org.springframework:spring-aspects'
+
+    // 배치 처리 (예약 정산, 포인트 소멸 등)
+    implementation 'org.springframework.boot:spring-boot-starter-batch'
 }
 
 tasks.named('test') {

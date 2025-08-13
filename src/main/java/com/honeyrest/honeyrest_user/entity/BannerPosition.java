@@ -1,4 +1,4 @@
-package com.honeyrest.honeyrest_host.entity;
+package com.honeyrest.honeyrest_user.entity;
 
 public enum BannerPosition {
     MAIN_TOP,

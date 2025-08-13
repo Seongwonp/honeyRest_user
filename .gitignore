@@ -35,3 +35,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### password ###
+/src/main/resources/application_security.properties

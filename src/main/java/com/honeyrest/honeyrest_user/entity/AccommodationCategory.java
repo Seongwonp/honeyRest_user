@@ -1,11 +1,10 @@
-package com.honeyrest.honeyrest_host.entity;
+package com.honeyrest.honeyrest_user.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.checkerframework.checker.units.qual.C;
 
 @Entity
 @Getter

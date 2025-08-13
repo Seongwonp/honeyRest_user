@@ -1,8 +1,10 @@
-package com.honeyrest.honeyrest_host.entity;
+package com.honeyrest.honeyrest_user.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
-import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "cancellation_policy")

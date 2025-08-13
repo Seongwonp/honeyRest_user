@@ -1,4 +1,4 @@
-package com.honeyrest.honeyrest_user.dto;
+package com.honeyrest.honeyrest_user.exception;
 
 import lombok.Getter;
 import org.springframework.http.HttpStatus;

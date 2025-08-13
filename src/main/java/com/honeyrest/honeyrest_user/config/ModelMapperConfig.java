@@ -1,4 +1,4 @@
-package com.cafe_kiosk.kiosk_user.config;
+package com.honeyrest.honeyrest_user.config;
 
 
 import org.modelmapper.ModelMapper;
