@@ -1,54 +1,53 @@
 package com.honeyrest.honeyrest_user.util;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
-import java.io.IOException;
-import java.net.URI;
+import java.io.FileInputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Component
-@RequiredArgsConstructor
 public class FileUploadUtil {
 
-    @Value("${file.s3.accessKey}")
-    private String accessKey;
+    private final Storage storage;
 
-    @Value("${file.s3.secretKey}")
-    private String secretKey;
+    public FileUploadUtil() throws Exception {
+        GoogleCredentials credentials = GoogleCredentials
+                .fromStream(new FileInputStream("src/main/resources/honeyrest-7fb60-firebase-adminsdk-fbsvc-17f8ee9da5.json")) // 🔑 경로 확인
+                .createScoped(List.of("https://www.googleapis.com/auth/cloud-platform"));
 
-    @Value("${file.s3.bucketName}")
-    private String bucketName;
+        storage = StorageOptions.newBuilder()
+                .setCredentials(credentials)
+                .setProjectId("honeyrest-7fb60")
+                .build()
+                .getService();
+    }
 
-    @Value("${file.s3.endpoint}")
-    private String endpoint;
+    public String upload(MultipartFile file, String folder) throws Exception {
+        String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
+        String blobName = folder + "/" + filename;
 
-    public String upload(MultipartFile file, String folder) throws IOException {
-        AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
-        S3Client s3 = S3Client.builder()
-                .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                .endpointOverride(URI.create(endpoint))
-                .region(Region.US_EAST_1)
+        BlobInfo blobInfo = BlobInfo.newBuilder("honeyrest-7fb60.firebasestorage.app", blobName)
+                .setContentType(file.getContentType())
                 .build();
 
-        String key = folder + "/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
+        storage.create(blobInfo, file.getBytes());
 
-        PutObjectRequest request = PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(key)
-                .contentType(file.getContentType())
-                .build();
+        String downloadToken = UUID.randomUUID().toString();
+        storage.update(blobInfo.toBuilder()
+                .setMetadata(Map.of("firebaseStorageDownloadTokens", downloadToken))
+                .build());
 
-        s3.putObject(request, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-
-        return endpoint + "/" + bucketName + "/" + key;
+        return "https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/" +
+                URLEncoder.encode(blobName, StandardCharsets.UTF_8) +
+                "?alt=media&token=" + downloadToken;
     }
 }

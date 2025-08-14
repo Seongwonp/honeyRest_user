@@ -74,8 +74,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-log4j2'
 
     // 파일 업로드 및 이미지 처리
+    implementation("com.google.firebase:firebase-admin:9.2.0")
+
     implementation 'software.amazon.awssdk:s3:2.25.0'
     implementation 'net.coobird:thumbnailator:0.4.19'
+
+
 
 
     // 롬복

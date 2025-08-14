@@ -33,11 +33,10 @@ public class EmailVerificationToken {
 
     private LocalDateTime createdAt;
 
-    private Boolean isVerified;
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
-        this.isVerified = false;
+        this.expiryDate = createdAt.plusHours(24);
     }
 }

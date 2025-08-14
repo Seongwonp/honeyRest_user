@@ -38,3 +38,5 @@ out/
 
 ### password ###
 /src/main/resources/application_security.properties
+
+src/main/resources/honeyrest-7fb60-firebase-adminsdk-fbsvc-17f8ee9da5.json

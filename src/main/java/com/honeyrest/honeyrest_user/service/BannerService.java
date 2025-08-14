@@ -23,7 +23,14 @@ public class BannerService {
     private final FileUploadUtil fileUploadUtil;
 
     public void saveBanner(MultipartFile image, BannerDTO dto) throws IOException {
-        String imageUrl = fileUploadUtil.upload(image, "banner");
+        String imageUrl = "";
+        try {
+            imageUrl = fileUploadUtil.upload(image, "banner");
+            dto.setImageUrl(imageUrl);
+        } catch (Exception e) {
+            log.error("이미지 업로드 실패", e);
+            throw new RuntimeException("이미지 업로드 중 오류 발생");
+        }
         dto.setImageUrl(imageUrl);
        log.info("dto: {}", dto);
         Banner banner = modelMapper.map(dto, Banner.class);
@@ -47,4 +54,6 @@ public class BannerService {
                         .build())
                 .toList();
     }
+
+
 }

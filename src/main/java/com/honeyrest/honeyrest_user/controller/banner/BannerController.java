@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 @RestController
 @RequiredArgsConstructor
@@ -37,7 +38,7 @@ public class BannerController {
                 .position(position)
                 .sortOrder(sortOrder)
                 .startDate(LocalDateTime.now())
-                .endDate(LocalDateTime.now().plusDays(60))
+                .endDate(LocalDateTime.now().plusDays(3600))
                 .isActive(isActive)
                 .imageUrl(null) // 나중에 S3에서 받아서 세팅
                 .build();
@@ -51,4 +52,19 @@ public class BannerController {
         List<BannerDTO> banners = bannerService.getBanners();
         return ApiResponse.ok(banners);
     }
+
+    @GetMapping("/random")
+    public ApiResponse<?> getRandomBanner() {
+        List<BannerDTO> banners = bannerService.getBanners();
+
+        if (banners.isEmpty()) {
+            return ApiResponse.error("활성화된 배너가 없습니다");
+        }
+
+        int index = ThreadLocalRandom.current().nextInt(banners.size());
+        BannerDTO selected = banners.get(index);
+
+        return ApiResponse.ok(selected);
+    }
+
 }
