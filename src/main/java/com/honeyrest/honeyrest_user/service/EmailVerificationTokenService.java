@@ -10,14 +10,18 @@ import com.honeyrest.honeyrest_user.repository.EmailVerificationTokenRepository;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
+@Log4j2
 @Service
 @RequiredArgsConstructor
 public class EmailVerificationTokenService {
@@ -25,6 +29,9 @@ public class EmailVerificationTokenService {
     private final JavaMailSender mailSender;
     private final EmailVerificationTokenRepository tokenRepository;
     private final UserRepository userRepository;
+
+    @Value("${app.base-url}")
+    private String baseUrl;
 
     public void sendVerificationEmail(EmailRequestDTO requestDto) {
         User user = userRepository.findByEmail(requestDto.getEmail())
@@ -40,12 +47,23 @@ public class EmailVerificationTokenService {
 
         tokenRepository.save(emailToken);
 
-        String link = "https://honeyrest.com/api/user/email/verify?token=" + token;
+        String link = baseUrl + "/verify?token=" + token;
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(user.getEmail());
         message.setSubject("HoneyRest 이메일 인증");
         message.setText("아래 링크를 클릭해 이메일 인증을 완료해 주세요:\n" + link);
+
+        if (mailSender instanceof JavaMailSenderImpl senderImpl) {
+            log.info("📧 SMTP 사용자명: {}", senderImpl.getUsername());
+            log.info("📧 SMTP 호스트: {}", senderImpl.getHost());
+            log.info("📧 SMTP 포트: {}", senderImpl.getPort());
+            log.info("📧 SMTP 프로퍼티: {}", senderImpl.getJavaMailProperties());
+        } else {
+            log.warn("⚠️ JavaMailSender가 JavaMailSenderImpl이 아님");
+        }
+
+
         mailSender.send(message);
     }
 

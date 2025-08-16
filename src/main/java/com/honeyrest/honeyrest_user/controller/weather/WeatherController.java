@@ -29,12 +29,12 @@ public class WeatherController {
 
         if (city != null && !city.isEmpty()) {
             url = String.format(
-                    "https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s&units=metric",
+                    "https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s&units=metric&lang=kr",
                     city, apiKey
             );
         } else if (lat != null && lon != null) {
             url = String.format(
-                    "https://api.openweathermap.org/data/2.5/weather?lat=%f&lon=%f&appid=%s&units=metric",
+                    "https://api.openweathermap.org/data/2.5/weather?lat=%f&lon=%f&appid=%s&units=metric&lang=kr",
                     lat, lon, apiKey
             );
         } else {
@@ -49,11 +49,8 @@ public class WeatherController {
             log.debug("OpenWeather 응답: {}", response);
 
             Object cod = response.get("cod");
-            if (cod instanceof Integer && (Integer) cod != 200) {
-                log.warn("도시 정보 없음: {}", response.get("message"));
-                return ResponseEntity.badRequest().body("도시 정보를 찾을 수 없습니다.");
-            }
-            if (cod instanceof String && !"200".equals(cod)) {
+            if ((cod instanceof Integer && (Integer) cod != 200) ||
+                    (cod instanceof String && !"200".equals(cod))) {
                 log.warn("도시 정보 없음: {}", response.get("message"));
                 return ResponseEntity.badRequest().body("도시 정보를 찾을 수 없습니다.");
             }
@@ -66,10 +63,14 @@ public class WeatherController {
             Map<?, ?> main = (Map<?, ?>) response.get("main");
             Map<?, ?> weather = ((java.util.List<Map<?, ?>>) response.get("weather")).get(0);
 
+            String originalName = (String) response.get("name");
+            String translatedName = translateCityName(originalName);
+
             Map<String, Object> result = Map.of(
-                    "name", response.get("name"),
+                    "name", translatedName,
                     "temp", main.get("temp"),
                     "condition", weather.get("main"),
+                    "description", weather.get("description"),
                     "icon", weather.get("icon")
             );
 
@@ -79,5 +80,18 @@ public class WeatherController {
             log.error("날씨 API 호출 중 오류 발생", e);
             return ResponseEntity.status(500).body("날씨 정보를 가져오지 못했습니다.");
         }
+    }
+
+    private String translateCityName(String name) {
+        return switch (name) {
+            case "Seoul" -> "서울";
+            case "Busan" -> "부산";
+            case "Daegu" -> "대구";
+            case "Incheon" -> "인천";
+            case "Gwangju" -> "광주";
+            case "Daejeon" -> "대전";
+            case "Ulsan" -> "울산";
+            default -> name;
+        };
     }
 }

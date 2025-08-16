@@ -91,4 +91,18 @@ public class JwtTokenProvider {
                 Collections.singletonList(new SimpleGrantedAuthority(role)) // 권한
         );
     }
+
+    public String createToken(String email) {
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + expirationTime);
+
+        return Jwts.builder()
+                .setSubject(email)
+                .setIssuedAt(now)
+                .setExpiration(expiry)
+                .signWith(key, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+
 }

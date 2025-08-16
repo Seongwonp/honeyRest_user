@@ -63,23 +63,23 @@ public class UserService {
                 .build();
     }
 
-    // 로그인
+    // 로그인 작업
     public LoginResponseDTO login(UserLoginRequestDTO dto) {
         User user = userRepository.findByEmail(dto.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일입니다."));
+                .orElse(null);
 
-        if (!passwordEncoder.matches(dto.getPassword(), user.getPasswordHash())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        if (user == null || !passwordEncoder.matches(dto.getPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
         if (!user.getIsVerified()) {
             throw new IllegalStateException("이메일 인증이 완료되지 않았습니다.");
         }
 
-        // JWT 토큰 추가
         String accessToken = jwtTokenProvider.createToken(user.getUserId(), user.getRole());
         user.updateLastLogin(LocalDateTime.now());
         userRepository.save(user);
+
         return LoginResponseDTO.builder()
                 .user(UserResponseDTO.builder()
                         .userId(user.getUserId())
