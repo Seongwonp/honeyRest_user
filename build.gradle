@@ -110,7 +110,24 @@ dependencies {
 
     // 배치 처리 (예약 정산, 포인트 소멸 등)
     implementation 'org.springframework.boot:spring-boot-starter-batch'
+
+
 }
+
+def querydslDir = file("src/main/generated")
+
+sourceSets {
+    main {
+        java {
+            srcDirs += querydslDir
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.generatedSourceOutputDirectory = file("src/main/generated")
+}
+
 
 tasks.named('test') {
     useJUnitPlatform()
