@@ -23,4 +23,7 @@ public class AccommodationTag {
 
     @Column(nullable = false, length = 50)
     private String category; // 태그 카테고리
+
+    @Column(name = "icon_name", length = 50)
+    private String iconName; // 아이콘 이름 (예: FaUmbrellaBeach)
 }

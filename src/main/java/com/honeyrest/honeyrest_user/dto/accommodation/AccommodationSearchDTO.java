@@ -27,6 +27,7 @@ public class AccommodationSearchDTO {
 
     private String mainRegionName;            // 상위 지역명 (예: 강원도)
     private String subRegionName;             // 하위 지역명 (예: 강릉시)
+    private boolean available;
     private List<AccommodationTagMapDTO> tags;  // 태그 리스트 (예: ["오션뷰", "바베큐"])
 
     public void setTags(List<AccommodationTagMapDTO> tags) {

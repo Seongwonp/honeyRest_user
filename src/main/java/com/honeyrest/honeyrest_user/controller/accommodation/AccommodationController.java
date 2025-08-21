@@ -1,7 +1,9 @@
 package com.honeyrest.honeyrest_user.controller.accommodation;
 
+import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationDetailDTO;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationSearchDTO;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationSummaryDTO;
+import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
 import com.honeyrest.honeyrest_user.service.accommodation.AccommodationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -37,7 +39,7 @@ public class AccommodationController {
     }
 
     @GetMapping("/search")
-    public Page<AccommodationSearchDTO> search(
+    public PageResponseDTO<AccommodationSearchDTO> search(
             @RequestParam String location,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
@@ -70,6 +72,18 @@ public class AccommodationController {
     public ResponseEntity<Map<String, BigDecimal>> getPriceRange() {
         Map<String, BigDecimal> range = accommodationService.getPriceRange();
         return ResponseEntity.ok(range);
+    }
+
+
+    @GetMapping("/{id}")
+    public ResponseEntity<AccommodationDetailDTO> getDetail(
+            @PathVariable Long id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
+            @RequestParam(required = false) Long userId
+    ) {
+        log.info("✅ 숙소 상세 요청: id={}, userId={}, checkIn={}, checkOut={}", id, userId, checkIn, checkOut);
+        return ResponseEntity.ok(accommodationService.getDetail(id, userId, checkIn, checkOut));
     }
 
 

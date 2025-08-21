@@ -10,6 +10,7 @@ import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,7 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Log4j2
 @RequiredArgsConstructor
 public class AccommodationSearchImpl implements AccommodationSearch {
 
@@ -61,18 +63,6 @@ public class AccommodationSearchImpl implements AccommodationSearch {
 
         builder.and(r.maxOccupancy.goe(guests));
 
-        builder.and(
-                JPAExpressions.selectOne()
-                        .from(res)
-                        .where(
-                                res.room.roomId.eq(r.roomId),
-                                res.checkInDate.lt(checkOut),
-                                res.checkOutDate.gt(checkIn)
-                        )
-                        .exists()
-                        .not()
-        );
-
         if (maxPrice != null) {
             builder.and(a.minPrice.loe(maxPrice));
         }
@@ -103,6 +93,24 @@ public class AccommodationSearchImpl implements AccommodationSearch {
             default -> a.minPrice.asc();
         };
 
+        //  예약된 숙소 ID 조회
+        List<Long> reservedAccommodationIds = (checkIn != null && checkOut != null)
+                ? queryFactory()
+                .select(a.accommodationId)
+                .from(res)
+                .join(res.room, r)
+                .join(r.accommodation, a)
+                .where(
+                        res.checkInDate.lt(checkOut),
+                        res.checkOutDate.gt(checkIn)
+                )
+                .distinct()
+                .fetch()
+                : List.of();
+
+        log.info("✅ 예약된 숙소 ID 목록: {}", reservedAccommodationIds);
+
+        //  숙소 리스트 조회
         List<AccommodationSearchDTO> results = queryFactory()
                 .select(Projections.constructor(AccommodationSearchDTO.class,
                         a.accommodationId,
@@ -132,14 +140,14 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                 .limit(pageable.getPageSize())
                 .fetch();
 
-        Long total = queryFactory()
-                .select(a.accommodationId.countDistinct())
-                .from(a)
-                .join(r).on(r.accommodation.accommodationId.eq(a.accommodationId))
-                .where(builder)
-                .fetchOne();
+        //  available 필드 설정
+        results.forEach(dto -> {
+            boolean isReserved = reservedAccommodationIds.contains(dto.getId());
+            dto.setAvailable(!isReserved);
+            log.info("🛏️ 숙소 ID: {}, 예약 여부: {}, available: {}", dto.getId(), isReserved, !isReserved);
+        });
 
-
+        //  태그 매핑
         List<Long> accommodationIds = results.stream()
                 .map(AccommodationSearchDTO::getId)
                 .toList();
@@ -161,6 +169,13 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                 .collect(Collectors.groupingBy(AccommodationTagMapDTO::getAccommodationId));
 
         results.forEach(dto -> dto.setTags(tagMap.getOrDefault(dto.getId(), List.of())));
+
+        Long total = queryFactory()
+                .select(a.accommodationId.countDistinct())
+                .from(a)
+                .join(r).on(r.accommodation.accommodationId.eq(a.accommodationId))
+                .where(builder)
+                .fetchOne();
 
         return new PageImpl<>(results, pageable, total != null ? total : 0);
     }

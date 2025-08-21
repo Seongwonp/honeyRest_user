@@ -1,15 +1,16 @@
 package com.honeyrest.honeyrest_user.service.accommodation;
 
+import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationDetailDTO;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationSearchDTO;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationSummaryDTO;
+import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
 import com.honeyrest.honeyrest_user.entity.Accommodation;
 import com.honeyrest.honeyrest_user.repository.accommodation.AccommodationRepository;
+import com.honeyrest.honeyrest_user.repository.accommodation.AccommodationDetail.AccommodationDetailQueryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -23,7 +24,12 @@ import java.util.Map;
 public class AccommodationService {
 
     private final AccommodationRepository accommodationRepository;
+    private final AccommodationDetailQueryRepository detailQueryRepository;
 
+    /**
+     * 인기 숙소 조회 (카테고리별)
+     */
+    @Cacheable(value = "popularAccommodations", key = "#category", unless = "#result == null || #result.isEmpty()")
     public List<AccommodationSummaryDTO> getPopularByCategory(String category) {
         Pageable pageable = PageRequest.of(0, 30, Sort.by(Sort.Direction.DESC, "rating"));
 
@@ -51,8 +57,8 @@ public class AccommodationService {
         ).toList();
     }
 
-
-    public Page<AccommodationSearchDTO> searchAvailable(
+    // 숙소 검색
+    public PageResponseDTO<AccommodationSearchDTO> searchAvailable(
             String location,
             LocalDate checkIn,
             LocalDate checkOut,
@@ -64,7 +70,7 @@ public class AccommodationService {
             BigDecimal maxPrice,
             Pageable pageable
     ) {
-        Page<AccommodationSearchDTO> dto = accommodationRepository.searchAvailable(
+        Page<AccommodationSearchDTO> page = accommodationRepository.searchAvailable(
                 location,
                 checkIn,
                 checkOut,
@@ -76,19 +82,37 @@ public class AccommodationService {
                 maxPrice,
                 pageable
         );
+
+        PageResponseDTO<AccommodationSearchDTO> dto = PageResponseDTO.<AccommodationSearchDTO>builder()
+                .content(page.getContent())
+                .totalPages(page.getTotalPages())
+                .totalElements(page.getTotalElements())
+                .page(page.getNumber())
+                .size(page.getSize())
+                .build();
+
         log.info("숙소 검색 결과 총 개수: {}", dto.getTotalElements());
         log.info("총 페이지 수: {}", dto.getTotalPages());
-        log.info("현재 페이지 번호: {}", dto.getNumber());
+        log.info("현재 페이지 번호: {}", dto.getPage());
         log.info("페이지당 숙소 수: {}", dto.getSize());
         dto.getContent().forEach(accommodation -> {
-            log.info("숙소 ID: {}, 데이터: {}", accommodation.getId() ,accommodation.toString());
+            log.info("숙소 ID: {}, 데이터: {}", accommodation.getId(), accommodation.toString());
         });
+
         return dto;
     }
 
+    //가격 범위 조회
+    @Cacheable(value = "priceRange", unless = "#result == null")
     public Map<String, BigDecimal> getPriceRange() {
         BigDecimal maxPrice = accommodationRepository.findMaxMinPriceByStatus("ACTIVE");
         return Map.of("min", BigDecimal.ZERO, "max", maxPrice != null ? maxPrice : BigDecimal.ZERO);
     }
 
+    @Cacheable(value = "accommodationDetail", key = "#id", unless = "#result == null")
+    public AccommodationDetailDTO getDetail(Long id, Long userId, LocalDate checkIn, LocalDate checkOut) {
+        AccommodationDetailDTO result = detailQueryRepository.fetchDetailById(id, userId, checkIn, checkOut);
+        log.info("✅ 숙소 상세 데이터 반환: {}", result);
+        return result;
+    }
 }

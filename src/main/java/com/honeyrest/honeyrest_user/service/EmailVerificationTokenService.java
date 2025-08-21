@@ -8,6 +8,7 @@ import com.honeyrest.honeyrest_user.entity.EmailVerificationToken;
 import com.honeyrest.honeyrest_user.entity.User;
 import com.honeyrest.honeyrest_user.repository.EmailVerificationTokenRepository;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
+import com.honeyrest.honeyrest_user.util.EmailSender;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -29,6 +30,7 @@ public class EmailVerificationTokenService {
     private final JavaMailSender mailSender;
     private final EmailVerificationTokenRepository tokenRepository;
     private final UserRepository userRepository;
+    private final EmailSender emailSender;
 
     @Value("${app.base-url}")
     private String baseUrl;
@@ -47,12 +49,32 @@ public class EmailVerificationTokenService {
 
         tokenRepository.save(emailToken);
 
-        String link = baseUrl + "/verify?token=" + token;
+        try {
+            String link = baseUrl + "/verify?token=" + token;
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(user.getEmail());
-        message.setSubject("HoneyRest 이메일 인증");
-        message.setText("아래 링크를 클릭해 이메일 인증을 완료해 주세요:\n" + link);
+            jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
+            org.springframework.mail.javamail.MimeMessageHelper helper = new org.springframework.mail.javamail.MimeMessageHelper(message, true, "UTF-8");
+            helper.setTo(user.getEmail());
+            helper.setSubject("HoneyRest 이메일 인증");
+
+            String htmlContent = """
+                <html>
+                    <body style="font-family: Arial, sans-serif; line-height:1.6;">
+                        <h2 style="color:#ff9900;">HoneyRest 이메일 인증</h2>
+                        <p>아래 버튼을 클릭하여 이메일 인증을 완료해 주세요.</p>
+                        <a href="%s" style="display:inline-block; padding:10px 20px; background-color:#ff9900; color:#fff; text-decoration:none; border-radius:5px;">
+                            이메일 인증
+                        </a>
+                        <p>감사합니다.</p>
+                    </body>
+                </html>
+            """.formatted(link);
+
+            helper.setText(htmlContent, true); // true = HTML
+            mailSender.send(message);
+        } catch (Exception e) {
+            log.error("이메일 전송 실패", e);
+        }
 
         if (mailSender instanceof JavaMailSenderImpl senderImpl) {
             log.info("📧 SMTP 사용자명: {}", senderImpl.getUsername());
@@ -63,8 +85,6 @@ public class EmailVerificationTokenService {
             log.warn("⚠️ JavaMailSender가 JavaMailSenderImpl이 아님");
         }
 
-
-        mailSender.send(message);
     }
 
     @Transactional
@@ -85,6 +105,11 @@ public class EmailVerificationTokenService {
     public void resendVerificationEmail(ResendEmailRequestDTO dto) {
         User user = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
+
+        // 이미 인증된 사용자라면 이메일 재전송하지 않음
+        if (Boolean.TRUE.equals(user.getIsVerified())) {
+            throw new IllegalStateException("이미 인증된 사용자입니다.");
+        }
 
         // 기존 토큰 삭제
         tokenRepository.findAll().stream()

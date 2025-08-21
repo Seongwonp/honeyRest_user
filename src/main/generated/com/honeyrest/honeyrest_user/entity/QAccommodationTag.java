@@ -21,6 +21,8 @@ public class QAccommodationTag extends EntityPathBase<AccommodationTag> {
 
     public final StringPath category = createString("category");
 
+    public final StringPath iconName = createString("iconName");
+
     public final StringPath name = createString("name");
 
     public final NumberPath<Long> tagId = createNumber("tagId", Long.class);
