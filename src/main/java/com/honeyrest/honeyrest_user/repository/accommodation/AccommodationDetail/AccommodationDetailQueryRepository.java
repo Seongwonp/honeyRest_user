@@ -2,6 +2,7 @@ package com.honeyrest.honeyrest_user.repository.accommodation.AccommodationDetai
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.honeyrest.honeyrest_user.dto.CancellationPolicyDTO;
 import com.honeyrest.honeyrest_user.dto.accommodation.*;
 import com.honeyrest.honeyrest_user.dto.company.CompanyDTO;
 import com.honeyrest.honeyrest_user.dto.location.LocationDTO;
@@ -43,6 +44,7 @@ public class AccommodationDetailQueryRepository {
         QRegion mainRegion = new QRegion("mainRegion");
         QRegion subRegion = new QRegion("subRegion");
         QWishList wishList = QWishList.wishList;
+        QCancellationPolicy qCancellationPolicy = QCancellationPolicy.cancellationPolicy;
 
         AccommodationDetailFlatDTO flat = queryFactory
                 .select(Projections.bean(AccommodationDetailFlatDTO.class,
@@ -215,6 +217,21 @@ public class AccommodationDetailQueryRepository {
                     .fetchFirst() != null;
         }
         dto.setWished(wished);
+
+        List<CancellationPolicyDTO> cancellationPolicies = queryFactory
+                .select(Projections.bean(CancellationPolicyDTO.class,
+                        qCancellationPolicy.policyId,
+                        qCancellationPolicy.policyName,
+                        qCancellationPolicy.detail,
+                        qCancellationPolicy.accommodation.accommodationId))
+                .from(qCancellationPolicy)
+                .where(qCancellationPolicy.accommodation.accommodationId.eq(id))
+                .fetch();
+
+        dto.setCancellationPolicies(cancellationPolicies);
+
+
+
 
         return dto;
     }

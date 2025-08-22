@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.dto.accommodation;
 
+import com.honeyrest.honeyrest_user.dto.CancellationPolicyDTO;
 import com.honeyrest.honeyrest_user.dto.company.CompanyDTO;
 import com.honeyrest.honeyrest_user.dto.location.LocationDTO;
 import com.honeyrest.honeyrest_user.dto.region.RegionDTO;
@@ -38,6 +39,7 @@ public class AccommodationDetailDTO {
     private RegionDTO subRegion;
     private LocationDTO location;
     private List<ReviewDTO> reviews;
+    private List<CancellationPolicyDTO> cancellationPolicies;
     private List<SimilarAccommodationDTO> similar;
     private LocalDate checkIn;
     private LocalDate checkOut;

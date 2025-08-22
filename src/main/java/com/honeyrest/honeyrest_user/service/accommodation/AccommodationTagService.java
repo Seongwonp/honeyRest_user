@@ -26,6 +26,7 @@ public class AccommodationTagService {
                         .tagId(tag.getTagId())
                         .name(tag.getName())
                         .category(tag.getCategory())
+                        .iconName(tag.getIconName())
                         .build())
                 .toList();
     }

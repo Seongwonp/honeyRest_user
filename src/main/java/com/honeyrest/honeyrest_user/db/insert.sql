@@ -665,3 +665,148 @@ INSERT INTO wishlist (
 ) VALUES (
              NOW(), NOW(), 3, 16
          );
+
+
+
+UPDATE accommodation_tag SET icon_name = 'FaHeart' WHERE tag_id = 1;
+UPDATE accommodation_tag SET icon_name = 'FaUserFriends' WHERE tag_id = 2;
+UPDATE accommodation_tag SET icon_name = 'FaChild' WHERE tag_id = 3;
+UPDATE accommodation_tag SET icon_name = 'FaUsers' WHERE tag_id = 4;
+UPDATE accommodation_tag SET icon_name = 'FaUser' WHERE tag_id = 5;
+UPDATE accommodation_tag SET icon_name = 'FaLock' WHERE tag_id = 6;
+UPDATE accommodation_tag SET icon_name = 'FaSpa' WHERE tag_id = 7;
+UPDATE accommodation_tag SET icon_name = 'FaVolumeMute' WHERE tag_id = 8;
+UPDATE accommodation_tag SET icon_name = 'FaGlassCheers' WHERE tag_id = 9;
+UPDATE accommodation_tag SET icon_name = 'FaBinoculars' WHERE tag_id = 10;
+UPDATE accommodation_tag SET icon_name = 'FaCameraRetro' WHERE tag_id = 11;
+UPDATE accommodation_tag SET icon_name = 'FaSun' WHERE tag_id = 12;
+UPDATE accommodation_tag SET icon_name = 'FaRegSun' WHERE tag_id = 13;
+UPDATE accommodation_tag SET icon_name = 'FaCity' WHERE tag_id = 14;
+UPDATE accommodation_tag SET icon_name = 'FaTree' WHERE tag_id = 15;
+UPDATE accommodation_tag SET icon_name = 'FaWater' WHERE tag_id = 16;
+UPDATE accommodation_tag SET icon_name = 'FaBuilding' WHERE tag_id = 17;
+UPDATE accommodation_tag SET icon_name = 'FaHome' WHERE tag_id = 18;
+UPDATE accommodation_tag SET icon_name = 'FaLayerGroup' WHERE tag_id = 19;
+UPDATE accommodation_tag SET icon_name = 'FaLightbulb' WHERE tag_id = 20;
+UPDATE accommodation_tag SET icon_name = 'FaWarehouse' WHERE tag_id = 21;
+UPDATE accommodation_tag SET icon_name = 'FaCouch' WHERE tag_id = 22;
+UPDATE accommodation_tag SET icon_name = 'FaPagelines' WHERE tag_id = 23;
+UPDATE accommodation_tag SET icon_name = 'FaThLarge' WHERE tag_id = 24;
+UPDATE accommodation_tag SET icon_name = 'FaSnowflake' WHERE tag_id = 25;
+UPDATE accommodation_tag SET icon_name = 'FaLeaf' WHERE tag_id = 26;
+
+
+-- 객실내시설
+UPDATE accommodation_tag SET icon_name = 'FaHotTub' WHERE tag_id = 27;
+UPDATE accommodation_tag SET icon_name = 'FaSpa' WHERE tag_id = 28;
+UPDATE accommodation_tag SET icon_name = 'FaGlassMartiniAlt' WHERE tag_id = 29;
+UPDATE accommodation_tag SET icon_name = 'FaWifi' WHERE tag_id = 30;
+UPDATE accommodation_tag SET icon_name = 'FaSnowflake' WHERE tag_id = 31;
+UPDATE accommodation_tag SET icon_name = 'FaBath' WHERE tag_id = 32;
+UPDATE accommodation_tag SET icon_name = 'FaShower' WHERE tag_id = 33;
+UPDATE accommodation_tag SET icon_name = 'FaPlug' WHERE tag_id = 34;
+UPDATE accommodation_tag SET icon_name = 'FaTv' WHERE tag_id = 35;
+UPDATE accommodation_tag SET icon_name = 'FaFilm' WHERE tag_id = 36;
+UPDATE accommodation_tag SET icon_name = 'FaPlayCircle' WHERE tag_id = 37;
+UPDATE accommodation_tag SET icon_name = 'FaVolumeUp' WHERE tag_id = 38;
+UPDATE accommodation_tag SET icon_name = 'FaCoffee' WHERE tag_id = 39;
+UPDATE accommodation_tag SET icon_name = 'FaSnowflake' WHERE tag_id = 40;
+UPDATE accommodation_tag SET icon_name = 'FaMicrowave' WHERE tag_id = 41;
+UPDATE accommodation_tag SET icon_name = 'FaUtensils' WHERE tag_id = 42;
+UPDATE accommodation_tag SET icon_name = 'FaBed' WHERE tag_id = 43;
+UPDATE accommodation_tag SET icon_name = 'FaBed' WHERE tag_id = 44;
+UPDATE accommodation_tag SET icon_name = 'FaCouch' WHERE tag_id = 45;
+UPDATE accommodation_tag SET icon_name = 'FaBook' WHERE tag_id = 46;
+UPDATE accommodation_tag SET icon_name = 'FaVolumeMute' WHERE tag_id = 47;
+UPDATE accommodation_tag SET icon_name = 'FaSmoking' WHERE tag_id = 48;
+UPDATE accommodation_tag SET icon_name = 'FaBan' WHERE tag_id = 49;
+
+-- 시설
+UPDATE accommodation_tag SET icon_name = 'FaSwimmingPool' WHERE tag_id = 50;
+UPDATE accommodation_tag SET icon_name = 'FaWater' WHERE tag_id = 51;
+UPDATE accommodation_tag SET icon_name = 'FaFire' WHERE tag_id = 52;
+UPDATE accommodation_tag SET icon_name = 'FaHotTub' WHERE tag_id = 53;
+UPDATE accommodation_tag SET icon_name = 'FaSpa' WHERE tag_id = 54;
+UPDATE accommodation_tag SET icon_name = 'FaDumbbell' WHERE tag_id = 55;
+UPDATE accommodation_tag SET icon_name = 'FaUtensils' WHERE tag_id = 56;
+UPDATE accommodation_tag SET icon_name = 'FaCoffee' WHERE tag_id = 57;
+UPDATE accommodation_tag SET icon_name = 'FaStore' WHERE tag_id = 58;
+UPDATE accommodation_tag SET icon_name = 'FaKitchenSet' WHERE tag_id = 59;
+UPDATE accommodation_tag SET icon_name = 'FaShower' WHERE tag_id = 60;
+UPDATE accommodation_tag SET icon_name = 'FaToilet' WHERE tag_id = 61;
+UPDATE accommodation_tag SET icon_name = 'FaTshirt' WHERE tag_id = 62;
+UPDATE accommodation_tag SET icon_name = 'FaTshirt' WHERE tag_id = 63;
+UPDATE accommodation_tag SET icon_name = 'FaSync' WHERE tag_id = 64;
+UPDATE accommodation_tag SET icon_name = 'FaChair' WHERE tag_id = 65;
+UPDATE accommodation_tag SET icon_name = 'FaGlassCheers' WHERE tag_id = 66;
+UPDATE accommodation_tag SET icon_name = 'FaCampground' WHERE tag_id = 67;
+UPDATE accommodation_tag SET icon_name = 'FaLock' WHERE tag_id = 68;
+UPDATE accommodation_tag SET icon_name = 'FaFireExtinguisher' WHERE tag_id = 69;
+UPDATE accommodation_tag SET icon_name = 'FaSortAmountUp' WHERE tag_id = 70;
+UPDATE accommodation_tag SET icon_name = 'FaCar' WHERE tag_id = 71;
+UPDATE accommodation_tag SET icon_name = 'FaChargingStation' WHERE tag_id = 72;
+
+-- 반려동물
+UPDATE accommodation_tag SET icon_name = 'FaDog' WHERE tag_id = 73;
+UPDATE accommodation_tag SET icon_name = 'FaCat' WHERE tag_id = 74;
+UPDATE accommodation_tag SET icon_name = 'FaHome' WHERE tag_id = 75;
+UPDATE accommodation_tag SET icon_name = 'FaBone' WHERE tag_id = 76;
+UPDATE accommodation_tag SET icon_name = 'FaPaw' WHERE tag_id = 77;
+UPDATE accommodation_tag SET icon_name = 'FaUtensils' WHERE tag_id = 78;
+UPDATE accommodation_tag SET icon_name = 'FaSwimmingPool' WHERE tag_id = 79;
+UPDATE accommodation_tag SET icon_name = 'FaHandsHelping' WHERE tag_id = 80;
+UPDATE accommodation_tag SET icon_name = 'FaCarSide' WHERE tag_id = 81;
+
+-- 운영정보
+UPDATE accommodation_tag SET icon_name = 'FaBreadSlice' WHERE tag_id = 82;
+UPDATE accommodation_tag SET icon_name = 'FaParking' WHERE tag_id = 83;
+UPDATE accommodation_tag SET icon_name = 'FaCarSide' WHERE tag_id = 84;
+UPDATE accommodation_tag SET icon_name = 'FaSuitcase' WHERE tag_id = 85;
+UPDATE accommodation_tag SET icon_name = 'FaUserSecret' WHERE tag_id = 86;
+UPDATE accommodation_tag SET icon_name = 'FaCalendarDay' WHERE tag_id = 87;
+UPDATE accommodation_tag SET icon_name = 'FaClock' WHERE tag_id = 88;
+UPDATE accommodation_tag SET icon_name = 'FaTags' WHERE tag_id = 89;
+UPDATE accommodation_tag SET icon_name = 'FaTicketAlt' WHERE tag_id = 90;
+UPDATE accommodation_tag SET icon_name = 'FaPercent' WHERE tag_id = 91;
+UPDATE accommodation_tag SET icon_name = 'FaInfinity' WHERE tag_id = 92;
+UPDATE accommodation_tag SET icon_name = 'FaArrowCircleUp' WHERE tag_id = 93;
+UPDATE accommodation_tag SET icon_name = 'FaArrowCircleDown' WHERE tag_id = 94;
+UPDATE accommodation_tag SET icon_name = 'FaBolt' WHERE tag_id = 95;
+UPDATE accommodation_tag SET icon_name = 'FaClock' WHERE tag_id = 96;
+UPDATE accommodation_tag SET icon_name = 'FaUserShield' WHERE tag_id = 97;
+UPDATE accommodation_tag SET icon_name = 'FaThumbsUp' WHERE tag_id = 98;
+UPDATE accommodation_tag SET icon_name = 'FaBroom' WHERE tag_id = 99;
+UPDATE accommodation_tag SET icon_name = 'FaShieldVirus' WHERE tag_id = 100;
+
+-- 등급
+UPDATE accommodation_tag SET icon_name = 'FaCrown' WHERE tag_id = 101;
+UPDATE accommodation_tag SET icon_name = 'FaMedal' WHERE tag_id = 102;
+UPDATE accommodation_tag SET icon_name = 'FaHome' WHERE tag_id = 103;
+UPDATE accommodation_tag SET icon_name = 'FaCampground' WHERE tag_id = 104;
+UPDATE accommodation_tag SET icon_name = 'FaCampground' WHERE tag_id = 105;
+UPDATE accommodation_tag SET icon_name = 'FaUserFriends' WHERE tag_id = 106;
+UPDATE accommodation_tag SET icon_name = 'FaHotel' WHERE tag_id = 107;
+UPDATE accommodation_tag SET icon_name = 'FaBed' WHERE tag_id = 108;
+UPDATE accommodation_tag SET icon_name = 'FaUmbrellaBeach' WHERE tag_id = 109;
+UPDATE accommodation_tag SET icon_name = 'FaPagelines' WHERE tag_id = 110;
+UPDATE accommodation_tag SET icon_name = 'FaHome' WHERE tag_id = 111;
+
+-- 위치
+UPDATE accommodation_tag SET icon_name = 'FaUmbrellaBeach' WHERE tag_id = 112;
+UPDATE accommodation_tag SET icon_name = 'FaMountain' WHERE tag_id = 113;
+UPDATE accommodation_tag SET icon_name = 'FaCity' WHERE tag_id = 114;
+UPDATE accommodation_tag SET icon_name = 'FaTrain' WHERE tag_id = 115;
+UPDATE accommodation_tag SET icon_name = 'FaBus' WHERE tag_id = 116;
+UPDATE accommodation_tag SET icon_name = 'FaPlane' WHERE tag_id = 117;
+UPDATE accommodation_tag SET icon_name = 'FaSkiing' WHERE tag_id = 118;
+UPDATE accommodation_tag SET icon_name = 'FaLandmark' WHERE tag_id = 119;
+UPDATE accommodation_tag SET icon_name = 'FaUtensils' WHERE tag_id = 120;
+UPDATE accommodation_tag SET icon_name = 'FaCoffee' WHERE tag_id = 121;
+UPDATE accommodation_tag SET icon_name = 'FaShoppingBag' WHERE tag_id = 122;
+UPDATE accommodation_tag SET icon_name = 'FaHome' WHERE tag_id = 123;
+UPDATE accommodation_tag SET icon_name = 'FaMapMarkerAlt' WHERE tag_id = 124;
+UPDATE accommodation_tag SET icon_name = 'FaWalking' WHERE tag_id = 125;
+UPDATE accommodation_tag SET icon_name = 'FaBicycle' WHERE tag_id = 126;
+UPDATE accommodation_tag SET icon_name = 'FaFish' WHERE tag_id = 127;
+UPDATE accommodation_tag SET icon_name = 'FaHiking' WHERE tag_id = 128;
+UPDATE accommodation_tag SET icon_name = 'FaMountain' WHERE tag_id = 129;

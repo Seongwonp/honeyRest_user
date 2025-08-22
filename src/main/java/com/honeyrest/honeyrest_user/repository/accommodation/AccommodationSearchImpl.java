@@ -158,7 +158,8 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                         atm.accommodation.accommodationId,
                         at.tagId,
                         at.name,
-                        at.category
+                        at.category,
+                        at.iconName
                 ))
                 .from(atm)
                 .join(at).on(atm.tag.tagId.eq(at.tagId))

@@ -31,6 +31,7 @@ public class AccommodationTagMapService {
                         .tagId(map.getTag().getTagId())
                         .tagName(map.getTag().getName())
                         .tagCategory(map.getTag().getCategory())
+                        .iconName(map.getTag().getIconName())
                         .build())
                 .toList();
     }

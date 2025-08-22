@@ -17,4 +17,5 @@ public class AccommodationTagMapDTO {
     private Long tagId;
     private String tagName;
     private String tagCategory;
+    private String iconName;
 }
