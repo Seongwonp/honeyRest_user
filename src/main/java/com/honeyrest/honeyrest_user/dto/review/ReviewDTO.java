@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -20,4 +21,6 @@ public class ReviewDTO {
     private String reply;
     private Integer likeCount;
     private List<String> images;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

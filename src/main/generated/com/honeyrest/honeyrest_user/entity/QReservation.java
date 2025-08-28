@@ -24,9 +24,7 @@ public class QReservation extends EntityPathBase<Reservation> {
 
     public final QBaseEntity _super = new QBaseEntity(this);
 
-    public final NumberPath<Long> accommodationId = createNumber("accommodationId", Long.class);
-
-    public final StringPath accommodationName = createString("accommodationName");
+    public final QAccommodation accommodation;
 
     public final StringPath cancelReason = createString("cancelReason");
 
@@ -84,6 +82,7 @@ public class QReservation extends EntityPathBase<Reservation> {
 
     public QReservation(Class<? extends Reservation> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
+        this.accommodation = inits.isInitialized("accommodation") ? new QAccommodation(forProperty("accommodation"), inits.get("accommodation")) : null;
         this.room = inits.isInitialized("room") ? new QRoom(forProperty("room"), inits.get("room")) : null;
         this.user = inits.isInitialized("user") ? new QUser(forProperty("user")) : null;
     }

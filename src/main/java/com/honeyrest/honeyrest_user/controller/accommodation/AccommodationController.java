@@ -80,10 +80,11 @@ public class AccommodationController {
             @PathVariable Long id,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
+            @RequestParam(required = false) Integer guests,
             @RequestParam(required = false) Long userId
     ) {
-        log.info("✅ 숙소 상세 요청: id={}, userId={}, checkIn={}, checkOut={}", id, userId, checkIn, checkOut);
-        return ResponseEntity.ok(accommodationService.getDetail(id, userId, checkIn, checkOut));
+        log.info("✅ 숙소 상세 요청: id={}, userId={}, checkIn={}, checkOut={}, guests={}", id, userId, checkIn, checkOut, guests);
+        return ResponseEntity.ok(accommodationService.getDetail(id, userId, checkIn, checkOut, guests));
     }
 
 

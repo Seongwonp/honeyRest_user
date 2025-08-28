@@ -10,6 +10,7 @@ import com.honeyrest.honeyrest_user.dto.region.RegionDTO;
 import com.honeyrest.honeyrest_user.dto.review.ReviewDTO;
 import com.honeyrest.honeyrest_user.dto.room.RoomDTO;
 import com.honeyrest.honeyrest_user.entity.*;
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.honeyrest.honeyrest_user.entity.QReservation.reservation;
@@ -31,7 +33,7 @@ public class AccommodationDetailQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
-    public AccommodationDetailDTO fetchDetailById(Long id, Long userId, LocalDate checkIn, LocalDate checkOut) {
+    public AccommodationDetailDTO fetchDetailById(Long id, Long userId, LocalDate checkIn, LocalDate checkOut, Integer guests) {
         QAccommodation accommodation = QAccommodation.accommodation;
         QAccommodationImage image = QAccommodationImage.accommodationImage;
         QAccommodationTagMap tagMap = QAccommodationTagMap.accommodationTagMap;
@@ -62,8 +64,16 @@ public class AccommodationDetailQueryRepository {
                         accommodation.longitude,
                         company.name.as("companyName"),
                         company.businessNumber.as("companyBusinessNumber"),
+                        company.companyId.as("companyId"),
+                        company.ownerName.as("ownerName"),
+                        company.phone.as("phone"),
+                        company.email.as("email"),
+                        company.address.as("companyAddress"),
                         mainRegion.regionId.as("mainRegionId"),
                         mainRegion.name.as("mainRegionName"),
+                        mainRegion.level.as("mainRegionLevel"),
+                        mainRegion.parentId.as("mainRegionParentId"),
+                        mainRegion.isPopular.as("mainRegionIsPopular"),
                         subRegion.regionId.as("subRegionId"),
                         subRegion.name.as("subRegionName")
                 ))
@@ -87,12 +97,20 @@ public class AccommodationDetailQueryRepository {
                 .usage("체크인 " + formatTime(flat.getCheckInTime()) + " / 체크아웃 " + formatTime(flat.getCheckOutTime()))
                 .facilities(parseJsonList(flat.getAmenities()))
                 .company(CompanyDTO.builder()
+                        .companyId(flat.getCompanyId())
                         .name(flat.getCompanyName())
                         .businessNumber(flat.getCompanyBusinessNumber())
+                        .ownerName(flat.getOwnerName())
+                        .phone(flat.getPhone())
+                        .email(flat.getEmail())
+                        .address(flat.getAddress())
                         .build())
                 .mainRegion(RegionDTO.builder()
                         .regionId(flat.getMainRegionId())
                         .name(flat.getMainRegionName())
+                        .level(flat.getMainRegionLevel())
+                        .parentId(flat.getMainRegionParentId())
+                        .isPopular(flat.getMainRegionIsPopular())
                         .build())
                 .subRegion(RegionDTO.builder()
                         .regionId(flat.getSubRegionId())
@@ -125,34 +143,56 @@ public class AccommodationDetailQueryRepository {
                 .fetch();
         dto.setTags(tags);
 
-        List<Long> reservedRoomIds = (checkIn != null && checkOut != null)
-                ? queryFactory
-                .select(reservation.room.roomId)
+        Map<Long, Long> reservedRoomCounts = queryFactory
+                .select(room.roomId, reservation.reservationId.count())
                 .from(reservation)
+                .join(reservation.room, room)
                 .where(
                         reservation.checkInDate.lt(checkOut),
-                        reservation.checkOutDate.gt(checkIn)
+                        reservation.checkOutDate.gt(checkIn),
+                        reservation.status.eq("CONFIRMED"),
+                        room.accommodation.accommodationId.eq(id)
                 )
+                .groupBy(room.roomId)
                 .fetch()
-                : List.of();
+                .stream()
+                .collect(Collectors.toMap(
+                        tuple -> tuple.get(room.roomId),
+                        tuple -> Optional.ofNullable(tuple.get(reservation.reservationId.count())).orElse(0L)
+                ));
+
+        BooleanBuilder roomCondition = new BooleanBuilder();
+        roomCondition.and(room.accommodation.accommodationId.eq(id));
+        roomCondition.and(room.status.eq("ACTIVE"));
+        if (guests != null) {
+            roomCondition.and(room.maxOccupancy.goe(guests));
+        }
 
         List<RoomDTO> rooms = queryFactory
                 .select(Projections.bean(RoomDTO.class,
                         room.roomId,
                         room.name,
+                        room.type,
                         room.price,
-                        room.standardOccupancy,
                         room.maxOccupancy,
+                        room.standardOccupancy,
+                        room.extraPersonFee,
+                        room.bedInfo.as("bedInfoJson"),
+                        room.amenities.as("amenitiesJson"),
                         room.description,
+                        room.totalRooms,
                         room.status
                 ))
                 .from(room)
-                .where(room.accommodation.accommodationId.eq(id)
-                        .and(room.status.eq("ACTIVE"))
-                )
+                .where(roomCondition)
                 .fetch();
 
-        rooms.forEach(r -> r.setAvailable(!reservedRoomIds.contains(r.getRoomId())));
+        rooms.forEach(r -> {
+            Long reserved = reservedRoomCounts.getOrDefault(r.getRoomId(), 0L);
+            r.setAvailable(r.getTotalRooms() > reserved);
+            r.setBedInfo(parseJsonList(r.getBedInfoJson()));
+            r.setAmenities(parseJsonList(r.getAmenitiesJson()));
+        });
         dto.setRooms(rooms);
 
         Map<Long, List<String>> roomImageMap = queryFactory
@@ -230,8 +270,17 @@ public class AccommodationDetailQueryRepository {
 
         dto.setCancellationPolicies(cancellationPolicies);
 
+        long totalReserved = reservedRoomCounts.values().stream().mapToLong(Long::longValue).sum();
+        log.info("✅ 총 예약된 Room 수: {}", totalReserved);
 
+        reservedRoomCounts.forEach((roomId, count) ->
+                log.info("🔒 Room ID {} → 예약 수량: {}", roomId, count)
+        );
 
+        boolean hasAvailableRoom = rooms.stream().anyMatch(RoomDTO::isAvailable);
+        log.info("🏨 숙소 전체 예약 가능 여부: {}", hasAvailableRoom ? "가능" : "불가");
+
+        log.info("📦 디테일 출력: {}", dto);
 
         return dto;
     }

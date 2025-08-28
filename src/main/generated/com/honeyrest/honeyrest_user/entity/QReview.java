@@ -22,11 +22,16 @@ public class QReview extends EntityPathBase<Review> {
 
     public static final QReview review = new QReview("review");
 
+    public final QBaseEntity _super = new QBaseEntity(this);
+
     public final NumberPath<Long> accommodationId = createNumber("accommodationId", Long.class);
 
     public final NumberPath<java.math.BigDecimal> cleanlinessRating = createNumber("cleanlinessRating", java.math.BigDecimal.class);
 
     public final StringPath content = createString("content");
+
+    //inherited
+    public final DateTimePath<java.time.LocalDateTime> createdAt = _super.createdAt;
 
     public final NumberPath<java.math.BigDecimal> facilitiesRating = createNumber("facilitiesRating", java.math.BigDecimal.class);
 
@@ -47,6 +52,9 @@ public class QReview extends EntityPathBase<Review> {
     public final NumberPath<java.math.BigDecimal> serviceRating = createNumber("serviceRating", java.math.BigDecimal.class);
 
     public final StringPath status = createString("status");
+
+    //inherited
+    public final DateTimePath<java.time.LocalDateTime> updatedAt = _super.updatedAt;
 
     public final QUser user;
 

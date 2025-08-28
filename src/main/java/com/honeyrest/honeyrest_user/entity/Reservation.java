@@ -21,21 +21,20 @@ public class Reservation extends BaseEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "reservation_id")
-    public Long reservationId;
+    private Long reservationId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = true)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id",  nullable = false)
     private Room room;
 
-    @Column(name = "accommodation_id", nullable = false)
-    private Long accommodationId; // 숙소ID(중복 저장)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "accommodation_id", nullable = false)
+    private Accommodation accommodation;
 
-    @Column(name = "accommodation_name", nullable = false, length = 255)
-    private String accommodationName; // 숙소명
 
     @Column(name = "room_name", nullable = false, length = 255)
     private String roomName; // 객실명
@@ -58,7 +57,7 @@ public class Reservation extends BaseEntity{
     @Column(name = "guest_phone", nullable = false, length = 20)
     private String guestPhone;
 
-    @Column(name = "price", nullable = false, length = 20)
+    @Column(name = "price", nullable = false )
     private BigDecimal price; // 최종 결제 금액
 
     @Column(name = "original_price",precision = 10, scale = 2)

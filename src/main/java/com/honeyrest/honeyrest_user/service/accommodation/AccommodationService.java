@@ -109,10 +109,7 @@ public class AccommodationService {
         return Map.of("min", BigDecimal.ZERO, "max", maxPrice != null ? maxPrice : BigDecimal.ZERO);
     }
 
-    @Cacheable(value = "accommodationDetail", key = "#id", unless = "#result == null")
-    public AccommodationDetailDTO getDetail(Long id, Long userId, LocalDate checkIn, LocalDate checkOut) {
-        AccommodationDetailDTO result = detailQueryRepository.fetchDetailById(id, userId, checkIn, checkOut);
-        log.info("✅ 숙소 상세 데이터 반환: {}", result);
-        return result;
+    public AccommodationDetailDTO getDetail(Long id, Long userId, LocalDate checkIn, LocalDate checkOut, Integer guests){
+        return detailQueryRepository.fetchDetailById(id, userId, checkIn, checkOut, guests);
     }
 }

@@ -20,7 +20,9 @@ public class CustomUserPrincipal implements UserDetails, OAuth2User {
         this.user = user;
         this.attributes = attributes;
     }
-
+    public Long getUserId() {
+        return user.getUserId();
+    }
     @Override
     public Map<String, Object> getAttributes() {
         return attributes;

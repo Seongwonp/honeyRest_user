@@ -3,7 +3,7 @@ package com.honeyrest.honeyrest_user.controller.auth;
 import com.honeyrest.honeyrest_user.dto.email.EmailRequestDTO;
 import com.honeyrest.honeyrest_user.dto.email.ResendEmailRequestDTO;
 import com.honeyrest.honeyrest_user.dto.email.TokenStatusResponseDTO;
-import com.honeyrest.honeyrest_user.service.EmailVerificationTokenService;
+import com.honeyrest.honeyrest_user.service.email.EmailVerificationTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

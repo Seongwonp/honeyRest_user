@@ -39,4 +39,11 @@ public class UserCoupon {
 
     @Column(name = "expired_at", nullable = false)
     private LocalDateTime expiredAt; // 만료 일시
+
+    public void use() {
+        this.status = "USED";
+        this.usedAt = LocalDateTime.now();
+    }
+
 }
+

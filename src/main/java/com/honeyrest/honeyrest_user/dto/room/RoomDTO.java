@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.dto.room;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,4 +28,10 @@ public class RoomDTO {
     private String status;
     private boolean available;
     private List<String> images;
+
+    @JsonIgnore
+    private String bedInfoJson;
+
+    @JsonIgnore
+    private String amenitiesJson;
 }

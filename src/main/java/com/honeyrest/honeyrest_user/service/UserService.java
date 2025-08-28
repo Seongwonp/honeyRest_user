@@ -5,7 +5,7 @@ import com.honeyrest.honeyrest_user.dto.user.*;
 import com.honeyrest.honeyrest_user.entity.User;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.security.JwtTokenProvider;
-import com.honeyrest.honeyrest_user.service.EmailVerificationTokenService;
+import com.honeyrest.honeyrest_user.service.email.EmailVerificationTokenService;
 import com.honeyrest.honeyrest_user.util.FileUploadUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -32,6 +32,18 @@ public class UserService {
         String imgUrl = "";
         if(dto.getProfileImage() != null){
             imgUrl = fileUploadUtil.upload(dto.getProfileImage(),"profile");
+        }
+        // 생년월일 검증 (만 14세 미만 가입 불가)
+        if (dto.getBirthDate() != null) {
+            LocalDate birthDate = LocalDate.parse(dto.getBirthDate());
+            LocalDate today = LocalDate.now();
+            int age = today.getYear() - birthDate.getYear();
+            if (birthDate.plusYears(age).isAfter(today)) {
+                age--; // 아직 생일 안 지났으면 나이 -1
+            }
+            if (age < 14) {
+                throw new IllegalArgumentException("만 14세 미만은 회원가입이 불가능합니다.");
+            }
         }
         User user = User.builder()
                 .email(dto.getEmail())

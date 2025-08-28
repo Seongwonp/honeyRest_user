@@ -29,8 +29,17 @@ public class AccommodationDetailFlatDTO {
     private BigDecimal longitude;
     private String companyName;
     private String companyBusinessNumber;
+    private Integer companyId;
+    private String ownerName;
+    private String phone;
+    private String email;
+    private String companyAddress;
+
     private Integer mainRegionId;
     private String mainRegionName;
+    private Integer mainRegionLevel;
+    private Integer mainRegionParentId;
+    private Boolean mainRegionIsPopular;
     private Integer subRegionId;
     private String subRegionName;
 

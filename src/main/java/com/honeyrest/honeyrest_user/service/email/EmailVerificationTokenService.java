@@ -1,4 +1,4 @@
-package com.honeyrest.honeyrest_user.service;
+package com.honeyrest.honeyrest_user.service.email;
 
 
 import com.honeyrest.honeyrest_user.dto.email.EmailRequestDTO;
@@ -13,7 +13,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Service;

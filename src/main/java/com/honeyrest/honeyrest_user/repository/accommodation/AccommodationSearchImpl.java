@@ -4,6 +4,7 @@ import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationSearchDTO;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationTagMapDTO;
 import com.honeyrest.honeyrest_user.entity.*;
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
@@ -93,24 +94,7 @@ public class AccommodationSearchImpl implements AccommodationSearch {
             default -> a.minPrice.asc();
         };
 
-        //  예약된 숙소 ID 조회
-        List<Long> reservedAccommodationIds = (checkIn != null && checkOut != null)
-                ? queryFactory()
-                .select(a.accommodationId)
-                .from(res)
-                .join(res.room, r)
-                .join(r.accommodation, a)
-                .where(
-                        res.checkInDate.lt(checkOut),
-                        res.checkOutDate.gt(checkIn)
-                )
-                .distinct()
-                .fetch()
-                : List.of();
-
-        log.info("✅ 예약된 숙소 ID 목록: {}", reservedAccommodationIds);
-
-        //  숙소 리스트 조회
+        // ✅ 숙소 리스트 조회
         List<AccommodationSearchDTO> results = queryFactory()
                 .select(Projections.constructor(AccommodationSearchDTO.class,
                         a.accommodationId,
@@ -140,18 +124,51 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                 .limit(pageable.getPageSize())
                 .fetch();
 
-        //  available 필드 설정
-        results.forEach(dto -> {
-            boolean isReserved = reservedAccommodationIds.contains(dto.getId());
-            dto.setAvailable(!isReserved);
-            log.info("🛏️ 숙소 ID: {}, 예약 여부: {}, available: {}", dto.getId(), isReserved, !isReserved);
-        });
-
-        //  태그 매핑
         List<Long> accommodationIds = results.stream()
                 .map(AccommodationSearchDTO::getId)
                 .toList();
 
+        // ✅ 예약된 Room 수량 조회 (캐싱)
+        Map<Long, Long> reservedRoomCounts = queryFactory()
+                .select(r.roomId, res.reservationId.count())
+                .from(res)
+                .join(res.room, r)
+                .where(
+                        res.checkInDate.lt(checkOut),
+                        res.checkOutDate.gt(checkIn),
+                        r.accommodation.accommodationId.in(accommodationIds)
+                )
+                .groupBy(r.roomId)
+                .fetch()
+                .stream()
+                .collect(Collectors.toMap(
+                        tuple -> tuple.get(r.roomId),
+                        tuple -> Optional.ofNullable(tuple.get(res.reservationId.count())).orElse(0L)
+                ));
+
+        // ✅ 숙소별 Room 리스트 조회 (캐싱)
+        List<Room> allRooms = queryFactory()
+                .selectFrom(r)
+                .where(r.accommodation.accommodationId.in(accommodationIds))
+                .fetch();
+
+        Map<Long, List<Room>> roomMap = allRooms.stream()
+                .collect(Collectors.groupingBy(room -> room.getAccommodation().getAccommodationId()));
+
+        // ✅ available 판단
+        results.forEach(dto -> {
+            List<Room> rooms = roomMap.getOrDefault(dto.getId(), List.of());
+
+            boolean hasAvailableRoom = rooms.stream().anyMatch(room -> {
+                Long reserved = reservedRoomCounts.getOrDefault(room.getRoomId(), 0L);
+                return room.getTotalRooms() > reserved;
+            });
+
+            dto.setAvailable(hasAvailableRoom);
+            log.info("🛏️ 숙소 ID: {}, 예약 가능 여부: {}", dto.getId(), hasAvailableRoom);
+        });
+
+        // ✅ 태그 매핑
         List<AccommodationTagMapDTO> tagDTOs = queryFactory()
                 .select(Projections.constructor(AccommodationTagMapDTO.class,
                         atm.mapId,
