@@ -7,6 +7,7 @@ import com.honeyrest.honeyrest_user.util.FileUploadUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -55,5 +56,23 @@ public class BannerService {
                 .toList();
     }
 
+    public BannerDTO getRandomBanner() {
+        List<Banner> result = bannerRepository.findRandomBanner(LocalDateTime.now(), PageRequest.of(0, 1));
+        if (result.isEmpty()) throw new IllegalStateException("활성화된 배너가 없습니다");
+
+        Banner banner = result.get(0);
+
+        return BannerDTO.builder()
+                .bannerId(banner.getBannerId())
+                .title(banner.getTitle())
+                .imageUrl(banner.getImageUrl())
+                .targetUrl(banner.getTargetUrl())
+                .position(banner.getPosition())
+                .sortOrder(banner.getSortOrder())
+                .startDate(banner.getStartDate())
+                .endDate(banner.getEndDate())
+                .isActive(banner.getIsActive())
+                .build();
+    }
 
 }

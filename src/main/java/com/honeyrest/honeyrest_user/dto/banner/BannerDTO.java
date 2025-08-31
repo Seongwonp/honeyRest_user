@@ -16,6 +16,8 @@ import java.time.LocalDateTime;
 @Schema(description = "배너 등록 요청 DTO")
 public class BannerDTO {
 
+    private Long bannerId;
+
     @Schema(description = "배너 제목", example = "여름 할인 배너")
     private String title;
 

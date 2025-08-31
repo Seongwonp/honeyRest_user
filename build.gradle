@@ -80,7 +80,7 @@ dependencies {
     implementation 'net.coobird:thumbnailator:0.4.19'
 
 
-
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
     // 롬복
     compileOnly 'org.projectlombok:lombok'

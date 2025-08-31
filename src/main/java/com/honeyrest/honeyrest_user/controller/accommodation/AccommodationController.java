@@ -40,7 +40,9 @@ public class AccommodationController {
 
     @GetMapping("/search")
     public PageResponseDTO<AccommodationSearchDTO> search(
-            @RequestParam String location,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkIn,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
             @RequestParam int guests,
@@ -51,11 +53,13 @@ public class AccommodationController {
             @RequestParam(required = false) BigDecimal maxPrice,
             Pageable pageable
     ) {
-        log.info("숙소 검색 요청: location={}, guests={}, sort={}, categories={}, tags={}, maxPrice={}",
-                location, guests, sort, selectedCategories, selectedTags, maxPrice);
+        log.info("숙소 검색 요청: location={}, lat={}, lng={}, guests={}, sort={}, categories={}, tags={}, maxPrice={}",
+                location, lat, lng, guests, sort, selectedCategories, selectedTags, maxPrice);
 
         return accommodationService.searchAvailable(
                 location,
+                lat,
+                lng,
                 checkIn,
                 checkOut,
                 guests,

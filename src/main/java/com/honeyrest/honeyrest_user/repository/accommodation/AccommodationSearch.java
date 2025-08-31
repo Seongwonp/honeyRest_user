@@ -11,6 +11,8 @@ import java.util.List;
 public interface AccommodationSearch {
     public Page<AccommodationSearchDTO> searchAvailable(
             String location,
+            Double lat,
+            Double lng,
             LocalDate checkIn,
             LocalDate checkOut,
             int guests,

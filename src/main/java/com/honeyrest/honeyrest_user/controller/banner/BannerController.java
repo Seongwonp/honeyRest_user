@@ -55,16 +55,12 @@ public class BannerController {
 
     @GetMapping("/random")
     public ApiResponse<?> getRandomBanner() {
-        List<BannerDTO> banners = bannerService.getBanners();
-
-        if (banners.isEmpty()) {
-            return ApiResponse.error("활성화된 배너가 없습니다");
+        try {
+            BannerDTO banner = bannerService.getRandomBanner();
+            return ApiResponse.ok(banner);
+        } catch (IllegalStateException e) {
+            return ApiResponse.error(e.getMessage());
         }
-
-        int index = ThreadLocalRandom.current().nextInt(banners.size());
-        BannerDTO selected = banners.get(index);
-
-        return ApiResponse.ok(selected);
     }
 
 }

@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.controller.region;
 
+import com.honeyrest.honeyrest_user.dto.region.PopulerRegionDTO;
 import com.honeyrest.honeyrest_user.dto.region.RegionDTO;
 import com.honeyrest.honeyrest_user.entity.Region;
 import com.honeyrest.honeyrest_user.service.RegionService;
@@ -15,14 +16,39 @@ public class RegionController {
 
     private final RegionService regionService;
 
-    @GetMapping
-    public List<RegionDTO> getRegions(
-            @RequestParam(required = false) Integer level,
-            @RequestParam(required = false) Integer parentId,
-            @RequestParam(required = false) Boolean isPopular
+    @GetMapping("/all")
+    public List<RegionDTO> getAllRegions() {
+        return regionService.getAllRegions().stream()
+                .map(region -> RegionDTO.builder()
+                        .regionId(region.getRegionId())
+                        .name(region.getName())
+                        .level(region.getLevel())
+                        .parentId(region.getParentId())
+                        .isPopular(region.isPopular())
+                        .build())
+                .toList();
+    }
+
+    @GetMapping("/popular")
+    public List<PopulerRegionDTO> getPopularRegions(@RequestParam(required = false) Integer level) {
+        return regionService.getPopularRegions().stream()
+                .map(region -> PopulerRegionDTO.builder()
+                        .regionId(region.getRegionId())
+                        .imgUrl(region.getImageUrl())
+                        .name(region.getName())
+                        .level(region.getLevel())
+                        .parentId(region.getParentId())
+                        .isPopular(region.isPopular())
+                        .build())
+                .toList();
+    }
+
+    @GetMapping("/child")
+    public List<RegionDTO> getRegionsByParent(
+            @RequestParam Integer level,
+            @RequestParam Integer parentId
     ) {
-        List<Region> regions = regionService.findRegions(level, parentId, isPopular);
-        return regions.stream()
+        return regionService.getRegionsByParent(level, parentId).stream()
                 .map(region -> RegionDTO.builder()
                         .regionId(region.getRegionId())
                         .name(region.getName())

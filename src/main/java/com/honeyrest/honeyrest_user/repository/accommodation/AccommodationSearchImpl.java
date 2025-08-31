@@ -1,12 +1,14 @@
 package com.honeyrest.honeyrest_user.repository.accommodation;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationSearchDTO;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationTagMapDTO;
 import com.honeyrest.honeyrest_user.entity.*;
 import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.core.types.dsl.NumberTemplate;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
@@ -15,8 +17,10 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -26,6 +30,8 @@ import java.util.stream.Collectors;
 public class AccommodationSearchImpl implements AccommodationSearch {
 
     private final EntityManager em;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final ObjectMapper objectMapper;
 
     private JPAQueryFactory queryFactory() {
         return new JPAQueryFactory(em);
@@ -34,6 +40,8 @@ public class AccommodationSearchImpl implements AccommodationSearch {
     @Override
     public Page<AccommodationSearchDTO> searchAvailable(
             String location,
+            Double lat,
+            Double lng,
             LocalDate checkIn,
             LocalDate checkOut,
             int guests,
@@ -54,7 +62,14 @@ public class AccommodationSearchImpl implements AccommodationSearch {
 
         BooleanBuilder builder = new BooleanBuilder();
 
-        if (location != null && !location.isBlank()) {
+        // 좌표 기반 거리 필터링
+        if (lat != null && lng != null) {
+            NumberTemplate<Double> distance = Expressions.numberTemplate(Double.class,
+                    "ST_Distance_Sphere(point({0}, {1}), point({2}, {3}))",
+                    a.longitude, a.latitude, lng, lat
+            );
+            builder.and(distance.loe(5000.0)); // 반경 5km
+        } else if (location != null && !location.isBlank()) {
             builder.and(
                     a.mainRegion.name.containsIgnoreCase(location)
                             .or(a.subRegion.name.containsIgnoreCase(location))
@@ -94,7 +109,30 @@ public class AccommodationSearchImpl implements AccommodationSearch {
             default -> a.minPrice.asc();
         };
 
-        // ✅ 숙소 리스트 조회
+        // Redis 캐시 키에 좌표 포함
+        String cacheKey = String.format(
+                "search:recommend:%s:%s:%s:%s:%f:%f:%d:%d",
+                location != null ? location : "any",
+                selectedCategories != null ? String.join("-", selectedCategories) : "any",
+                selectedTags != null ? String.join("-", selectedTags) : "any",
+                sort != null ? sort : "default",
+                lat != null ? lat : 0.0,
+                lng != null ? lng : 0.0,
+                pageable.getPageNumber(),
+                pageable.getPageSize()
+        );
+
+        Object raw = redisTemplate.opsForValue().get(cacheKey);
+        List<AccommodationSearchDTO> cachedResults = raw != null
+                ? objectMapper.convertValue(raw, new TypeReference<List<AccommodationSearchDTO>>() {})
+                : null;
+
+        if (cachedResults != null && !cachedResults.isEmpty()) {
+            log.info("🚀 Redis 캐시 HIT: {}", cacheKey);
+            return new PageImpl<>(cachedResults, pageable, cachedResults.size());
+        }
+
+        // 숙소 리스트 조회
         List<AccommodationSearchDTO> results = queryFactory()
                 .select(Projections.constructor(AccommodationSearchDTO.class,
                         a.accommodationId,
@@ -108,7 +146,9 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                         a.category.name,
                         w.wishlistId.isNotNull(),
                         a.mainRegion.name,
-                        a.subRegion.name
+                        a.subRegion.name,
+                        a.latitude.doubleValue(),
+                        a.longitude.doubleValue()
                 ))
                 .from(a)
                 .join(r).on(r.accommodation.accommodationId.eq(a.accommodationId))
@@ -128,7 +168,7 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                 .map(AccommodationSearchDTO::getId)
                 .toList();
 
-        // ✅ 예약된 Room 수량 조회 (캐싱)
+        // 예약된 Room 수량 조회
         Map<Long, Long> reservedRoomCounts = queryFactory()
                 .select(r.roomId, res.reservationId.count())
                 .from(res)
@@ -146,7 +186,7 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                         tuple -> Optional.ofNullable(tuple.get(res.reservationId.count())).orElse(0L)
                 ));
 
-        // ✅ 숙소별 Room 리스트 조회 (캐싱)
+        // 숙소별 Room 리스트 조회
         List<Room> allRooms = queryFactory()
                 .selectFrom(r)
                 .where(r.accommodation.accommodationId.in(accommodationIds))
@@ -155,7 +195,7 @@ public class AccommodationSearchImpl implements AccommodationSearch {
         Map<Long, List<Room>> roomMap = allRooms.stream()
                 .collect(Collectors.groupingBy(room -> room.getAccommodation().getAccommodationId()));
 
-        // ✅ available 판단
+        // 예약 가능 여부 판단
         results.forEach(dto -> {
             List<Room> rooms = roomMap.getOrDefault(dto.getId(), List.of());
 
@@ -168,7 +208,7 @@ public class AccommodationSearchImpl implements AccommodationSearch {
             log.info("🛏️ 숙소 ID: {}, 예약 가능 여부: {}", dto.getId(), hasAvailableRoom);
         });
 
-        // ✅ 태그 매핑
+        // 태그 매핑
         List<AccommodationTagMapDTO> tagDTOs = queryFactory()
                 .select(Projections.constructor(AccommodationTagMapDTO.class,
                         atm.mapId,
@@ -187,6 +227,10 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                 .collect(Collectors.groupingBy(AccommodationTagMapDTO::getAccommodationId));
 
         results.forEach(dto -> dto.setTags(tagMap.getOrDefault(dto.getId(), List.of())));
+
+        // 캐시 저장
+        redisTemplate.opsForValue().set(cacheKey, results, Duration.ofHours(6));
+        log.info("📦 Redis 캐시 저장: {}", cacheKey);
 
         Long total = queryFactory()
                 .select(a.accommodationId.countDistinct())

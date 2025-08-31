@@ -42,4 +42,16 @@ public class EmailController {
         TokenStatusResponseDTO status = emailService.getTokenStatus(token);
         return ResponseEntity.ok(status);
     }
+
+    // 이메일 변경 인증 처리
+    @PostMapping("/verify-change")
+    public ResponseEntity<String> verifyEmailChange(
+            @RequestParam("token") String token,
+            @RequestParam("newEmail") String newEmail
+    ) {
+        emailService.confirmEmailChange(token, newEmail);
+        return ResponseEntity.ok("이메일 변경이 완료되었습니다.");
+    }
+
+
 }

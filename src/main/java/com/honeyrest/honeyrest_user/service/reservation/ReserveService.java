@@ -2,13 +2,17 @@ package com.honeyrest.honeyrest_user.service.reservation;
 
 import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationCompleteDTO;
+import com.honeyrest.honeyrest_user.dto.reservation.ReservationDetailDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationRequestDTO;
+import com.honeyrest.honeyrest_user.dto.reservation.ReservationSummaryDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.guest.GuestReservationLookupRequestDTO;
 import com.honeyrest.honeyrest_user.entity.*;
 import com.honeyrest.honeyrest_user.mapper.ReservationMapper;
+import com.honeyrest.honeyrest_user.repository.payment.PaymentDetailRepository;
 import com.honeyrest.honeyrest_user.repository.payment.PaymentRepository;
 import com.honeyrest.honeyrest_user.repository.reservation.ReservationRepository;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
+import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;
 import com.honeyrest.honeyrest_user.repository.room.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -29,7 +33,9 @@ public class ReserveService {
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final PaymentRepository paymentRepository;
+    private final PaymentDetailRepository paymentDetailRepository;
     private final ReservationMapper reservationMapper;
+    private final ReviewRepository reviewRepository;
 
     public Reservation createReservation(ReservationRequestDTO request, BigDecimal amount, BigDecimal discountAmount) {
         Room room = roomRepository.findById(request.getRoomId())
@@ -78,28 +84,40 @@ public class ReserveService {
         return reservationMapper.toCompleteDTO(reservation, payment);
     }
 
-    public PageResponseDTO<ReservationCompleteDTO> getUserReservations(Long userId, Pageable pageable) {
+    public PageResponseDTO<ReservationSummaryDTO> getUserReservationSummary(Long userId, Pageable pageable) {
         Page<Reservation> page = reservationRepository.findByUser_UserId(userId, pageable);
 
-        List<ReservationCompleteDTO> content = page.stream()
-                .map(res -> {
-                    Payment payment = paymentRepository.findByReservation(res).orElse(null);
-                    return reservationMapper.toCompleteDTO(res, payment);
-                })
+        List<ReservationSummaryDTO> content = page.stream()
+                .map(reservationMapper::toSummaryDTO)
                 .toList();
 
-        PageResponseDTO<ReservationCompleteDTO> pageResponseDTO = PageResponseDTO.<ReservationCompleteDTO>builder()
+        return PageResponseDTO.<ReservationSummaryDTO>builder()
                 .content(content)
                 .totalPages(page.getTotalPages())
                 .totalElements(page.getTotalElements())
                 .page(page.getNumber())
                 .size(page.getSize())
                 .build();
-
-        log.info("페이징된 예약 목록 {}:", pageResponseDTO);
-
-        return pageResponseDTO;
     }
+
+    public ReservationDetailDTO getReservationDetail(Long userId, Long reservationId) {
+        Reservation reservation = reservationRepository.findByReservationIdAndUser_UserId(reservationId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("예약 정보를 찾을 수 없습니다."));
+
+        Payment payment = paymentRepository.findByReservation(reservation)
+                .orElseThrow(() -> new IllegalArgumentException("결제 정보를 찾을 수 없습니다."));
+
+        PaymentDetail detail = paymentDetailRepository.findByPayment(payment)
+                .orElseThrow(() -> new IllegalArgumentException("결제 상세 정보를 찾을 수 없습니다."));
+        boolean isReviewed = reviewRepository.existsByReservation(reservation);
+        ReservationDetailDTO dto = reservationMapper.toDetailDTO(reservation, payment, detail, isReviewed);
+
+        log.info("예약내역 조회: {}",dto);
+
+        return dto;
+    }
+
+
 
 
 }

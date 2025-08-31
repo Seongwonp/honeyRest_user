@@ -6,22 +6,19 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReviewDTO {
-    private Long reviewId;
-    private Long userId;
-    private String nickname;
+public class ReviewRequestDTO {
+    private Long reservationId;
     private BigDecimal rating;
+    private BigDecimal cleanlinessRating;
+    private BigDecimal serviceRating;
+    private BigDecimal facilitiesRating;
+    private BigDecimal locationRating;
     private String content;
-    private String reply;
-    private Integer likeCount;
-    private List<String> images;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private List<String> imageUrls;
 }

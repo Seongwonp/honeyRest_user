@@ -51,19 +51,26 @@ public class JwtTokenProvider {
         return token;
     }
 
-    public boolean validateToken(String token) {
+    public void validateTokenOrThrow(String token) {
         try {
-            Jwts.parserBuilder()
+            Jws<Claims> claims = Jwts.parserBuilder()
                     .setSigningKey(key)
                     .build()
                     .parseClaimsJws(token);
+
+            Date expiration = claims.getBody().getExpiration();
+            if (expiration.before(new Date())) {
+                log.warn("❌ JWT 만료됨: {}", expiration);
+                throw new JwtException("토큰이 만료되었습니다."); // ✅ 401 유도
+            }
+
             log.info("✅ JWT 유효성 검사 통과");
-            return true;
         } catch (JwtException | IllegalArgumentException e) {
             log.warn("❌ JWT 유효성 검사 실패: {}", e.getMessage());
-            return false;
+            throw new JwtException("유효하지 않은 토큰입니다."); // ✅ 401 유도
         }
     }
+
 
     public Long getUserId(String token) {
         Claims claims = Jwts.parserBuilder()

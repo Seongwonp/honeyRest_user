@@ -10,13 +10,16 @@ import com.honeyrest.honeyrest_user.dto.region.RegionDTO;
 import com.honeyrest.honeyrest_user.dto.review.ReviewDTO;
 import com.honeyrest.honeyrest_user.dto.room.RoomDTO;
 import com.honeyrest.honeyrest_user.entity.*;
+import com.honeyrest.honeyrest_user.repository.review.ReviewRedisLikeRepository;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,6 +35,9 @@ import static com.honeyrest.honeyrest_user.entity.QReservation.reservation;
 public class AccommodationDetailQueryRepository {
 
     private final JPAQueryFactory queryFactory;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final ObjectMapper objectMapper;
+    private final ReviewRedisLikeRepository reviewRedisLikeRepository;
 
     public AccommodationDetailDTO fetchDetailById(Long id, Long userId, LocalDate checkIn, LocalDate checkOut, Integer guests) {
         QAccommodation accommodation = QAccommodation.accommodation;
@@ -48,43 +54,58 @@ public class AccommodationDetailQueryRepository {
         QWishList wishList = QWishList.wishList;
         QCancellationPolicy qCancellationPolicy = QCancellationPolicy.cancellationPolicy;
 
-        AccommodationDetailFlatDTO flat = queryFactory
-                .select(Projections.bean(AccommodationDetailFlatDTO.class,
-                        accommodation.accommodationId.as("id"),
-                        accommodation.name,
-                        accommodation.category.name.as("category"),
-                        accommodation.address,
-                        accommodation.minPrice.as("price"),
-                        accommodation.description.as("intro"),
-                        accommodation.amenities,
-                        accommodation.checkInTime,
-                        accommodation.checkOutTime,
-                        accommodation.rating,
-                        accommodation.latitude,
-                        accommodation.longitude,
-                        company.name.as("companyName"),
-                        company.businessNumber.as("companyBusinessNumber"),
-                        company.companyId.as("companyId"),
-                        company.ownerName.as("ownerName"),
-                        company.phone.as("phone"),
-                        company.email.as("email"),
-                        company.address.as("companyAddress"),
-                        mainRegion.regionId.as("mainRegionId"),
-                        mainRegion.name.as("mainRegionName"),
-                        mainRegion.level.as("mainRegionLevel"),
-                        mainRegion.parentId.as("mainRegionParentId"),
-                        mainRegion.isPopular.as("mainRegionIsPopular"),
-                        subRegion.regionId.as("subRegionId"),
-                        subRegion.name.as("subRegionName")
-                ))
-                .from(accommodation)
-                .leftJoin(accommodation.company, company)
-                .leftJoin(accommodation.mainRegion, mainRegion)
-                .leftJoin(accommodation.subRegion, subRegion)
-                .where(accommodation.accommodationId.eq(id))
-                .fetchOne();
+        // Redis 키 정의
+        String detailKey = "accommodation:detail:" + id;
+        String imagesKey = "accommodation:images:" + id;
+        String tagsKey = "accommodation:tags:" + id;
+        String reviewCountKey = "reviewCount:accommodation:" + id;
+        String reviewListKey = "reviewList:accommodation:" + id;
+        String cancellationKey = "cancellationPolicy:accommodation:" + id;
 
-        if (flat == null) return null;
+        // 숙소 기본 정보 캐싱
+        Object rawFlat = redisTemplate.opsForValue().get(detailKey);
+        AccommodationDetailFlatDTO flat = rawFlat != null
+                ? objectMapper.convertValue(rawFlat, AccommodationDetailFlatDTO.class)
+                : null;
+        if (flat == null) {
+            flat = queryFactory.select(Projections.bean(AccommodationDetailFlatDTO.class,
+                            accommodation.accommodationId.as("id"),
+                            accommodation.name,
+                            accommodation.category.name.as("category"),
+                            accommodation.address,
+                            accommodation.minPrice.as("price"),
+                            accommodation.description.as("intro"),
+                            accommodation.amenities,
+                            accommodation.checkInTime,
+                            accommodation.checkOutTime,
+                            accommodation.rating,
+                            accommodation.latitude,
+                            accommodation.longitude,
+                            company.name.as("companyName"),
+                            company.businessNumber.as("companyBusinessNumber"),
+                            company.companyId.as("companyId"),
+                            company.ownerName.as("ownerName"),
+                            company.phone.as("phone"),
+                            company.email.as("email"),
+                            company.address.as("companyAddress"),
+                            mainRegion.regionId.as("mainRegionId"),
+                            mainRegion.name.as("mainRegionName"),
+                            mainRegion.level.as("mainRegionLevel"),
+                            mainRegion.parentId.as("mainRegionParentId"),
+                            mainRegion.isPopular.as("mainRegionIsPopular"),
+                            subRegion.regionId.as("subRegionId"),
+                            subRegion.name.as("subRegionName")
+                    ))
+                    .from(accommodation)
+                    .leftJoin(accommodation.company, company)
+                    .leftJoin(accommodation.mainRegion, mainRegion)
+                    .leftJoin(accommodation.subRegion, subRegion)
+                    .where(accommodation.accommodationId.eq(id))
+                    .fetchOne();
+
+            if (flat == null) return null;
+            redisTemplate.opsForValue().set(detailKey, flat);
+        }
 
         AccommodationDetailDTO dto = AccommodationDetailDTO.builder()
                 .id(flat.getId())
@@ -122,27 +143,45 @@ public class AccommodationDetailQueryRepository {
                         .build())
                 .build();
 
-        List<String> images = queryFactory
-                .select(image.imageUrl)
-                .from(image)
-                .where(image.accommodation.accommodationId.eq(id))
-                .orderBy(image.sortOrder.asc())
-                .fetch();
+        // 이미지 캐싱
+        List<Object> rawList = redisTemplate.opsForList().range(imagesKey, 0, -1);
+        List<String> images = Optional.ofNullable(rawList)
+                .orElse(List.of())
+                .stream()
+                .filter(String.class::isInstance)
+                .map(String.class::cast)
+                .toList();
+        if (images.isEmpty()) {
+            images = queryFactory.select(image.imageUrl)
+                    .from(image)
+                    .where(image.accommodation.accommodationId.eq(id))
+                    .orderBy(image.sortOrder.asc())
+                    .fetch();
+            images.forEach(img -> redisTemplate.opsForList().rightPush(imagesKey, img));
+        }
         dto.setImages(images);
 
-        List<AccommodationTagDTO> tags = queryFactory
-                .select(Projections.bean(AccommodationTagDTO.class,
-                        tag.tagId,
-                        tag.name,
-                        tag.category,
-                        tag.iconName
-                ))
-                .from(tagMap)
-                .join(tagMap.tag, tag)
-                .where(tagMap.accommodation.accommodationId.eq(id))
-                .fetch();
+        // 태그 캐싱
+        Object rawTags = redisTemplate.opsForValue().get(tagsKey);
+        List<AccommodationTagDTO> tags = rawTags != null
+                ? objectMapper.convertValue(rawTags, new TypeReference<List<AccommodationTagDTO>>() {})
+                : List.of();
+        if (tags.isEmpty()) {
+            tags = queryFactory.select(Projections.bean(AccommodationTagDTO.class,
+                            tag.tagId,
+                            tag.name,
+                            tag.category,
+                            tag.iconName
+                    ))
+                    .from(tagMap)
+                    .join(tagMap.tag, tag)
+                    .where(tagMap.accommodation.accommodationId.eq(id))
+                    .fetch();
+            redisTemplate.opsForValue().set(tagsKey, tags);
+        }
         dto.setTags(tags);
 
+        // 예약된 객실 수 실시간 계산
         Map<Long, Long> reservedRoomCounts = queryFactory
                 .select(room.roomId, reservation.reservationId.count())
                 .from(reservation)
@@ -161,6 +200,7 @@ public class AccommodationDetailQueryRepository {
                         tuple -> Optional.ofNullable(tuple.get(reservation.reservationId.count())).orElse(0L)
                 ));
 
+        // 객실 조건
         BooleanBuilder roomCondition = new BooleanBuilder();
         roomCondition.and(room.accommodation.accommodationId.eq(id));
         roomCondition.and(room.status.eq("ACTIVE"));
@@ -195,6 +235,7 @@ public class AccommodationDetailQueryRepository {
         });
         dto.setRooms(rooms);
 
+        // 객실 이미지
         Map<Long, List<String>> roomImageMap = queryFactory
                 .select(roomImage.room.roomId, roomImage.imageUrl)
                 .from(roomImage)
@@ -208,31 +249,65 @@ public class AccommodationDetailQueryRepository {
                 ));
         rooms.forEach(r -> r.setImages(roomImageMap.getOrDefault(r.getRoomId(), List.of())));
 
-        List<ReviewDTO> reviews = queryFactory
-                .select(Projections.bean(ReviewDTO.class,
-                        review.reviewId,
-                        review.rating,
-                        review.content,
-                        review.reply,
-                        review.likeCount
-                ))
-                .from(review)
-                .where(review.accommodationId.eq(id)
-                        .and(review.status.eq("PUBLISHED")))
-                .orderBy(review.reviewId.desc())
-                .limit(10)
-                .fetch();
+        // 리뷰 리스트 캐싱
+        Object rawReviews = redisTemplate.opsForValue().get(reviewListKey);
+        List<ReviewDTO> reviews = rawReviews != null
+                ? objectMapper.convertValue(rawReviews, new TypeReference<List<ReviewDTO>>() {})
+                : List.of();
+
+        if (reviews.isEmpty()) {
+            // 1. QueryDSL로 리뷰 리스트 조회
+            reviews = queryFactory
+                    .select(Projections.fields(ReviewDTO.class,
+                            review.reviewId,
+                            review.rating,
+                            review.content,
+                            review.reply,
+                            review.likeCount, // 초기값: DB에 저장된 값
+                            review.user.name.as("nickname"),
+                            review.user.userId.as("userId")
+                    ))
+                    .from(review)
+                    .where(review.accommodationId.eq(id)
+                            .and(review.status.eq("PUBLISHED")))
+                    .orderBy(review.reviewId.desc())
+                    .limit(10)
+                    .fetch();
+
+            // 2. Redis에서 좋아요 수 보정
+            for (ReviewDTO r : reviews) {
+                Integer redisCount = reviewRedisLikeRepository.getLikeCount(r.getReviewId());
+                if (redisCount != null) {
+                    r.setLikeCount(redisCount);
+                }
+            }
+
+            // 3. Redis에 캐싱 (TTL 포함)
+            redisTemplate.opsForValue().set(reviewListKey, reviews, Duration.ofMinutes(5));
+        }
+
+// 4. DTO에 리뷰 리스트 세팅
         dto.setReviews(reviews);
 
-        int reviewCount = queryFactory
-                .select(review.count())
-                .from(review)
-                .where(review.accommodationId.eq(id)
-                        .and(review.status.eq("PUBLISHED")))
-                .fetchOne()
-                .intValue();
+        // 리뷰 수 캐싱
+        Object rawCount = redisTemplate.opsForValue().get(reviewCountKey);
+        Integer reviewCount = rawCount != null
+                ? objectMapper.convertValue(rawCount, Integer.class)
+                : null;
+        // 리뷰 수 캐싱
+        if (reviewCount == null) {
+            reviewCount = queryFactory
+                    .select(review.count())
+                    .from(review)
+                    .where(review.accommodationId.eq(id)
+                            .and(review.status.eq("PUBLISHED")))
+                    .fetchOne()
+                    .intValue();
+            redisTemplate.opsForValue().set(reviewCountKey, reviewCount, Duration.ofMinutes(3));
+        }
         dto.setReviewCount(reviewCount);
 
+        // 리뷰 이미지
         Map<Long, List<String>> reviewImageMap = queryFactory
                 .select(reviewImage.review.reviewId, reviewImage.imageUrl)
                 .from(reviewImage)
@@ -245,6 +320,7 @@ public class AccommodationDetailQueryRepository {
                 ));
         reviews.forEach(r -> r.setImages(reviewImageMap.getOrDefault(r.getReviewId(), List.of())));
 
+        // 위시리스트 여부 (실시간 조회)
         boolean wished = false;
         if (userId != null) {
             wished = queryFactory
@@ -258,32 +334,39 @@ public class AccommodationDetailQueryRepository {
         }
         dto.setWished(wished);
 
-        List<CancellationPolicyDTO> cancellationPolicies = queryFactory
-                .select(Projections.bean(CancellationPolicyDTO.class,
-                        qCancellationPolicy.policyId,
-                        qCancellationPolicy.policyName,
-                        qCancellationPolicy.detail,
-                        qCancellationPolicy.accommodation.accommodationId))
-                .from(qCancellationPolicy)
-                .where(qCancellationPolicy.accommodation.accommodationId.eq(id))
-                .fetch();
-
+        // 취소 정책 캐싱
+        Object rawPolicies = redisTemplate.opsForValue().get(cancellationKey);
+        List<CancellationPolicyDTO> cancellationPolicies = rawPolicies != null
+                ? objectMapper.convertValue(rawPolicies, new TypeReference<List<CancellationPolicyDTO>>() {})
+                : List.of();
+        if (cancellationPolicies.isEmpty()) {
+            cancellationPolicies = queryFactory
+                    .select(Projections.bean(CancellationPolicyDTO.class,
+                            qCancellationPolicy.policyId,
+                            qCancellationPolicy.policyName,
+                            qCancellationPolicy.detail,
+                            qCancellationPolicy.accommodation.accommodationId))
+                    .from(qCancellationPolicy)
+                    .where(qCancellationPolicy.accommodation.accommodationId.eq(id))
+                    .fetch();
+            redisTemplate.opsForValue().set(cancellationKey, cancellationPolicies);
+        }
         dto.setCancellationPolicies(cancellationPolicies);
 
+        // 예약 로그 출력
         long totalReserved = reservedRoomCounts.values().stream().mapToLong(Long::longValue).sum();
         log.info("✅ 총 예약된 Room 수: {}", totalReserved);
-
         reservedRoomCounts.forEach((roomId, count) ->
                 log.info("🔒 Room ID {} → 예약 수량: {}", roomId, count)
         );
-
         boolean hasAvailableRoom = rooms.stream().anyMatch(RoomDTO::isAvailable);
         log.info("🏨 숙소 전체 예약 가능 여부: {}", hasAvailableRoom ? "가능" : "불가");
 
-        log.info("📦 디테일 출력: {}", dto);
+        log.info("최종 데이터: {}",dto);
 
         return dto;
     }
+
 
     private String formatTime(LocalDateTime time) {
         return time != null ? time.toLocalTime().toString() : "-";
@@ -291,9 +374,11 @@ public class AccommodationDetailQueryRepository {
 
     private List<String> parseJsonList(String json) {
         try {
-            return new ObjectMapper().readValue(json, new TypeReference<List<String>>() {});
+            return new ObjectMapper().readValue(json, new TypeReference<List<String>>() {
+            });
         } catch (Exception e) {
             return List.of();
         }
     }
+
 }

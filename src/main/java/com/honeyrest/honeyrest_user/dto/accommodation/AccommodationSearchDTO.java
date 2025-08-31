@@ -17,6 +17,8 @@ public class AccommodationSearchDTO {
     private Long id;                          // 숙소 ID
     private String title;                     // 숙소명
     private String location;                  // 주소 or 지역명
+    private Double lat;
+    private Double lng;
     private String image;                     // 썸네일 이미지 URL
     private BigDecimal price;                 // 할인된 가격
     private BigDecimal originalPrice;         // 할인 전 가격
@@ -37,10 +39,13 @@ public class AccommodationSearchDTO {
 
     public AccommodationSearchDTO(Long id, String title, String location, String image,
                                   BigDecimal price, BigDecimal originalPrice, BigDecimal rating, Long reviewCount,
-                                  String category, Boolean isWishlisted, String mainRegionName, String subRegionName) {
+                                  String category, Boolean isWishlisted, String mainRegionName, String subRegionName,
+                                  Double lat, Double lng) {
         this.id = id;
         this.title = title;
         this.location = location;
+        this.lat = lat;
+        this.lng = lng;
         this.image = image;
         this.price = price;
         this.originalPrice = originalPrice;

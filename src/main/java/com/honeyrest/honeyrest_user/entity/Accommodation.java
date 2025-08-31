@@ -74,4 +74,12 @@ public class Accommodation {
 
     @Column(length = 20)
     private String status; // 운영 상태(active, inactive
+
+
+    public void updateRating(BigDecimal rating) {
+        if (rating == null || rating.compareTo(BigDecimal.ZERO) < 0 || rating.compareTo(new BigDecimal("5.0")) > 0) {
+            throw new IllegalArgumentException("평점은 0.0 ~ 5.0 사이여야 합니다.");
+        }
+        this.rating = rating;
+    }
 }

@@ -1,13 +1,18 @@
 package com.honeyrest.honeyrest_user.service;
 
+import com.honeyrest.honeyrest_user.dto.WishlistedAccommodationDTO;
+import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
 import com.honeyrest.honeyrest_user.entity.Accommodation;
 import com.honeyrest.honeyrest_user.entity.User;
 import com.honeyrest.honeyrest_user.entity.WishList;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
-import com.honeyrest.honeyrest_user.repository.WishListRepository;
+import com.honeyrest.honeyrest_user.repository.wishList.WishListQueryRepository;
+import com.honeyrest.honeyrest_user.repository.wishList.WishListRepository;
 import com.honeyrest.honeyrest_user.repository.accommodation.AccommodationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -18,6 +23,7 @@ import java.util.Optional;
 public class WishListService {
 
     private final WishListRepository wishListRepository;
+    private final WishListQueryRepository  wishListQueryRepository;
     private final UserRepository userRepository;
     private final AccommodationRepository accommodationRepository;
 
@@ -46,4 +52,19 @@ public class WishListService {
         log.info("💖 찜 추가 완료");
         return true;
     }
+
+    public PageResponseDTO<WishlistedAccommodationDTO> getWishlistedAccommodations(Long userId, Pageable pageable) {
+        Page<WishlistedAccommodationDTO> page = wishListQueryRepository.findWishlistedAccommodations(userId, pageable);
+
+        return PageResponseDTO.<WishlistedAccommodationDTO>builder()
+                .content(page.getContent())
+                .page(page.getNumber())
+                .size(page.getSize())
+                .totalPages(page.getTotalPages())
+                .totalElements(page.getTotalElements())
+                .build();
+    }
+
+
+
 }

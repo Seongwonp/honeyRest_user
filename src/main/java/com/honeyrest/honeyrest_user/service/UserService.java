@@ -8,12 +8,15 @@ import com.honeyrest.honeyrest_user.security.JwtTokenProvider;
 import com.honeyrest.honeyrest_user.service.email.EmailVerificationTokenService;
 import com.honeyrest.honeyrest_user.util.FileUploadUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+@Log4j2
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -140,4 +143,29 @@ public class UserService {
                 .accessToken(accessToken)
                 .build();
     }
+
+    public boolean verifyPassword(Long userId, String password) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+        return passwordEncoder.matches(password, user.getPasswordHash());
+    }
+
+    @Transactional
+    public void updateProfile(Long userId, UserProfileUpdateRequestDTO dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        boolean emailChanged = !user.getEmail().equals(dto.getEmail());
+
+        user.updateProfile(dto.getName(), dto.getPhone());
+
+        if (emailChanged) {
+            emailService.sendEmailChangeToken(user, dto.getEmail());
+            log.info("📧 이메일 변경 요청 처리: {} → {}", user.getEmail(), dto.getEmail());
+        }
+
+        userRepository.save(user);
+        log.info("✅ 프로필 수정 완료{}", emailChanged ? " (이메일 변경은 인증 후 반영)" : "");
+    }
+
 }

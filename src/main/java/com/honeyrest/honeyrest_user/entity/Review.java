@@ -2,10 +2,7 @@ package com.honeyrest.honeyrest_user.entity;
 
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 
@@ -60,9 +57,11 @@ public class Review extends BaseEntity {
     @Column(name = "reply", columnDefinition = "TEXT")
     private String reply; // 업체/관리자 답변
 
+    @Setter
     @Column(name = "like_count")
     private Integer likeCount; // 좋아요 수
 
     @Column(name = "status", length = 20, nullable = false)
     private String status; // 상태(PUBLISHED, HIDDEN)
+
 }

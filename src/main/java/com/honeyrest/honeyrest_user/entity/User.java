@@ -73,5 +73,11 @@ public class User extends BaseEntity {
     public void updateLastLogin(LocalDateTime time) {
         this.lastLogin = time;
     }
-
+    public void updateEmail(String newEmail) {
+        this.email = newEmail;
+    }
+    public void updateProfile(String name, String phone) {
+        this.name = name;
+        this.phone = phone;
+    }
 }

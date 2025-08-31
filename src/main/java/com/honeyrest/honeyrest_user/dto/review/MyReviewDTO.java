@@ -13,15 +13,14 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReviewDTO {
+public class MyReviewDTO {
     private Long reviewId;
-    private Long userId;
-    private String nickname;
+    private List<String> imageUrls;
+    private String accommodationName;
+    private String roomName;
+    private String reply;
     private BigDecimal rating;
     private String content;
-    private String reply;
-    private Integer likeCount;
-    private List<String> images;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
