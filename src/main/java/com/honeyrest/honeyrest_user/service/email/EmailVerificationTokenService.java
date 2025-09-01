@@ -17,6 +17,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Service;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -137,9 +139,15 @@ public class EmailVerificationTokenService {
     }
 
 
-    public void sendEmailChangeToken(User user, String newEmail) {
-        String token = UUID.randomUUID().toString();
+    public void sendEmailChangeToken(Long userId, String newEmail, boolean isPasswordVerified) {
+        if (!isPasswordVerified) throw new SecurityException("비밀번호 인증 필요");
+        if (userRepository.existsByEmail(newEmail)) throw new IllegalArgumentException("이미 사용 중인 이메일");
 
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        // 기존 로직 유지
+        String token = UUID.randomUUID().toString();
         EmailVerificationToken tokenEntity = EmailVerificationToken.builder()
                 .user(user)
                 .tokenValue(token)
@@ -148,12 +156,12 @@ public class EmailVerificationTokenService {
 
         tokenRepository.save(tokenEntity);
 
-        String link = baseUrl + "/verify-email-change?token=" + token;
+        String link = baseUrl + "/verify-email-change?token=" + token + "&newEmail=" + URLEncoder.encode(newEmail, StandardCharsets.UTF_8);
 
         try {
             jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
             org.springframework.mail.javamail.MimeMessageHelper helper = new org.springframework.mail.javamail.MimeMessageHelper(message, true, "UTF-8");
-            helper.setTo(newEmail); // ✅ 여기 수정됨
+            helper.setTo(newEmail); // 여기 수정됨
             helper.setSubject("HoneyRest 이메일 변경 인증");
 
             String htmlContent = """

@@ -7,11 +7,14 @@ import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.security.JwtTokenProvider;
 import com.honeyrest.honeyrest_user.service.email.EmailVerificationTokenService;
 import com.honeyrest.honeyrest_user.util.FileUploadUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -23,6 +26,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final EmailVerificationTokenService emailService;
+    private final RefreshTokenService refreshTokenService;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final FileUploadUtil fileUploadUtil;
@@ -79,11 +83,11 @@ public class UserService {
     }
 
     // 로그인 작업
-    public LoginResponseDTO login(UserLoginRequestDTO dto) {
+    public LoginResponseDTO login(UserLoginRequestDTO dto, HttpServletResponse response) {
         User user = userRepository.findByEmail(dto.getEmail())
-                .orElse(null);
+                .orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다."));
 
-        if (user == null || !passwordEncoder.matches(dto.getPassword(), user.getPasswordHash())) {
+        if (!passwordEncoder.matches(dto.getPassword(), user.getPasswordHash())) {
             throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
@@ -91,7 +95,24 @@ public class UserService {
             throw new IllegalStateException("이메일 인증이 완료되지 않았습니다.");
         }
 
-        String accessToken = jwtTokenProvider.createToken(user.getUserId(), user.getRole());
+        String accessToken = jwtTokenProvider.createAccessToken(user.getUserId(), user.getRole());
+        String refreshToken = jwtTokenProvider.createRefreshToken();
+        LocalDateTime expiry = LocalDateTime.now().plusDays(7);
+
+        refreshTokenService.invalidateAllByUser(user);
+        refreshTokenService.saveRefreshToken(user, refreshToken, expiry);
+
+        // RefreshToken을 HttpOnly 쿠키로 설정
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(7 * 24 * 60 * 60)
+                .sameSite("Strict")
+                .build();
+
+        response.addHeader("Set-Cookie", cookie.toString());
+
         user.updateLastLogin(LocalDateTime.now());
         userRepository.save(user);
 
@@ -109,11 +130,10 @@ public class UserService {
                 .build();
     }
 
-    // 소셜 로그인
-    public LoginResponseDTO socialLogin(SocialLoginRequestDTO dto) {
+    // 소셜로그인
+    public LoginResponseDTO socialLogin(SocialLoginRequestDTO dto, HttpServletResponse response) {
         User user = userRepository.findBySocialTypeAndSocialId(dto.getSocialType(), dto.getSocialId())
                 .orElseGet(() -> {
-                    // 최초 로그인 → 자동 회원가입
                     User newUser = User.builder()
                             .email(dto.getEmail())
                             .socialType(dto.getSocialType())
@@ -122,13 +142,29 @@ public class UserService {
                             .profileImage(dto.getProfileImage())
                             .role("USER")
                             .status("ACTIVE")
-                            .isVerified(true) // 소셜은 기본 인증 처리
+                            .isVerified(true)
                             .lastLogin(LocalDateTime.now())
                             .build();
                     return userRepository.save(newUser);
                 });
 
-        String accessToken = jwtTokenProvider.createToken(user.getUserId(), user.getRole());
+        String accessToken = jwtTokenProvider.createAccessToken(user.getUserId(), user.getRole());
+        String refreshToken = jwtTokenProvider.createRefreshToken();
+        LocalDateTime expiry = LocalDateTime.now().plusDays(7);
+
+        refreshTokenService.invalidateAllByUser(user);
+        refreshTokenService.saveRefreshToken(user, refreshToken, expiry);
+
+        // RefreshToken을 HttpOnly 쿠키로 설정
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(7 * 24 * 60 * 60)
+                .sameSite("Strict")
+                .build();
+
+        response.addHeader("Set-Cookie", cookie.toString());
 
         return LoginResponseDTO.builder()
                 .user(UserResponseDTO.builder()
@@ -144,6 +180,15 @@ public class UserService {
                 .build();
     }
 
+    public UserInfoDTO getUserInfo(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+        return UserInfoDTO.from(user);
+    }
+
+
+
+
     public boolean verifyPassword(Long userId, String password) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
@@ -152,20 +197,57 @@ public class UserService {
 
     @Transactional
     public void updateProfile(Long userId, UserProfileUpdateRequestDTO dto) {
+        if (!dto.isPasswordVerified()) {
+            throw new SecurityException("비밀번호 인증이 필요합니다.");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
         boolean emailChanged = !user.getEmail().equals(dto.getEmail());
 
-        user.updateProfile(dto.getName(), dto.getPhone());
-
         if (emailChanged) {
-            emailService.sendEmailChangeToken(user, dto.getEmail());
-            log.info("📧 이메일 변경 요청 처리: {} → {}", user.getEmail(), dto.getEmail());
+            throw new IllegalArgumentException("이메일은 별도 인증 절차를 통해 변경해야 합니다.");
         }
 
+        user.updateProfile(dto.getName(), dto.getPhone());
+
         userRepository.save(user);
-        log.info("✅ 프로필 수정 완료{}", emailChanged ? " (이메일 변경은 인증 후 반영)" : "");
+        log.info("✅ 프로필 수정 완료 (이메일 변경은 별도 인증 절차 필요)");
+    }
+
+
+    @Transactional
+    public String updateProfileImage(Long userId, MultipartFile file) throws Exception {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+        fileUploadUtil.delete("profile", user.getProfileImage());
+
+        String imgUrl = fileUploadUtil.upload(file,"profile");
+        user.updateProfileImage(imgUrl);
+        userRepository.save(user);
+        return imgUrl;
+    }
+
+
+    @Transactional
+    public void changePassword(Long userId, String currentPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("현재 비밀번호가 올바르지 않습니다.");
+        }
+
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("이전 비밀번호와 동일한 값은 사용할 수 없습니다.");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        log.info("✅ 비밀번호 변경 완료: userId={}", userId);
     }
 
 }

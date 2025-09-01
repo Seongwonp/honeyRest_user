@@ -80,4 +80,11 @@ public class User extends BaseEntity {
         this.name = name;
         this.phone = phone;
     }
+    public void updateProfileImage(String imageUrl) {
+        this.profileImage = imageUrl;
+    }
+
+    public void setPassword(String encode) {
+        this.passwordHash = encode;
+    }
 }

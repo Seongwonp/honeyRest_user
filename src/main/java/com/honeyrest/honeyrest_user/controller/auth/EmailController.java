@@ -53,5 +53,4 @@ public class EmailController {
         return ResponseEntity.ok("이메일 변경이 완료되었습니다.");
     }
 
-
 }

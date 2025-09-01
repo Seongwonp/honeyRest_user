@@ -1,16 +1,17 @@
 package com.honeyrest.honeyrest_user.dto.user;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class UserProfileUpdateRequestDTO {
-    private String name;
-    private String phone;
-    private String email;
+public class EmailChangeRequestDTO {
+    private String newEmail;
 
     @JsonProperty("isPasswordVerified")
     private boolean passwordVerified;
