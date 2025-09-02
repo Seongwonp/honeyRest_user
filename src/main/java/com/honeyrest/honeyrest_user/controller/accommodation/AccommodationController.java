@@ -1,9 +1,11 @@
 package com.honeyrest.honeyrest_user.controller.accommodation;
 
+import com.honeyrest.honeyrest_user.dto.CancellationPolicyDTO;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationDetailDTO;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationSearchDTO;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationSummaryDTO;
 import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
+import com.honeyrest.honeyrest_user.service.CancellationPolicyService;
 import com.honeyrest.honeyrest_user.service.accommodation.AccommodationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -28,6 +30,7 @@ import java.util.Map;
 public class AccommodationController {
 
     private final AccommodationService accommodationService;
+    private final CancellationPolicyService cancellationPolicyService;
 
     @GetMapping("/popular")
     public ResponseEntity<List<AccommodationSummaryDTO>> getPopularAccommodations(
@@ -91,5 +94,12 @@ public class AccommodationController {
         return ResponseEntity.ok(accommodationService.getDetail(id, userId, checkIn, checkOut, guests));
     }
 
+
+    @GetMapping("/{id}/cancellation-policies")
+    public ResponseEntity<List<CancellationPolicyDTO>> getCancellationPolicies(@PathVariable Long id) {
+        log.info("🔍 숙소 취소 규정 조회: accommodationId={}", id);
+        List<CancellationPolicyDTO> policies = cancellationPolicyService.getCancellationPoliciesByAccommodationId(id);
+        return ResponseEntity.ok(policies);
+    }
 
 }

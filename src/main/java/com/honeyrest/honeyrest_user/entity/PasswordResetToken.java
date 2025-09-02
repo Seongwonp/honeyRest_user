@@ -33,9 +33,15 @@ public class PasswordResetToken {
 
     private Boolean isUsed;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.isUsed = false;
+    // 명시적 생성자 또는 빌더에서 직접 세팅
+    public static PasswordResetToken create(User user, String tokenValue, LocalDateTime expiryDate) {
+        return PasswordResetToken.builder()
+                .user(user)
+                .tokenValue(tokenValue)
+                .expiryDate(expiryDate)
+                .createdAt(LocalDateTime.now())
+                .isUsed(false)
+                .build();
     }
+
 }

@@ -1,12 +1,14 @@
 package com.honeyrest.honeyrest_user.service;
 
 import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
+import com.honeyrest.honeyrest_user.dto.point.PointHistoryRequestDTO;
 import com.honeyrest.honeyrest_user.dto.review.MyReviewDTO;
 import com.honeyrest.honeyrest_user.dto.review.ReviewDTO;
 import com.honeyrest.honeyrest_user.dto.review.ReviewRequestDTO;
 import com.honeyrest.honeyrest_user.entity.Reservation;
 import com.honeyrest.honeyrest_user.entity.Review;
 import com.honeyrest.honeyrest_user.entity.ReviewImage;
+import com.honeyrest.honeyrest_user.entity.User;
 import com.honeyrest.honeyrest_user.repository.review.ReviewImageRepository;
 import com.honeyrest.honeyrest_user.repository.review.ReviewRedisLikeRepository;
 import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;
@@ -14,6 +16,7 @@ import com.honeyrest.honeyrest_user.repository.reservation.ReservationRepository
 import com.honeyrest.honeyrest_user.service.accommodation.AccommodationService;
 import com.honeyrest.honeyrest_user.util.FileUploadUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -21,10 +24,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Log4j2
 @Service
 @RequiredArgsConstructor
 public class ReviewService {
@@ -35,6 +40,8 @@ public class ReviewService {
     private final ReviewRedisLikeRepository reviewRedisLikeRepository;
     private final ReviewImageRepository reviewImageRepository;
     private final AccommodationService accommodationService;
+    private final PointHistoryService pointHistoryService;
+    private final UserService userService;
     private final FileUploadUtil  fileUploadUtil;
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -72,6 +79,24 @@ public class ReviewService {
                 reviewImageRepository.save(image);
             }
         }
+
+        // 리뷰 작성 포인트 적립
+        User user = reservation.getUser();
+        if (user != null) {
+            int rewardPoint = 1000;
+            userService.addPoint(user.getUserId(),rewardPoint);
+            pointHistoryService.addHistory(PointHistoryRequestDTO.builder()
+                    .userId(user.getUserId())
+                    .amount(rewardPoint)
+                    .type("SAVE")
+                    .reason("리뷰 작성 적립")
+                    .relatedId(reservation.getReservationId())
+                    .expiresAt(LocalDateTime.now().plusYears(1))
+                    .build());
+            log.info("🪙 리뷰 작성 포인트 적립 완료: userId={}, amount={}, reservationId={}",
+                    user.getUserId(), rewardPoint, reservation.getReservationId());
+        }
+
 
         // 평점 업데이트
         accommodationService.updateRating(reservation.getAccommodation().getAccommodationId());

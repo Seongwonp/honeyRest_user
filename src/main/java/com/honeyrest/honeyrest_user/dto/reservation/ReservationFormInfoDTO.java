@@ -30,6 +30,7 @@ public class ReservationFormInfoDTO {
     private Long userId;
     private String userName;
     private String userPhone;
+    private Integer availablePoints;
 
     private LocalDate checkIn;
     private LocalDate checkOut;

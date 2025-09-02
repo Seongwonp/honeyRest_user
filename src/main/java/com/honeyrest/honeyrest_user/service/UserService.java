@@ -250,4 +250,34 @@ public class UserService {
         log.info("✅ 비밀번호 변경 완료: userId={}", userId);
     }
 
+
+    @Transactional
+    public void usePoint(Long userId, Integer usedPoint) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다"));
+
+        int current = user.getPoint();
+        if (current < usedPoint) {
+            throw new IllegalArgumentException("사용 가능한 포인트가 부족합니다");
+        }
+
+        user.updatePoint(current - usedPoint);
+        userRepository.save(user);
+
+        log.info("🪙 포인트 차감 완료: userId={}, usedPoint={}, remainingPoint={}",
+                userId, usedPoint, user.getPoint());
+    }
+
+    @Transactional
+    public void addPoint(Long userId, Integer amount) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+
+        int updated = user.getPoint() + amount;
+        user.updatePoint(updated);
+        userRepository.save(user);
+
+        log.info("🪙 포인트 적립 완료: userId={}, amount={}, balance={}", userId, amount, updated);
+    }
+
 }

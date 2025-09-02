@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.springframework.data.domain.Sort.Direction.DESC;
 
@@ -69,6 +70,22 @@ public class UserController {
         ReservationDetailDTO dto = reserveService.getReservationDetail(userId, reservationId);
         return ResponseEntity.ok(dto);
     }
+
+    @PostMapping("/reservations/{reservationId}/cancel-request")
+    public ResponseEntity<Void> requestReservationCancel(
+            @PathVariable Long reservationId,
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        String reason = body.get("reason");
+        Long userId = principal.getUserId();
+
+        reserveService.requestReservationCancel(userId, reservationId, reason);
+        log.info("✅ 예약 취소 요청 완료: userId={}, reservationId={}, reason={}", userId, reservationId, reason);
+
+        return ResponseEntity.ok().build();
+    }
+
 
     @GetMapping("/reviews")
     public ResponseEntity<PageResponseDTO<MyReviewDTO>> getMyReviews(
@@ -150,6 +167,14 @@ public class UserController {
         userService.changePassword(userId, dto.getCurrentPassword(), dto.getNewPassword());
 
         return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
+    }
+
+    @PostMapping("/point")
+    public ResponseEntity<?> changePoint(
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ){
+
+        return null;
     }
 
 

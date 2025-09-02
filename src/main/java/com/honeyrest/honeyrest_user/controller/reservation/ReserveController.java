@@ -32,6 +32,7 @@ public class ReserveController {
             @RequestParam Integer guests
     ) {
         ReservationFormInfoDTO dto = reserveInfoService.getFormInfo(roomId, userId, checkIn, checkOut, guests);
+        log.info("예약폼 조회요청: {}", dto);
         return ResponseEntity.ok(dto);
     }
 

@@ -46,11 +46,13 @@ public class ReserveInfoService {
 
         String userName = null;
         String userPhone = null;
+        Integer userPoint =  null;
         if (userId != null) {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다"));
             userName = user.getName();
             userPhone = user.getPhone();
+            userPoint = user.getPoint();
         }
 
         long nights = ChronoUnit.DAYS.between(checkIn, checkOut);
@@ -85,6 +87,7 @@ public class ReserveInfoService {
                 .userId(userId)
                 .userName(userName)
                 .userPhone(userPhone)
+                .availablePoints(userPoint)
                 .checkIn(checkIn)
                 .checkOut(checkOut)
                 .guests(guests)

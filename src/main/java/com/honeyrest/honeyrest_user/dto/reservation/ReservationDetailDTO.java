@@ -18,6 +18,7 @@ public class ReservationDetailDTO {
     private Long reservationId;
     private String reservationCode; // 예약번호
     private String thumbnailUrl;
+    private Long accommodationId;
     private String accommodationName;
     private String roomName;
     private LocalDate checkIn;

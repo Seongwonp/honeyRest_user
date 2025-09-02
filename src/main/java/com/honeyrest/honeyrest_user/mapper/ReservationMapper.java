@@ -6,6 +6,7 @@ import com.honeyrest.honeyrest_user.dto.reservation.ReservationSummaryDTO;
 import com.honeyrest.honeyrest_user.entity.Payment;
 import com.honeyrest.honeyrest_user.entity.PaymentDetail;
 import com.honeyrest.honeyrest_user.entity.Reservation;
+import com.honeyrest.honeyrest_user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,8 @@ public class ReservationMapper {
     private final PaymentDetailMapper paymentDetailMapper;
 
     public ReservationCompleteDTO toCompleteDTO(Reservation reservation, Payment payment) {
+
+
         return ReservationCompleteDTO.builder()
                 .reservationId(reservation.getReservationId())
                 .reservationCode(reservation.getReservationNumber())
@@ -32,6 +35,7 @@ public class ReservationMapper {
                 .originalPrice(reservation.getOriginalPrice())
                 .discountAmount(reservation.getDiscountAmount())
                 .finalPrice(reservation.getPrice())
+                .remainingPoint(reservation.getUser() != null ? reservation.getUser().getPoint() : null)
                 .build();
     }
 
@@ -56,6 +60,7 @@ public class ReservationMapper {
                 .reservationId(reservation.getReservationId())
                 .thumbnailUrl(reservation.getAccommodation().getThumbnail())
                 .reservationCode(reservation.getReservationNumber())
+                .accommodationId(reservation.getAccommodation().getAccommodationId())
                 .accommodationName(reservation.getRoom().getAccommodation().getName())
                 .roomName(reservation.getRoomName())
                 .checkIn(reservation.getCheckInDate())

@@ -14,11 +14,15 @@ import com.honeyrest.honeyrest_user.repository.reservation.ReservationRepository
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;
 import com.honeyrest.honeyrest_user.repository.room.RoomRepository;
+import com.honeyrest.honeyrest_user.service.CouponUsageService;
+import com.honeyrest.honeyrest_user.service.PointHistoryService;
+import com.honeyrest.honeyrest_user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 import java.math.BigDecimal;
@@ -37,6 +41,11 @@ public class ReserveService {
     private final ReservationMapper reservationMapper;
     private final ReviewRepository reviewRepository;
 
+    private final UserService userService;
+    private final CouponUsageService couponUsageService;
+    private final PointHistoryService pointHistoryService;
+
+    @Transactional
     public Reservation createReservation(ReservationRequestDTO request, BigDecimal amount, BigDecimal discountAmount) {
         Room room = roomRepository.findById(request.getRoomId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 객실입니다"));
@@ -45,12 +54,12 @@ public class ReserveService {
                 ? userRepository.findById(request.getUserId()).orElse(null)
                 : null;
 
-        Accommodation accommodation = room.getAccommodation(); // room → accommodation 연결
+        Accommodation accommodation = room.getAccommodation();
 
         Reservation reservation = Reservation.builder()
                 .room(room)
                 .accommodation(accommodation)
-                .roomName(room.getName()) // roomName 직접 세팅
+                .roomName(room.getName())
                 .checkInDate(request.getCheckIn())
                 .checkOutDate(request.getCheckOut())
                 .guestCount(request.getGuests())
@@ -62,10 +71,23 @@ public class ReserveService {
                 .originalPrice(room.getPrice())
                 .discountAmount(discountAmount)
                 .reservationNumber(request.getReservationCode())
-                .status("CONFIRMED") // 기본 예약 상태
+                .status("CONFIRMED")
                 .build();
 
-        return reservationRepository.save(reservation);
+        reservationRepository.save(reservation);
+
+        // 쿠폰 사용 처리
+        if (request.getCouponId() != null) {
+            couponUsageService.recordUsage(request.getCouponId(), reservation, discountAmount);
+        }
+
+        // 포인트 사용 처리
+        if (request.getUsedPoint() != null && request.getUsedPoint() > 0) {
+            userService.usePoint(request.getUserId(), request.getUsedPoint());
+            pointHistoryService.recordUsage(request.getUserId(), reservation.getReservationId(), request.getUsedPoint());
+        }
+
+        return reservation;
     }
 
 
@@ -118,6 +140,20 @@ public class ReserveService {
     }
 
 
+    public void requestReservationCancel(Long userId, Long reservationId, String reason) {
+        Reservation reservation = reservationRepository.findByReservationIdAndUser_UserId(reservationId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("예약 정보를 찾을 수 없습니다."));
+
+        if (!reservation.getStatus().equals("CONFIRMED")) {
+            throw new IllegalStateException("확정된 예약만 취소 요청이 가능합니다.");
+        }
+
+        reservation.setStatus("CANCEL_REQUEST"); // 상태 변경
+        reservation.setCancelReason(reason);     // 사유 저장 (필드 추가 필요)
+
+        reservationRepository.save(reservation);
+        log.info("예약 취소 요청 접수됨: reservationId={}, reason={}", reservationId, reason);
+    }
 
 
 }

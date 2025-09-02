@@ -87,4 +87,9 @@ public class User extends BaseEntity {
     public void setPassword(String encode) {
         this.passwordHash = encode;
     }
+
+    public void updatePoint(int newPoint) {
+        this.point = newPoint;
+    }
+
 }

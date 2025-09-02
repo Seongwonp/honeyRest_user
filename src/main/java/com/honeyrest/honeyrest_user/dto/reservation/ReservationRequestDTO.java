@@ -30,4 +30,8 @@ public class ReservationRequestDTO {
     private BigDecimal originalPrice;   // 객실 원가
     private BigDecimal discountAmount;  // 할인 금액
     private String couponName;          // 쿠폰 이름
+
+    private Integer usedPoint; // 사용된 포인트 (선택)
+
+
 }

@@ -1,6 +1,7 @@
 package com.honeyrest.honeyrest_user.repository.coupon;
 
 import com.honeyrest.honeyrest_user.entity.QCoupon;
+import com.honeyrest.honeyrest_user.entity.QCouponUsage;
 import com.honeyrest.honeyrest_user.entity.QUserCoupon;
 import com.honeyrest.honeyrest_user.entity.UserCoupon;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -20,6 +21,7 @@ public class UserCouponQueryRepository {
     public List<UserCoupon> findAvailableCoupons(Long userId, BigDecimal originalPrice, Long accommodationId) {
         QUserCoupon userCoupon = QUserCoupon.userCoupon;
         QCoupon coupon = QCoupon.coupon;
+        QCouponUsage usage = QCouponUsage.couponUsage;
 
         return queryFactory
                 .selectFrom(userCoupon)
@@ -32,7 +34,11 @@ public class UserCouponQueryRepository {
                         coupon.endDate.goe(LocalDateTime.now()),
                         coupon.minOrderAmount.loe(originalPrice),
                         coupon.targetType.in("ALL", "ACCOMMODATION"),
-                        coupon.targetId.isNull().or(coupon.targetId.eq(accommodationId))
+                        coupon.targetId.isNull().or(coupon.targetId.eq(accommodationId)),
+                        com.querydsl.jpa.JPAExpressions.selectOne()
+                                .from(usage)
+                                .where(usage.userCoupon.eq(userCoupon))
+                                .notExists()
                 )
                 .fetch();
     }

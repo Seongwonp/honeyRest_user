@@ -99,4 +99,55 @@ public class EmailService {
             log.error("📧 예약 완료 이메일 발송 실패", e);
         }
     }
+
+    public void sendPasswordReset(String email, String tokenValue) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(email);
+            helper.setSubject("HoneyRest 비밀번호 재설정 안내");
+
+            String resetLink = "http://localhost:5173/reset-password?token=" + tokenValue;
+
+            String html = """
+            <html>
+              <body style="font-family: 'Arial', sans-serif; line-height: 1.6; background-color: #f9f9f9; padding: 20px;">
+                <div style="max-width: 600px; margin: auto; background-color: #fff; border-radius: 8px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                  <h2 style="color: #ff9900;">HoneyRest 비밀번호 재설정 안내 🔐</h2>
+
+                  <p>비밀번호를 재설정하시려면 아래 버튼을 클릭해주세요.</p>
+
+                  <div style="margin: 20px 0;">
+                    <a href="%s" style="display: inline-block; background-color: #ff9900; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">
+                      비밀번호 재설정하기
+                    </a>
+                  </div>
+
+                  <p style="font-size: 14px; color: #555;">
+                    위 링크는 30분 후 만료됩니다.<br/>
+                    본인이 요청하지 않았다면 이 이메일을 무시해주세요.
+                  </p>
+
+                  <hr style="margin: 20px 0;" />
+
+                  <p style="margin-top: 24px; font-size: 12px; color: #999;">
+                    본 메일은 발신 전용입니다. <br/>
+                    ⓒ HoneyRest. All rights reserved.
+                  </p>
+                </div>
+              </body>
+            </html>
+        """.formatted(resetLink);
+
+            helper.setText(html, true);
+            mailSender.send(message);
+            log.info("📧 비밀번호 재설정 이메일 발송 성공: {}", email);
+        } catch (Exception e) {
+            log.error("📧 비밀번호 재설정 이메일 발송 실패", e);
+        }
+    }
+
+
+
 }

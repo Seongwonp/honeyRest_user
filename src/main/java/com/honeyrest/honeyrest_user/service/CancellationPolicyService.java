@@ -20,6 +20,8 @@ public class CancellationPolicyService {
 
         return entities.stream()
                 .map(policy -> CancellationPolicyDTO.builder()
+                        .accommodationId(policy.getAccommodation().getAccommodationId())
+                        .policyId(policy.getPolicyId())
                         .policyName(policy.getPolicyName())
                         .detail(policy.getDetail())
                         .build())

@@ -33,6 +33,10 @@ public class ReservationCompleteDTO {
 
     // 기타
     private Boolean isEmailSent; // 이메일 전송 여부
+    private Long couponId; // 쿠폰 아이디(선택)
     private String couponName;   // 적용된 쿠폰 이름 (선택)
+    private Integer usedPoint;  // 사용된 포인트 (선택)
+    private Integer remainingPoint; // 남은 포인트
+
 
 }

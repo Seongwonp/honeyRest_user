@@ -2,10 +2,7 @@ package com.honeyrest.honeyrest_user.entity;
 
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -66,9 +63,11 @@ public class Reservation extends BaseEntity{
     @Column(name = "discount_amount", precision = 10, scale = 2)
     private BigDecimal discountAmount; // 총 할인 금액
 
+    @Setter
     @Column(name = "status", nullable = false, length = 20)
     private String status; // 예약 상태
 
+    @Setter
     @Column(name = "cancel_reason", columnDefinition = "TEXT")
     private String cancelReason; // 취소 사유
 
