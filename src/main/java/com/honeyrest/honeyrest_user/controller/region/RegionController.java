@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.controller.region;
 
+import com.honeyrest.honeyrest_user.dto.region.HotRegionDTO;
 import com.honeyrest.honeyrest_user.dto.region.PopulerRegionDTO;
 import com.honeyrest.honeyrest_user.dto.region.RegionDTO;
 import com.honeyrest.honeyrest_user.entity.Region;
@@ -42,6 +43,13 @@ public class RegionController {
                         .build())
                 .toList();
     }
+
+
+    @GetMapping("/hot")
+    public List<HotRegionDTO> getHotRegions(@RequestParam(defaultValue = "8") int topN) {
+        return regionService.getTopRegions(topN);
+    }
+
 
     @GetMapping("/child")
     public List<RegionDTO> getRegionsByParent(

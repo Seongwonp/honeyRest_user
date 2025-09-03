@@ -69,7 +69,6 @@ public class JwtTokenProvider {
         log.info("🔄 AccessToken 재발급 완료: userId={}, role={}", user.getUserId(), user.getRole());
         return newToken;
     }
-
     // AccessToken 유효성 검사
     public void validateTokenOrThrow(String token) {
         try {

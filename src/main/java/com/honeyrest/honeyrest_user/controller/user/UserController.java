@@ -1,6 +1,8 @@
 package com.honeyrest.honeyrest_user.controller.user;
 
 import com.honeyrest.honeyrest_user.dto.WishlistedAccommodationDTO;
+import com.honeyrest.honeyrest_user.dto.coupon.UserCouponDTO;
+import com.honeyrest.honeyrest_user.dto.inquiry.*;
 import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationDetailDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationSummaryDTO;
@@ -11,9 +13,11 @@ import com.honeyrest.honeyrest_user.dto.user.PasswordChangeRequestDTO;
 import com.honeyrest.honeyrest_user.dto.user.UserInfoDTO;
 import com.honeyrest.honeyrest_user.dto.user.UserProfileUpdateRequestDTO;
 import com.honeyrest.honeyrest_user.security.CustomUserPrincipal;
+import com.honeyrest.honeyrest_user.service.InquiryService;
 import com.honeyrest.honeyrest_user.service.ReviewService;
 import com.honeyrest.honeyrest_user.service.UserService;
 import com.honeyrest.honeyrest_user.service.WishListService;
+import com.honeyrest.honeyrest_user.service.coupon.UserCouponService;
 import com.honeyrest.honeyrest_user.service.email.EmailVerificationTokenService;
 import com.honeyrest.honeyrest_user.service.reservation.ReserveService;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +45,8 @@ public class UserController {
     private final ReviewService reviewService;
     private final WishListService wishListService;
     private final EmailVerificationTokenService emailVerificationTokenService;
+    private final UserCouponService userCouponService;
+    private final InquiryService inquiryService;
 
 
     @GetMapping("/info")
@@ -169,13 +175,147 @@ public class UserController {
         return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
     }
 
-    @PostMapping("/point")
-    public ResponseEntity<?> changePoint(
-            @AuthenticationPrincipal CustomUserPrincipal principal
-    ){
 
-        return null;
+    @DeleteMapping("/delete-account")
+    public ResponseEntity<Void> deleteAccount(
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        Long userId = principal.getUserId();
+        userService.deleteAccount(userId);
+
+        log.info("🚫 회원 탈퇴 요청 처리 완료: userId={}", userId);
+
+        return ResponseEntity.noContent().build();
     }
 
+
+    /* 문의 생성 */
+    @PostMapping("/inquiries")
+    public ResponseEntity<InquiryResponseDTO> createInquiry(
+            @RequestBody InquiryRequestDTO request,
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build(); // 비회원 접근 차단
+        }
+
+        Long userId = principal.getUserId();
+        request.setUserId(userId);
+
+        // 제목/내용이 없으면 기본값 설정
+        if (request.getTitle() == null || request.getTitle().isBlank()) {
+            request.setTitle("제목 없음");
+        }
+        if (request.getContent() == null || request.getContent().isBlank()) {
+            request.setContent("내용 없음");
+        }
+
+        InquiryResponseDTO dto = inquiryService.createInquiry(request);
+        log.info("✅ 문의 생성: userId={}, inquiry내용={}", userId, dto);
+        return ResponseEntity.ok(dto);
+    }
+
+    /* 문의 리스트 조회 (페이징) */
+    @GetMapping("/inquiries/List")
+    public ResponseEntity<PageResponseDTO<InquiryListDTO>> getMyInquiries(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @PageableDefault(size = 5, sort = "createdAt", direction = DESC) Pageable pageable
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build(); // 비회원 접근 차단
+        }
+
+        Long userId = principal.getUserId();
+        return ResponseEntity.ok(inquiryService.getUserInquiries(userId, pageable));
+    }
+
+    @GetMapping("/inquiries/counts")
+    public ResponseEntity<InquiryCountDTO> getMyInquiryCounts(
+            @AuthenticationPrincipal CustomUserPrincipal principal) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build();
+        }
+        Long userId = principal.getUserId();
+        InquiryCountDTO counts = inquiryService.getUserInquiryCounts(userId);
+        return ResponseEntity.ok(counts);
+    }
+
+
+    /* 단일 문의 조회 */
+    @GetMapping("/inquiries/{inquiryId}")
+    public ResponseEntity<InquiryDetailResponseDTO> getInquiry(
+            @PathVariable Long inquiryId,
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build(); // 비회원 접근 차단
+        }
+
+        Long userId = principal.getUserId();
+        InquiryDetailResponseDTO dto = inquiryService.getInquiryById(userId, inquiryId);
+        log.info("🔍 문의 조회: userId={}, inquiryId={}, 내용={}", userId, inquiryId, dto);
+        return ResponseEntity.ok(dto);
+    }
+
+    /* 문의 수정 */
+    @PutMapping("/inquiries/edit/{inquiryId}")
+    public ResponseEntity<Void> updateInquiry(
+            @PathVariable Long inquiryId,
+            @RequestBody InquiryRequestDTO request,
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build(); // 비회원 접근 차단
+        }
+
+        Long userId = principal.getUserId();
+
+        // 제목/내용이 없으면 기본값 설정
+        if (request.getTitle() == null || request.getTitle().isBlank()) {
+            request.setTitle("제목 없음");
+        }
+        if (request.getContent() == null || request.getContent().isBlank()) {
+            request.setContent("내용 없음");
+        }
+
+        inquiryService.updateInquiry(userId, inquiryId, request);
+        log.info("✏️ 문의 수정: userId={}, inquiryId={}", userId, inquiryId);
+        return ResponseEntity.ok().build();
+    }
+
+    /* 문의 삭제 */
+    @DeleteMapping("/inquiries/delete/{inquiryId}")
+    public ResponseEntity<Void> deleteInquiry(
+            @PathVariable Long inquiryId,
+            @AuthenticationPrincipal CustomUserPrincipal principal
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build(); // 비회원 접근 차단
+        }
+
+        Long userId = principal.getUserId();
+        inquiryService.deleteInquiry(userId, inquiryId);
+        log.info("🗑️ 문의 삭제: userId={}, inquiryId={}", userId, inquiryId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/coupons")
+    public ResponseEntity<PageResponseDTO<UserCouponDTO>> getMyCoupons(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @PageableDefault(size = 5, sort = "issuedAt", direction = DESC) Pageable pageable
+    ) {
+        if (principal == null) {
+            return ResponseEntity.status(401).build(); // 비회원 접근 차단
+        }
+
+        Long userId = principal.getUserId();
+        PageResponseDTO<UserCouponDTO> dto = userCouponService.getUserCoupons(userId, pageable);
+        log.info("쿠폰 정보: {}",dto);
+        return ResponseEntity.ok(dto);
+    }
 
 }

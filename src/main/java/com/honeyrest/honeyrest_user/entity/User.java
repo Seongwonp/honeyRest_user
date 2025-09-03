@@ -91,5 +91,8 @@ public class User extends BaseEntity {
     public void updatePoint(int newPoint) {
         this.point = newPoint;
     }
+    public void deleteAccount() {
+        this.status = "DELETED";
+    }
 
 }

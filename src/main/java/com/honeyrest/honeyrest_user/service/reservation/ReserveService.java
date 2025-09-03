@@ -14,7 +14,7 @@ import com.honeyrest.honeyrest_user.repository.reservation.ReservationRepository
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;
 import com.honeyrest.honeyrest_user.repository.room.RoomRepository;
-import com.honeyrest.honeyrest_user.service.CouponUsageService;
+import com.honeyrest.honeyrest_user.service.coupon.CouponUsageService;
 import com.honeyrest.honeyrest_user.service.PointHistoryService;
 import com.honeyrest.honeyrest_user.service.UserService;
 import lombok.RequiredArgsConstructor;

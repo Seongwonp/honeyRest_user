@@ -108,7 +108,7 @@ public class EmailService {
             helper.setTo(email);
             helper.setSubject("HoneyRest 비밀번호 재설정 안내");
 
-            String resetLink = "http://localhost:5173/reset-password?token=" + tokenValue;
+            String resetLink = "http://localhost:5173/reset-password/change?token=" + tokenValue;
 
             String html = """
             <html>

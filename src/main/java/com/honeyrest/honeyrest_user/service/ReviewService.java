@@ -14,6 +14,7 @@ import com.honeyrest.honeyrest_user.repository.review.ReviewRedisLikeRepository;
 import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;
 import com.honeyrest.honeyrest_user.repository.reservation.ReservationRepository;
 import com.honeyrest.honeyrest_user.service.accommodation.AccommodationService;
+import com.honeyrest.honeyrest_user.service.redis.RatingCacheService;
 import com.honeyrest.honeyrest_user.util.FileUploadUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -39,6 +40,7 @@ public class ReviewService {
     private final ReviewImageRepository imageRepository;
     private final ReviewRedisLikeRepository reviewRedisLikeRepository;
     private final ReviewImageRepository reviewImageRepository;
+    private final RatingCacheService ratingCacheService;
     private final AccommodationService accommodationService;
     private final PointHistoryService pointHistoryService;
     private final UserService userService;
@@ -100,12 +102,11 @@ public class ReviewService {
 
         // 평점 업데이트
         accommodationService.updateRating(reservation.getAccommodation().getAccommodationId());
+
         // Redis 캐시 삭제
         Long accommodationId = reservation.getAccommodation().getAccommodationId();
-        String reviewListKey = "reviewList:accommodation:" + accommodationId;
-        String reviewCountKey = "reviewCount:accommodation:" + accommodationId;
-        redisTemplate.delete(reviewListKey);
-        redisTemplate.delete(reviewCountKey);
+        invalidateAccommodationCache(accommodationId);
+
     }
 
     @Transactional
@@ -224,10 +225,7 @@ public class ReviewService {
         accommodationService.updateRating(review.getAccommodationId());
         // Redis 캐시 삭제
         Long accommodationId = review.getAccommodationId();
-        String reviewListKey = "reviewList:accommodation:" + accommodationId;
-        String reviewCountKey = "reviewCount:accommodation:" + accommodationId;
-        redisTemplate.delete(reviewListKey);
-        redisTemplate.delete(reviewCountKey);
+        invalidateAccommodationCache(accommodationId);
     }
 
 
@@ -246,10 +244,13 @@ public class ReviewService {
         accommodationService.updateRating(review.getAccommodationId()); // 평점 재계산
         // Redis 캐시 삭제
         Long accommodationId = review.getAccommodationId();
-        String reviewListKey = "reviewList:accommodation:" + accommodationId;
-        String reviewCountKey = "reviewCount:accommodation:" + accommodationId;
-        redisTemplate.delete(reviewListKey);
-        redisTemplate.delete(reviewCountKey);
+        invalidateAccommodationCache(accommodationId);
+    }
+
+    private void invalidateAccommodationCache(Long accommodationId) {
+        //숙소 관련 모든 캐시 삭제
+        ratingCacheService.evictAllAccommodationCache(accommodationId);
+        log.info("🗑️ 숙소 관련 모든 캐시 삭제 완료: accommodationId={}", accommodationId);
     }
 
 }

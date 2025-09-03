@@ -1,4 +1,4 @@
-package com.honeyrest.honeyrest_user.service;
+package com.honeyrest.honeyrest_user.service.coupon;
 
 
 import com.honeyrest.honeyrest_user.dto.coupon.AvailableCouponDTO;

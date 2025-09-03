@@ -33,6 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = jwtTokenProvider.resolveToken(request);
+        log.info("[JwtAuthenticationFilter] 요청 토큰: {}", token);
 
         try {
             if (token != null) {
@@ -44,7 +45,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (JwtException e) {
             log.warn("❌ JWT 인증 실패: {}", e.getMessage());
             SecurityContextHolder.clearContext();
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "토큰이 만료되었거나 유효하지 않습니다."); // ✅ 401 응답
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "토큰이 만료되었거나 유효하지 않습니다."); // 401 응답
         }
     }
 }

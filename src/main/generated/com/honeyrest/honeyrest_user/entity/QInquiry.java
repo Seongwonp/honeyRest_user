@@ -24,6 +24,10 @@ public class QInquiry extends EntityPathBase<Inquiry> {
 
     public final QBaseEntity _super = new QBaseEntity(this);
 
+    public final QAccommodation accommodation;
+
+    public final StringPath category = createString("category");
+
     public final StringPath content = createString("content");
 
     //inherited
@@ -60,6 +64,7 @@ public class QInquiry extends EntityPathBase<Inquiry> {
 
     public QInquiry(Class<? extends Inquiry> type, PathMetadata metadata, PathInits inits) {
         super(type, metadata, inits);
+        this.accommodation = inits.isInitialized("accommodation") ? new QAccommodation(forProperty("accommodation"), inits.get("accommodation")) : null;
         this.user = inits.isInitialized("user") ? new QUser(forProperty("user")) : null;
     }
 

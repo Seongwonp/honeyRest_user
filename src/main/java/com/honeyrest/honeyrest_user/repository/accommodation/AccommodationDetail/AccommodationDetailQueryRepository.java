@@ -63,11 +63,13 @@ public class AccommodationDetailQueryRepository {
         String cancellationKey = "cancellationPolicy:accommodation:" + id;
 
         // 숙소 기본 정보 캐싱
+        log.info("Redis 캐시 조회 - 숙소 상세(detailKey): {}", detailKey);
         Object rawFlat = redisTemplate.opsForValue().get(detailKey);
         AccommodationDetailFlatDTO flat = rawFlat != null
                 ? objectMapper.convertValue(rawFlat, AccommodationDetailFlatDTO.class)
                 : null;
         if (flat == null) {
+            log.info("❌ Redis MISS - 숙소 상세(detailKey): {}", detailKey);
             flat = queryFactory.select(Projections.bean(AccommodationDetailFlatDTO.class,
                             accommodation.accommodationId.as("id"),
                             accommodation.name,
@@ -105,6 +107,9 @@ public class AccommodationDetailQueryRepository {
 
             if (flat == null) return null;
             redisTemplate.opsForValue().set(detailKey, flat);
+            log.info("✅ Redis 캐시 생성 - 숙소 상세(detailKey): {}", detailKey);
+        } else {
+            log.info("✅ Redis HIT - 숙소 상세(detailKey): {}", detailKey);
         }
 
         AccommodationDetailDTO dto = AccommodationDetailDTO.builder()
@@ -144,6 +149,7 @@ public class AccommodationDetailQueryRepository {
                 .build();
 
         // 이미지 캐싱
+        log.info("Redis 캐시 조회 - 숙소 이미지(imagesKey): {}", imagesKey);
         List<Object> rawList = redisTemplate.opsForList().range(imagesKey, 0, -1);
         List<String> images = Optional.ofNullable(rawList)
                 .orElse(List.of())
@@ -152,21 +158,27 @@ public class AccommodationDetailQueryRepository {
                 .map(String.class::cast)
                 .toList();
         if (images.isEmpty()) {
+            log.info("❌ Redis MISS - 숙소 이미지(imagesKey): {}", imagesKey);
             images = queryFactory.select(image.imageUrl)
                     .from(image)
                     .where(image.accommodation.accommodationId.eq(id))
                     .orderBy(image.sortOrder.asc())
                     .fetch();
             images.forEach(img -> redisTemplate.opsForList().rightPush(imagesKey, img));
+            log.info("✅ Redis 캐시 생성 - 숙소 이미지(imagesKey): {}", imagesKey);
+        } else {
+            log.info("✅ Redis HIT - 숙소 이미지(imagesKey): {}", imagesKey);
         }
         dto.setImages(images);
 
         // 태그 캐싱
+        log.info("Redis 캐시 조회 - 숙소 태그(tagsKey): {}", tagsKey);
         Object rawTags = redisTemplate.opsForValue().get(tagsKey);
         List<AccommodationTagDTO> tags = rawTags != null
                 ? objectMapper.convertValue(rawTags, new TypeReference<List<AccommodationTagDTO>>() {})
                 : List.of();
         if (tags.isEmpty()) {
+            log.info("❌ Redis MISS - 숙소 태그(tagsKey): {}", tagsKey);
             tags = queryFactory.select(Projections.bean(AccommodationTagDTO.class,
                             tag.tagId,
                             tag.name,
@@ -178,6 +190,9 @@ public class AccommodationDetailQueryRepository {
                     .where(tagMap.accommodation.accommodationId.eq(id))
                     .fetch();
             redisTemplate.opsForValue().set(tagsKey, tags);
+            log.info("✅ Redis 캐시 생성 - 숙소 태그(tagsKey): {}", tagsKey);
+        } else {
+            log.info("✅ Redis HIT - 숙소 태그(tagsKey): {}", tagsKey);
         }
         dto.setTags(tags);
 
@@ -250,12 +265,14 @@ public class AccommodationDetailQueryRepository {
         rooms.forEach(r -> r.setImages(roomImageMap.getOrDefault(r.getRoomId(), List.of())));
 
         // 리뷰 리스트 캐싱
+        log.info("Redis 캐시 조회 - 리뷰 리스트(reviewListKey): {}", reviewListKey);
         Object rawReviews = redisTemplate.opsForValue().get(reviewListKey);
         List<ReviewDTO> reviews = rawReviews != null
                 ? objectMapper.convertValue(rawReviews, new TypeReference<List<ReviewDTO>>() {})
                 : List.of();
 
         if (reviews.isEmpty()) {
+            log.info("❌ Redis MISS - 리뷰 리스트(reviewListKey): {}", reviewListKey);
             // 1. QueryDSL로 리뷰 리스트 조회
             reviews = queryFactory
                     .select(Projections.fields(ReviewDTO.class,
@@ -284,18 +301,23 @@ public class AccommodationDetailQueryRepository {
 
             // 3. Redis에 캐싱 (TTL 포함)
             redisTemplate.opsForValue().set(reviewListKey, reviews, Duration.ofMinutes(5));
+            log.info("✅ Redis 캐시 생성 - 리뷰 리스트(reviewListKey): {}", reviewListKey);
+        } else {
+            log.info("✅ Redis HIT - 리뷰 리스트(reviewListKey): {}", reviewListKey);
         }
 
 // 4. DTO에 리뷰 리스트 세팅
         dto.setReviews(reviews);
 
         // 리뷰 수 캐싱
+        log.info("Redis 캐시 조회 - 리뷰 수(reviewCountKey): {}", reviewCountKey);
         Object rawCount = redisTemplate.opsForValue().get(reviewCountKey);
         Integer reviewCount = rawCount != null
                 ? objectMapper.convertValue(rawCount, Integer.class)
                 : null;
         // 리뷰 수 캐싱
         if (reviewCount == null) {
+            log.info("❌ Redis MISS - 리뷰 수(reviewCountKey): {}", reviewCountKey);
             reviewCount = queryFactory
                     .select(review.count())
                     .from(review)
@@ -304,6 +326,9 @@ public class AccommodationDetailQueryRepository {
                     .fetchOne()
                     .intValue();
             redisTemplate.opsForValue().set(reviewCountKey, reviewCount, Duration.ofMinutes(3));
+            log.info("✅ Redis 캐시 생성 - 리뷰 수(reviewCountKey): {}", reviewCountKey);
+        } else {
+            log.info("✅ Redis HIT - 리뷰 수(reviewCountKey): {}", reviewCountKey);
         }
         dto.setReviewCount(reviewCount);
 
@@ -335,11 +360,13 @@ public class AccommodationDetailQueryRepository {
         dto.setWished(wished);
 
         // 취소 정책 캐싱
+        log.info("Redis 캐시 조회 - 취소 정책(cancellationKey): {}", cancellationKey);
         Object rawPolicies = redisTemplate.opsForValue().get(cancellationKey);
         List<CancellationPolicyDTO> cancellationPolicies = rawPolicies != null
                 ? objectMapper.convertValue(rawPolicies, new TypeReference<List<CancellationPolicyDTO>>() {})
                 : List.of();
         if (cancellationPolicies.isEmpty()) {
+            log.info("❌ Redis MISS - 취소 정책(cancellationKey): {}", cancellationKey);
             cancellationPolicies = queryFactory
                     .select(Projections.bean(CancellationPolicyDTO.class,
                             qCancellationPolicy.policyId,
@@ -350,6 +377,9 @@ public class AccommodationDetailQueryRepository {
                     .where(qCancellationPolicy.accommodation.accommodationId.eq(id))
                     .fetch();
             redisTemplate.opsForValue().set(cancellationKey, cancellationPolicies);
+            log.info("✅ Redis 캐시 생성 - 취소 정책(cancellationKey): {}", cancellationKey);
+        } else {
+            log.info("✅ Redis HIT - 취소 정책(cancellationKey): {}", cancellationKey);
         }
         dto.setCancellationPolicies(cancellationPolicies);
 

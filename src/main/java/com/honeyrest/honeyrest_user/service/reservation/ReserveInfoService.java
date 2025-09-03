@@ -9,7 +9,7 @@ import com.honeyrest.honeyrest_user.entity.User;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.repository.room.RoomRepository;
 import com.honeyrest.honeyrest_user.service.CancellationPolicyService;
-import com.honeyrest.honeyrest_user.service.CouponService;
+import com.honeyrest.honeyrest_user.service.coupon.CouponService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationSearchDTO;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationTagMapDTO;
 import com.honeyrest.honeyrest_user.entity.*;
+import com.honeyrest.honeyrest_user.service.RegionService;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
@@ -32,6 +33,7 @@ public class AccommodationSearchImpl implements AccommodationSearch {
     private final EntityManager em;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
+    private final RegionService regionService;
 
     private JPAQueryFactory queryFactory() {
         return new JPAQueryFactory(em);
@@ -70,6 +72,7 @@ public class AccommodationSearchImpl implements AccommodationSearch {
             );
             builder.and(distance.loe(5000.0)); // 반경 5km
         } else if (location != null && !location.isBlank()) {
+            regionService.recordRegionSearch(location);
             builder.and(
                     a.mainRegion.name.containsIgnoreCase(location)
                             .or(a.subRegion.name.containsIgnoreCase(location))
@@ -126,6 +129,10 @@ public class AccommodationSearchImpl implements AccommodationSearch {
         List<AccommodationSearchDTO> cachedResults = raw != null
                 ? objectMapper.convertValue(raw, new TypeReference<List<AccommodationSearchDTO>>() {})
                 : null;
+
+        if (cachedResults == null || cachedResults.isEmpty()) {
+            log.info("🟡 Redis 캐시 MISS: {}", cacheKey);
+        }
 
         if (cachedResults != null && !cachedResults.isEmpty()) {
             log.info("🚀 Redis 캐시 HIT: {}", cacheKey);

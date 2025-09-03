@@ -117,9 +117,14 @@ public class AuthController {
 
 
     @PostMapping("/refresh")
-    public ResponseEntity<?> refreshAccessToken(@CookieValue("refreshToken") String refreshToken) {
-        log.info("🔄 Refresh 요청 수신 (쿠키 기반): {}", refreshToken);
+    public ResponseEntity<?> refreshAccessToken(
+            @CookieValue(value = "refreshToken", required = false) String refreshToken) {
+        if (refreshToken == null) {
+            log.warn("❌ RefreshToken 쿠키 없음 → 재발급 불가");
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
 
+        log.info("🔄 Refresh 요청 수신 (쿠키 기반): {}", refreshToken);
         try {
             String newAccessToken = refreshTokenService.validateAndReissue(refreshToken);
             return ResponseEntity.ok(newAccessToken);

@@ -87,13 +87,19 @@ public class UserService {
         User user = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다."));
 
+
         if (!passwordEncoder.matches(dto.getPassword(), user.getPasswordHash())) {
             throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
+        }
+
+        if ("DELETED".equals(user.getStatus())) {
+            throw new IllegalStateException("탈퇴한 계정은 로그인할 수 없습니다.");
         }
 
         if (!user.getIsVerified()) {
             throw new IllegalStateException("이메일 인증이 완료되지 않았습니다.");
         }
+
 
         String accessToken = jwtTokenProvider.createAccessToken(user.getUserId(), user.getRole());
         String refreshToken = jwtTokenProvider.createRefreshToken();
@@ -147,6 +153,10 @@ public class UserService {
                             .build();
                     return userRepository.save(newUser);
                 });
+
+        if ("DELETED".equals(user.getStatus())) {
+            throw new IllegalStateException("탈퇴한 계정은 로그인할 수 없습니다.");
+        }
 
         String accessToken = jwtTokenProvider.createAccessToken(user.getUserId(), user.getRole());
         String refreshToken = jwtTokenProvider.createRefreshToken();
@@ -250,6 +260,12 @@ public class UserService {
         log.info("✅ 비밀번호 변경 완료: userId={}", userId);
     }
 
+    public void deleteAccount(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
+        user.deleteAccount();
+        userRepository.save(user);
+    }
 
     @Transactional
     public void usePoint(Long userId, Integer usedPoint) {
@@ -279,5 +295,6 @@ public class UserService {
 
         log.info("🪙 포인트 적립 완료: userId={}, amount={}, balance={}", userId, amount, updated);
     }
+
 
 }

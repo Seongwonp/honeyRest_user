@@ -11,16 +11,16 @@ import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;
 import com.honeyrest.honeyrest_user.service.redis.RatingCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.redis.core.ZSetOperations;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Log4j2
 @Service
@@ -31,36 +31,107 @@ public class AccommodationService {
     private final AccommodationDetailQueryRepository detailQueryRepository;
     private final ReviewRepository reviewRepository;
     private final RatingCacheService ratingCacheService;
+    private final RedisTemplate<String, Object> redisTemplate;
+
+    private static final String POPULAR_KEY_PREFIX = "popular:accommodation:";
 
     /**
-     * 인기 숙소 조회 (카테고리별)
+     * 인기 숙소 조회 (카테고리별, Redis ZSet 활용)
      */
-    @Cacheable(value = "popularAccommodations", key = "#category", unless = "#result == null || #result.isEmpty()")
     public List<AccommodationSummaryDTO> getPopularByCategory(String category) {
-        Pageable pageable = PageRequest.of(0, 30, Sort.by(Sort.Direction.DESC, "rating"));
-
-        List<Accommodation> accommodations;
-
-        if (category != null && !category.isBlank() && !category.equals("전체")) {
-            accommodations = accommodationRepository
-                    .findByCategory_NameAndStatus(category, "active", pageable)
-                    .getContent();
+        // 전체 조회(카테고리 "전체" 또는 null)일 때 모든 카테고리 ZSet에서 상위 6개씩 모아서 반환
+        if (category == null || category.isBlank() || "전체".equals(category)) {
+            log.info("전체 인기 숙소를 조회합니다. 모든 카테고리 ZSet에서 상위 6개씩 가져옵니다.");
+            // Redis에서 모든 인기 카테고리 키 조회
+            Set<String> keys = redisTemplate.keys(POPULAR_KEY_PREFIX + "*");
+            if (keys == null || keys.isEmpty()) {
+                log.info("Redis에서 인기 숙소 카테고리 키를 찾지 못했습니다.");
+                return Collections.emptyList();
+            }
+            // 각 카테고리별로 상위 6개 ID 추출
+            Set<String> uniqueIds = new LinkedHashSet<>();
+            for (String key : keys) {
+                Set<Object> ids = redisTemplate.opsForZSet().reverseRange(key, 0, 5);
+                if (ids != null && !ids.isEmpty()) {
+                    log.info("Redis ZSet '{}'에서 상위 {}개의 인기 숙소 ID를 조회했습니다.", key, ids.size());
+                    ids.forEach(obj -> uniqueIds.add(obj.toString()));
+                } else {
+                    log.info("Redis ZSet '{}'에서 인기 숙소를 찾지 못했습니다.", key);
+                }
+            }
+            if (uniqueIds.isEmpty()) {
+                log.info("모든 카테고리에서 인기 숙소를 찾지 못했습니다.");
+                return Collections.emptyList();
+            }
+            // 최대 30개까지만 반환(카테고리 5개 * 6개 등)
+            List<Long> accommodationIds = uniqueIds.stream()
+                    .limit(30)
+                    .map(Long::parseLong)
+                    .toList();
+            List<Accommodation> accommodations = accommodationRepository.findAllById(accommodationIds);
+            Map<Long, Accommodation> accMap = new HashMap<>();
+            accommodations.forEach(a -> accMap.put(a.getAccommodationId(), a));
+            List<AccommodationSummaryDTO> result = new ArrayList<>();
+            for (Long id : accommodationIds) {
+                Accommodation a = accMap.get(id);
+                if (a != null) {
+                    result.add(AccommodationSummaryDTO.builder()
+                            .id(a.getAccommodationId())
+                            .title(a.getName())
+                            .location(a.getAddress())
+                            .image(a.getThumbnail())
+                            .price(a.getMinPrice())
+                            .rating(a.getRating())
+                            .category(a.getCategory().getName())
+                            .build()
+                    );
+                }
+            }
+            log.info("전체 인기 숙소 {}개를 반환합니다.", result.size());
+            return result;
         } else {
-            accommodations = accommodationRepository
-                    .findByStatus("active", pageable)
-                    .getContent();
+            String key = POPULAR_KEY_PREFIX + category;
+            log.info("카테고리 '{}'의 인기 숙소를 조회합니다. Redis 키: '{}'", category, key);
+            Set<Object> topIds = redisTemplate.opsForZSet().reverseRange(key, 0, 5);
+            if (topIds == null || topIds.isEmpty()) {
+                log.info("Redis ZSet에서 '{}' 키로 인기 숙소를 찾지 못했습니다.", key);
+                return Collections.emptyList();
+            } else {
+                log.info("Redis ZSet '{}'에서 {}개의 인기 숙소 ID를 성공적으로 조회했습니다.", key, topIds.size());
+            }
+            List<Long> accommodationIds = topIds.stream()
+                    .map(obj -> Long.parseLong(obj.toString()))
+                    .toList();
+            List<Accommodation> accommodations = accommodationRepository.findAllById(accommodationIds);
+            Map<Long, Accommodation> accMap = new HashMap<>();
+            accommodations.forEach(a -> accMap.put(a.getAccommodationId(), a));
+            List<AccommodationSummaryDTO> result = new ArrayList<>();
+            for (Long id : accommodationIds) {
+                Accommodation a = accMap.get(id);
+                if (a != null) {
+                    result.add(AccommodationSummaryDTO.builder()
+                            .id(a.getAccommodationId())
+                            .title(a.getName())
+                            .location(a.getAddress())
+                            .image(a.getThumbnail())
+                            .price(a.getMinPrice())
+                            .rating(a.getRating())
+                            .category(a.getCategory().getName())
+                            .build()
+                    );
+                }
+            }
+            log.info("카테고리 '{}'의 인기 숙소 {}개를 반환합니다.", category, result.size());
+            return result;
         }
+    }
 
-        return accommodations.stream().map(a -> AccommodationSummaryDTO.builder()
-                .id(a.getAccommodationId())
-                .title(a.getName())
-                .location(a.getAddress())
-                .image(a.getThumbnail())
-                .price(a.getMinPrice())
-                .rating(a.getRating())
-                .category(a.getCategory().getName())
-                .build()
-        ).toList();
+    /** 인기 숙소 조회수 증가 (ZSet score 증가) */
+    public void incrementPopularity(Long accommodationId, String category) {
+        String key = POPULAR_KEY_PREFIX + (category == null || category.isBlank() || "전체".equals(category) ? "all" : category);
+        log.info("숙소 ID '{}'의 인기 점수를 증가시킵니다. 대상 카테고리: '{}', Redis 키: '{}'", accommodationId, category, key);
+        redisTemplate.opsForZSet().incrementScore(key, accommodationId.toString(), 1.0);
+        log.info("숙소 ID '{}'의 인기 점수가 Redis ZSet '{}'에서 성공적으로 증가하였습니다.", accommodationId, key);
     }
 
     // 숙소 검색
@@ -113,14 +184,15 @@ public class AccommodationService {
     }
 
     //가격 범위 조회
-    @Cacheable(value = "priceRange", unless = "#result == null")
     public Map<String, BigDecimal> getPriceRange() {
         BigDecimal maxPrice = accommodationRepository.findMaxMinPriceByStatus("ACTIVE");
         return Map.of("min", BigDecimal.ZERO, "max", maxPrice != null ? maxPrice : BigDecimal.ZERO);
     }
 
     public AccommodationDetailDTO getDetail(Long id, Long userId, LocalDate checkIn, LocalDate checkOut, Integer guests){
-        return detailQueryRepository.fetchDetailById(id, userId, checkIn, checkOut, guests);
+        AccommodationDetailDTO dto = detailQueryRepository.fetchDetailById(id, userId, checkIn, checkOut, guests);
+        incrementPopularity(dto.getId(),dto.getCategory());
+        return dto;
     }
 
     @Transactional
