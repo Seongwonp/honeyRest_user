@@ -1,6 +1,7 @@
 package com.honeyrest.honeyrest_user.service;
 
 import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
+import com.honeyrest.honeyrest_user.dto.point.PointHistoryResponseDTO;
 import com.honeyrest.honeyrest_user.dto.point.PointHistoryDTO;
 import com.honeyrest.honeyrest_user.dto.point.PointHistoryRequestDTO;
 import com.honeyrest.honeyrest_user.entity.PointHistory;
@@ -76,9 +77,9 @@ public class PointHistoryService {
                 userId, reservationId, usedPoint, user.getPoint());
     }
 
-    public PageResponseDTO<PointHistoryDTO> getHistoryByUser(Long userId, Pageable pageable) {
-        Page<PointHistory> entities = pointHistoryRepository.findByUser_UserIdOrderByCreatedAtDesc(userId, pageable);
+    public PointHistoryResponseDTO getHistoryByUser(Long userId, Pageable pageable) {
 
+        Page<PointHistory> entities = pointHistoryRepository.findByUser_UserIdOrderByCreatedAtDesc(userId, pageable);
         List<PointHistoryDTO> dtoList = entities.stream()
                 .map(h -> PointHistoryDTO.builder()
                         .amount(h.getAmount())
@@ -91,8 +92,9 @@ public class PointHistoryService {
                         .build())
                 .toList();
 
-        return PageResponseDTO.<PointHistoryDTO>builder()
-                .content(dtoList)
+        return PointHistoryResponseDTO.builder()
+                .currentPoint(entities.getContent().isEmpty() ? 0 : entities.getContent().get(0).getUser().getPoint())
+                .history(dtoList)
                 .totalElements(entities.getTotalElements())
                 .totalPages(entities.getTotalPages())
                 .page(entities.getNumber())

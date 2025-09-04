@@ -4,6 +4,8 @@ import com.honeyrest.honeyrest_user.dto.WishlistedAccommodationDTO;
 import com.honeyrest.honeyrest_user.dto.coupon.UserCouponDTO;
 import com.honeyrest.honeyrest_user.dto.inquiry.*;
 import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
+import com.honeyrest.honeyrest_user.dto.point.PointHistoryDTO;
+import com.honeyrest.honeyrest_user.dto.point.PointHistoryResponseDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationDetailDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationSummaryDTO;
 import com.honeyrest.honeyrest_user.dto.review.MyReviewDTO;
@@ -13,10 +15,7 @@ import com.honeyrest.honeyrest_user.dto.user.PasswordChangeRequestDTO;
 import com.honeyrest.honeyrest_user.dto.user.UserInfoDTO;
 import com.honeyrest.honeyrest_user.dto.user.UserProfileUpdateRequestDTO;
 import com.honeyrest.honeyrest_user.security.CustomUserPrincipal;
-import com.honeyrest.honeyrest_user.service.InquiryService;
-import com.honeyrest.honeyrest_user.service.ReviewService;
-import com.honeyrest.honeyrest_user.service.UserService;
-import com.honeyrest.honeyrest_user.service.WishListService;
+import com.honeyrest.honeyrest_user.service.*;
 import com.honeyrest.honeyrest_user.service.coupon.UserCouponService;
 import com.honeyrest.honeyrest_user.service.email.EmailVerificationTokenService;
 import com.honeyrest.honeyrest_user.service.reservation.ReserveService;
@@ -47,6 +46,7 @@ public class UserController {
     private final EmailVerificationTokenService emailVerificationTokenService;
     private final UserCouponService userCouponService;
     private final InquiryService inquiryService;
+    private final PointHistoryService pointHistoryService;
 
 
     @GetMapping("/info")
@@ -139,6 +139,16 @@ public class UserController {
         log.info("프로필 업데이트: {}",request);
         userService.updateProfile(principal.getUserId(), request);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/point-history")
+    public ResponseEntity<PointHistoryResponseDTO> getPointHistory(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
+            @PageableDefault(size = 10, sort = "createdAt", direction = DESC) Pageable pageable
+    ){
+        PointHistoryResponseDTO response = pointHistoryService.getHistoryByUser(principal.getUserId(), pageable);
+        log.info("포인스 사용내역 요청:{}", response);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/request-email-change")

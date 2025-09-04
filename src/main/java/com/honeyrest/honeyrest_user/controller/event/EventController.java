@@ -1,6 +1,7 @@
 package com.honeyrest.honeyrest_user.controller.event;
 
 import com.honeyrest.honeyrest_user.dto.event.EventCreateRequestDTO;
+import com.honeyrest.honeyrest_user.dto.event.EventDetailDTO;
 import com.honeyrest.honeyrest_user.dto.event.EventResponseDTO;
 import com.honeyrest.honeyrest_user.entity.Event;
 import com.honeyrest.honeyrest_user.service.EventService;
@@ -25,6 +26,13 @@ public class EventController {
         List<EventResponseDTO> events = eventService.getActiveEvents();
         return ResponseEntity.ok(events);
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<EventDetailDTO> getEventDetail(@PathVariable Long id) throws Exception {
+        EventDetailDTO detail = eventService.getEventDetail(id);
+        return ResponseEntity.ok(detail);
+    }
+
 
     @PostMapping(value = "/add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Long> createEvent(

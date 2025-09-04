@@ -1,6 +1,7 @@
 package com.honeyrest.honeyrest_user.service;
 
 import com.honeyrest.honeyrest_user.dto.event.EventCreateRequestDTO;
+import com.honeyrest.honeyrest_user.dto.event.EventDetailDTO;
 import com.honeyrest.honeyrest_user.dto.event.EventResponseDTO;
 import com.honeyrest.honeyrest_user.entity.Event;
 import com.honeyrest.honeyrest_user.repository.EventRepository;
@@ -27,6 +28,12 @@ public class EventService {
         return events.stream()
                 .map(EventResponseDTO::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    public EventDetailDTO getEventDetail(Long eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new IllegalArgumentException("이벤트가 존재하지 않습니다."));
+        return EventDetailDTO.from(event);
     }
 
 
