@@ -4,6 +4,8 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,16 +21,15 @@ import java.util.UUID;
 @Component
 public class FileUploadUtil {
 
-    private final Storage storage;
+    private Storage storage;
 
-    /**
-     * Firebase Storage 인증 및 초기화
-     * - 서비스 계정 키 파일을 통해 인증
-     * - 프로젝트 ID는 Firebase 콘솔에서 확인
-     */
-    public FileUploadUtil() throws Exception {
+    @Value("${fire.base.secretKey}")
+    private String firebaseSecretKey;
+
+    @PostConstruct
+    private void initFirebaseStorage() throws Exception {
         GoogleCredentials credentials = GoogleCredentials
-                .fromStream(new ClassPathResource("honeyrest-7fb60-firebase-adminsdk-fbsvc-17f8ee9da5.json").getInputStream()) // 🔑 경로 확인
+                .fromStream(new ClassPathResource(firebaseSecretKey).getInputStream())
                 .createScoped(List.of("https://www.googleapis.com/auth/cloud-platform"));
 
         storage = StorageOptions.newBuilder()
@@ -36,7 +37,7 @@ public class FileUploadUtil {
                 .setProjectId("honeyrest-7fb60")
                 .build()
                 .getService();
-    }
+    }   
 
     /**
      * 파일 업로드

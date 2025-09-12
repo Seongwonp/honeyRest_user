@@ -4,6 +4,7 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.InputStream;
@@ -11,10 +12,14 @@ import java.io.InputStream;
 @Configuration
 public class FirebaseConfig {
 
+    @Value("${fire.base.secretKey}")
+    private String firebaseSecretKey;
+
+
     @PostConstruct
     public void init() throws Exception {
         InputStream serviceAccount = getClass().getClassLoader()
-                .getResourceAsStream("honeyrest-7fb60-firebase-adminsdk-fbsvc-17f8ee9da5.json");
+                .getResourceAsStream(firebaseSecretKey);
 
         if (serviceAccount == null) {
             throw new IllegalStateException("Firebase 서비스 계정 키 파일을 찾을 수 없습니다.");
