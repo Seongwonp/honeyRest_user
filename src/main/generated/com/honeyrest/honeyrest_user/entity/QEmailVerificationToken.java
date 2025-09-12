@@ -26,6 +26,8 @@ public class QEmailVerificationToken extends EntityPathBase<EmailVerificationTok
 
     public final DateTimePath<java.time.LocalDateTime> expiryDate = createDateTime("expiryDate", java.time.LocalDateTime.class);
 
+    public final BooleanPath isVerified = createBoolean("isVerified");
+
     public final NumberPath<Long> tokenId = createNumber("tokenId", Long.class);
 
     public final StringPath tokenType = createString("tokenType");

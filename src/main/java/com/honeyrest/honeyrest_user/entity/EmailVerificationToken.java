@@ -33,6 +33,7 @@ public class EmailVerificationToken {
 
     private LocalDateTime createdAt;
 
+    private Boolean isVerified;
 
     @PrePersist
     protected void onCreate() {
