@@ -134,6 +134,98 @@ JPA 기반의 ORM 매핑을 통해 엔티티와 DB가 유기적으로 연결됩�
 
 ---
 
+## ************************** ⚙️ 실행 전 필수 설정 **************************
+
+HoneyRest 프로젝트를 실행하기 위해 아래 설정을 반드시 완료해주세요.
+
+---
+
+### 1️⃣ Redis 설치 및 실행
+
+HoneyRest는 Redis를 캐싱 서버로 사용합니다.
+
+#### 📌 macOS (Homebrew)
+
+```bash
+brew install redis
+brew services start redis   # Redis 실행
+brew services stop redis    # Redis 중지
+```
+
+#### 📌 Ubuntu / Linux
+
+```bash
+sudo apt update
+sudo apt install redis-server
+sudo systemctl enable redis-server.service
+sudo systemctl start redis-server
+```
+
+#### 📌 Windows
+- Redis for Windows (예: Memurai) 설치 후 실행
+- 실행 후 기본 포트 6379 사용
+
+#### 설치확인
+```bash
+redis-cli ping
+# PONG 이 출력되면 정상 실행
+```
+
+--- 
+
+### 환경 변수 설정 (`application_security.properties`)
+
+- 본 프로젝트 실행을 위해서는 민감 정보가 담긴 설정 파일  
+- application_security.properties를 반드시 직접 작성해야 합니다.  
+- 아래 항목들은 실제 서비스 키 값으로 교체해주세요.
+
+```Properties
+# Toss Payments widget credentials
+com.tjfgusdh.toss.widgetClientKey=YOUR_TOSS_CLIENT_KEY
+com.tjfgusdh.toss.widgetSecretKey=YOUR_TOSS_SECRET_KEY
+
+# Database password
+spring.datasource.password=YOUR_DB_PASSWORD
+
+# JWT secret key
+jwt.secret-key-value=YOUR_SECURE_JWT_SECRET_KEY
+
+# OpenWeather API
+weather.api.key=YOUR_OPENWEATHER_API_KEY
+
+# Firebase secretKey.json
+fire.base.secretKey=YOUR_SECRET_KEY
+
+# Google OAuth2
+google.client-id=YOUR_GOOGLE_CLIENT_ID
+google.client-secret=YOUR_GOOGLE_CLIENT_SECRET
+
+# Kakao OAuth2
+kakao.client-id=YOUR_KAKAO_CLIENT_ID
+kakao.client-secret=YOUR_KAKAO_CLIENT_SECRET
+
+# Gmail SMTP
+gmail.username=YOUR_GMAIL_ADDRESS
+gmail.access-token=YOUR_GMAIL_APP_PASSWORD
+```
+
+#### 🚨 주의사항
+
+- application_security.properties는 반드시 .gitignore에 포함해야 합니다.
+- 깃허브 공개 저장소에는 절대 올리지 마세요.
+- 팀 협업 시에는 application_security.properties.example 파일로 형식만 공유하고, 실제 키 값은 각 개발자가 직접 채워넣어야 합니다.
+
+
+
+
+
+
+
+
+
+
+
+
 ## 🖥️ 주요 화면 캡처
 
 > 사용자 중심의 직관적인 UI와 예약 흐름을 제공합니다.
