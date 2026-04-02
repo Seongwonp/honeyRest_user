@@ -1,10 +1,11 @@
 # 🐝 HoneyRest – 감성 숙소 예약 플랫폼 (User API)
 👨‍💻 Created by 박성원 (Seongwon Park) – User 영역 총괄
 
-![HoneyRest 광고 클립 GIF](./허니레스트.gif)
+## 🎥 HoneyRest 광고 영상
 
-> 🎞️ 위 GIF는 광고 영상의 주요 장면을 클립으로 구성한 이미지입니다.
+[![HoneyRest 광고 영상](./허니레스트.gif)](https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/video%2F%E1%84%92%E1%85%A5%E1%84%82%E1%85%B5%E1%84%85%E1%85%A6%E1%84%89%E1%85%B3%E1%84%90%E1%85%B3.mp4?alt=media&token=1d89a752-00e0-4c82-b6c0-94723c57cc70)
 
+> 🎬 클릭하면 전체 광고 영상을 볼 수 있습니다.
 ---
 
 ## 📖 목차
