@@ -89,7 +89,7 @@ HoneyRest/
 └── README.md               # 전체 프로젝트 설명
 ```
 
-- [User_React 바로가기](https://github.com/Seongwonp/honeyRest_user)
+- [User_React 바로가기](https://github.com/Seongwonp/honeyrest_user_react)
 - [Admin 바로가기](https://github.com/Seongwonp/honeyRest_host)
 
 ---
