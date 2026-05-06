@@ -435,61 +435,61 @@ VALUES ('2025-09-08 11:04:47.431439', '2025-09-08 11:04:47.431439',
 
 
 -- 21. 머리대면잠듬 (춘천)
-INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, accommodation_id) VALUES
-                                                                                                    (NOW(), NOW(), '체크인 5일 전까지 무료 취소', '체크인 5일 전까지 취소 시 결제 금액 전액 환불이 가능합니다.', 21),
-                                                                                                    (NOW(), NOW(), '체크인 2일 전까지 취소', '체크인 2일 전까지 취소 시 결제 금액의 50% 환불이 가능합니다.', 21),
-                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 취소 및 No-show 시 환불이 불가합니다.', 21);
+INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, days_before, refund_rate, accommodation_id) VALUES
+                                                                                                    (NOW(), NOW(), '체크인 5일 전까지 무료 취소', '체크인 5일 전까지 취소 시 결제 금액 전액 환불이 가능합니다.', 5, 100.00, 21),
+                                                                                                    (NOW(), NOW(), '체크인 2일 전까지 취소', '체크인 2일 전까지 취소 시 결제 금액의 50% 환불이 가능합니다.', 2, 50.00, 21),
+                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 취소 및 No-show 시 환불이 불가합니다.', 0, 0.00, 21);
 
 -- 22. SweetStay 마포 (인천 계양)
-INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, accommodation_id) VALUES
-                                                                                                    (NOW(), NOW(), '체크인 7일 전까지 무료 취소', '체크인 예정일 기준 7일 전까지는 위약금 없이 전액 환불 가능합니다.', 22),
-                                                                                                    (NOW(), NOW(), '체크인 3일 전까지 취소', '체크인 3일 전까지 취소 시 결제 금액의 70% 환불이 가능합니다.', 22),
-                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 이후 취소 및 No-show 시 환불 불가합니다.', 22);
+INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, days_before, refund_rate, accommodation_id) VALUES
+                                                                                                    (NOW(), NOW(), '체크인 7일 전까지 무료 취소', '체크인 예정일 기준 7일 전까지는 위약금 없이 전액 환불 가능합니다.', 7, 100.00, 22),
+                                                                                                    (NOW(), NOW(), '체크인 3일 전까지 취소', '체크인 3일 전까지 취소 시 결제 금액의 70% 환불이 가능합니다.', 3, 70.00, 22),
+                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 이후 취소 및 No-show 시 환불 불가합니다.', 0, 0.00, 22);
 
 -- 23. 욜로욜로 (서울 영등포)
-INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, accommodation_id) VALUES
-                                                                                                    (NOW(), NOW(), '체크인 5일 전까지 무료 취소', '체크인 5일 전까지 취소 시 전액 환불이 가능합니다.', 23),
-                                                                                                    (NOW(), NOW(), '체크인 1일 전까지 취소', '체크인 하루 전까지 취소 시 결제 금액의 50% 환불이 가능합니다.', 23),
-                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 이후 취소 및 No-show 시 환불 불가합니다.', 23);
+INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, days_before, refund_rate, accommodation_id) VALUES
+                                                                                                    (NOW(), NOW(), '체크인 5일 전까지 무료 취소', '체크인 5일 전까지 취소 시 전액 환불이 가능합니다.', 5, 100.00, 23),
+                                                                                                    (NOW(), NOW(), '체크인 1일 전까지 취소', '체크인 하루 전까지 취소 시 결제 금액의 50% 환불이 가능합니다.', 1, 50.00, 23),
+                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 이후 취소 및 No-show 시 환불 불가합니다.', 0, 0.00, 23);
 
 -- 24. 쇼모텔 (대구 달서)
-INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, accommodation_id) VALUES
-                                                                                                    (NOW(), NOW(), '체크인 3일 전까지 무료 취소', '체크인 3일 전까지 취소 시 결제 금액 전액 환불이 가능합니다.', 24),
-                                                                                                    (NOW(), NOW(), '체크인 1일 전까지 취소', '체크인 하루 전까지 취소 시 결제 금액의 70% 환불이 가능합니다.', 24),
-                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 이후 취소 및 No-show 시 환불 불가합니다.', 24);
+INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, days_before, refund_rate, accommodation_id) VALUES
+                                                                                                    (NOW(), NOW(), '체크인 3일 전까지 무료 취소', '체크인 3일 전까지 취소 시 결제 금액 전액 환불이 가능합니다.', 3, 100.00, 24),
+                                                                                                    (NOW(), NOW(), '체크인 1일 전까지 취소', '체크인 하루 전까지 취소 시 결제 금액의 70% 환불이 가능합니다.', 1, 70.00, 24),
+                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 이후 취소 및 No-show 시 환불 불가합니다.', 0, 0.00, 24);
 
 -- 25. 힐하우스 (가평 글램핑)
-INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, accommodation_id) VALUES
-                                                                                                    (NOW(), NOW(), '체크인 5일 전까지 무료 취소', '체크인 5일 전까지는 전액 환불 가능합니다.', 25),
-                                                                                                    (NOW(), NOW(), '체크인 2일 전까지 취소', '체크인 2일 전까지 취소 시 결제 금액의 50% 환불이 가능합니다.', 25),
-                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 취소 및 No-show 시 환불 불가합니다.', 25);
+INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, days_before, refund_rate, accommodation_id) VALUES
+                                                                                                    (NOW(), NOW(), '체크인 5일 전까지 무료 취소', '체크인 5일 전까지는 전액 환불 가능합니다.', 5, 100.00, 25),
+                                                                                                    (NOW(), NOW(), '체크인 2일 전까지 취소', '체크인 2일 전까지 취소 시 결제 금액의 50% 환불이 가능합니다.', 2, 50.00, 25),
+                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 취소 및 No-show 시 환불 불가합니다.', 0, 0.00, 25);
 
 -- 26. 그린빌 (가평 조종면)
-INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, accommodation_id) VALUES
-                                                                                                    (NOW(), NOW(), '체크인 7일 전까지 무료 취소', '체크인 7일 전까지는 위약금 없이 취소 가능합니다.', 26),
-                                                                                                    (NOW(), NOW(), '체크인 3일 전까지 취소', '체크인 3일 전까지 취소 시 70% 환불 가능합니다.', 26),
-                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 취소 및 No-show 시 환불 불가합니다.', 26);
+INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, days_before, refund_rate, accommodation_id) VALUES
+                                                                                                    (NOW(), NOW(), '체크인 7일 전까지 무료 취소', '체크인 7일 전까지는 위약금 없이 취소 가능합니다.', 7, 100.00, 26),
+                                                                                                    (NOW(), NOW(), '체크인 3일 전까지 취소', '체크인 3일 전까지 취소 시 70% 환불 가능합니다.', 3, 70.00, 26),
+                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 취소 및 No-show 시 환불 불가합니다.', 0, 0.00, 26);
 
 -- 27. 하루하루 (경주)
-INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, accommodation_id) VALUES
-                                                                                                    (NOW(), NOW(), '체크인 5일 전까지 무료 취소', '체크인 5일 전까지 취소 시 전액 환불 가능합니다.', 27),
-                                                                                                    (NOW(), NOW(), '체크인 1일 전까지 취소', '체크인 하루 전까지 취소 시 결제 금액의 50% 환불이 가능합니다.', 27),
-                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 취소 및 No-show 시 환불 불가합니다.', 27);
+INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, days_before, refund_rate, accommodation_id) VALUES
+                                                                                                    (NOW(), NOW(), '체크인 5일 전까지 무료 취소', '체크인 5일 전까지 취소 시 전액 환불 가능합니다.', 5, 100.00, 27),
+                                                                                                    (NOW(), NOW(), '체크인 1일 전까지 취소', '체크인 하루 전까지 취소 시 결제 금액의 50% 환불이 가능합니다.', 1, 50.00, 27),
+                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 취소 및 No-show 시 환불 불가합니다.', 0, 0.00, 27);
 
 -- 28. 리버사이드 글램핑 (가평 설악)
-INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, accommodation_id) VALUES
-                                                                                                    (NOW(), NOW(), '체크인 5일 전까지 무료 취소', '체크인 5일 전까지 취소 시 전액 환불 가능합니다.', 28),
-                                                                                                    (NOW(), NOW(), '체크인 2일 전까지 취소', '체크인 2일 전까지 취소 시 결제 금액의 50% 환불이 가능합니다.', 28),
-                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 취소 및 No-show 시 환불 불가합니다.', 28);
+INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, days_before, refund_rate, accommodation_id) VALUES
+                                                                                                    (NOW(), NOW(), '체크인 5일 전까지 무료 취소', '체크인 5일 전까지 취소 시 전액 환불 가능합니다.', 5, 100.00, 28),
+                                                                                                    (NOW(), NOW(), '체크인 2일 전까지 취소', '체크인 2일 전까지 취소 시 결제 금액의 50% 환불이 가능합니다.', 2, 50.00, 28),
+                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 취소 및 No-show 시 환불 불가합니다.', 0, 0.00, 28);
 
 -- 29. 숲속글램핑 (홍천)
-INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, accommodation_id) VALUES
-                                                                                                    (NOW(), NOW(), '체크인 7일 전까지 무료 취소', '체크인 7일 전까지는 위약금 없이 전액 환불 가능합니다.', 29),
-                                                                                                    (NOW(), NOW(), '체크인 3일 전까지 취소', '체크인 3일 전까지 취소 시 결제 금액의 70% 환불이 가능합니다.', 29),
-                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 이후 취소 및 No-show 시 환불 불가합니다.', 29);
+INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, days_before, refund_rate, accommodation_id) VALUES
+                                                                                                    (NOW(), NOW(), '체크인 7일 전까지 무료 취소', '체크인 7일 전까지는 위약금 없이 전액 환불 가능합니다.', 7, 100.00, 29),
+                                                                                                    (NOW(), NOW(), '체크인 3일 전까지 취소', '체크인 3일 전까지 취소 시 결제 금액의 70% 환불이 가능합니다.', 3, 70.00, 29),
+                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 이후 취소 및 No-show 시 환불 불가합니다.', 0, 0.00, 29);
 
 -- 30. 블랙우드 (인천 용유)
-INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, accommodation_id) VALUES
-                                                                                                    (NOW(), NOW(), '체크인 5일 전까지 무료 취소', '체크인 5일 전까지 취소 시 전액 환불이 가능합니다.', 30),
-                                                                                                    (NOW(), NOW(), '체크인 2일 전까지 취소', '체크인 2일 전까지 취소 시 결제 금액의 50% 환불이 가능합니다.', 30),
-                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 이후 취소 및 No-show 시 환불 불가합니다.', 30);
+INSERT INTO cancellation_policy (created_at, updated_at, policy_name, detail, days_before, refund_rate, accommodation_id) VALUES
+                                                                                                    (NOW(), NOW(), '체크인 5일 전까지 무료 취소', '체크인 5일 전까지 취소 시 전액 환불이 가능합니다.', 5, 100.00, 30),
+                                                                                                    (NOW(), NOW(), '체크인 2일 전까지 취소', '체크인 2일 전까지 취소 시 결제 금액의 50% 환불이 가능합니다.', 2, 50.00, 30),
+                                                                                                    (NOW(), NOW(), '당일 취소 불가', '체크인 당일 이후 취소 및 No-show 시 환불 불가합니다.', 0, 0.00, 30);
