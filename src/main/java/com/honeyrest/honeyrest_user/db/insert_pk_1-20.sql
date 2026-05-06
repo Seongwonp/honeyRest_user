@@ -1,3 +1,11 @@
+-- ============================================================
+-- 실행 순서: insert.sql 완료 후 이 파일 실행
+-- 포함 데이터: accommodation 1~20 (명시적 PK),
+--             accommodation_image, accommodation_tag_map,
+--             room 1~58, room_image, cancellation_policy
+-- ※ insert.sql과 중복으로 실행하지 말 것
+-- ============================================================
+
 INSERT INTO accommodation
 (accommodation_id, address, amenities, check_in_time, check_out_time, description, latitude, longitude, min_price, name, rating, status, thumbnail, category_id, company_id, main_region_id, sub_region_id)
 VALUES

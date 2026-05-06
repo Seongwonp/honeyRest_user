@@ -1,3 +1,10 @@
+-- ============================================================
+-- 실행 순서: insert_pk_1-20.sql 완료 후 이 파일 실행
+-- 포함 데이터: accommodation 21~30 (자동 증가 PK, 21~30 할당),
+--             accommodation_image, accommodation_tag_map,
+--             room 59~90, room_image 59~88, cancellation_policy
+-- ============================================================
+
 INSERT INTO accommodation
 (address, amenities, check_in_time, check_out_time, description, latitude, longitude, min_price, name, rating, status,
  thumbnail, category_id, company_id, main_region_id, sub_region_id)

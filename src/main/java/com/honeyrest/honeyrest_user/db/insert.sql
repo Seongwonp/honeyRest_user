@@ -1,62 +1,12 @@
-INSERT INTO accommodation
-(address, amenities, check_in_time, check_out_time, description, latitude, longitude, min_price, name, rating, status, thumbnail, category_id, company_id, main_region_id, sub_region_id)
-VALUES
-    ('경북 경주시 남산동 1156-461',
-     '["투숙객 외 다른 사람의 방문을 제한합니다","사전 문의 없이 추가 인원 발생 시 입실이 불가하며 당일 예약 취소와 동일하게 간주됩니다","애완동물과 동반 입실 시 입실이 불가하며 당일 예약 취소와 동일하게 간주됩니다","한옥 특성상 오소한옥 내BBQ조개 또는 어패류 튀김류 조리는 불가한 점 양해 부탁드립니다","전 객실의 실내는 금연 구역이며 화재 위험이 있는 촛불 및 폭죽 사용부탄가스 사용은 금지입니다","시설물 훼손 및 분실 시 책임은 고객님께 부과하오니 객실 사용에 주의 부탁드립니다","부주의로 인해 일어난 안전사고 귀중품(현금포함) 분실 및 파손에 대해서는 리조트에서 책임지지 않습니다","마지막 퇴실 시에는 실내에 있는 쓰레기는 분리수거해 버려 주시고 사용하신 식기도 세척해 주시기 바랍니다"]',
-     '2025-08-20 15:00:00.000000', '2025-08-21 11:00:00.000000',
-     '오랜 꿈으로 빚어낸 오소한옥의 공간에는 전통 한옥 양식과 실용적인 서양식 인테리어를 결합하여 설계했습니다 여유롭게 풍류를 즐기던 선조들의 일상처럼, 느리게, 천천히 쉬어갔으면 하는 마음으로 풍경을 감상하며 차를 마실 수 있는 공간, 숙면을 취할 수 있는 공간과 편하게 여유를 즐길 수 있는 공간 그리고 화장실로 공간을 분리하여 일상에서 벗어나 새로운 느낌을 받을 수 있도록 세심하게 신경 쓴 공간입니다 바쁜 일상을 잠시 내려놓고, 오롯이 자연에서 머무르며 여유를 즐겼으면 하는 호스트의 바람을 담은 공간 "오소한옥"을 찾아주셔서 감사합니다',
-     35.851029, 129.224582, 110000.00,
-     '경주 오소한옥스테이', 4.5, 'ACTIVE',
-     'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodation%2F4df60cfc-c920-4be2-9873-b0a6fa7762c5_%E1%84%80%E1%85%A7%E1%86%BC%E1%84%8C%E1%85%AE%E1%84%92%E1%85%A1%E1%86%AB%E1%84%8B%E1%85%A9%E1%86%A8-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%80%E1%85%A7%E1%86%BC.png?alt=media&token=a9d9bc07-d39b-4bc9-8dba-57fe00f3dcd3',
-     6, 2, 15, 212),
-    ('뉴지스 해운대 래지던스',
-     '["위의 정보는 호텔의 사정에 따라 변경될 수 있습니다","미성년자는 보호자 동반 없이 이용이 불가합니다","이미지는 실제와 상이할 수 있습니다","체크인 시 배정 상품 또는 베드 타입이 미기재된 상품은 특정 객실과 베드 타입을 보장하지 않습니다","객실가는 세금","봉사료가 포함된 금액입니다","수영장 운영은 날씨 또는 호텔 상황에 따라 변동될 수 있습니다","가전/가구/비품 등의 분실 및 파손 시 추가 비용이 발생합니다","객실 사진은 대표적인 예시로 실제 객실의 구조나 인테리어는 상이할 수 있습니다."]',
-     '2025-08-20 16:00:00.000000', '2025-08-21 11:00:00.000000',
-     '사계절을 품은 프라이빗 레지던스로 2024년 7월 신규 오픈한 호텔입니다 해운대의 주요 관광지를 도보로 이동하실 수 있는 곳에 위치해 있으며 주방 시설을 보유하고 있어 편리한 여행을 즐기실 수 있습니다 또한, 모던한 인테리어와 파노라마로 펼쳐지는 오션뷰 객실에서 아름다운 해운대 바다를 감상하며 여행의 즐거움을 느낄 수 있습니다 찬란한 에메랄드빛 바다의 아름다운 전경과 활기가 어우러진 도시 해운대에서 안온한 휴식과 낭만을 누려보세요',
-     35.160125, 129.161755, 130300.00,
-     '뉴지스 해운대 래지던스', 0.0, 'ACTIVE',
-     'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodation%2Fc63d4c62-c9c1-413a-9fca-5f61a371c21f_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-08-31+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+1.00.27.png?alt=media&token=754c0091-020f-4ee9-bd10-560840c7c4a5',
-     1, 2, 2, 38),
-    ('라마다 앙코르 바이 윈덤 부산역',
-     '["최대 인원 초과 시 입실 불가합니다","미성년자는 보호자 동반 없이 이용이 불가합니다","위의 정보는 호텔의 사정에 따라 변경될 수 있습니다","해당 이미지는 실제와 상이 할 수 있습니다","체크인 시 배정 또는 베드 타입 미기재 상품은 특정 객실과 베드 타입을 보장하지 않습니다","반려동물 동반 입실 불가합니다","해당 객실 가는 세금","봉사료가 포함된 금액입니다","데코레이션 업체를 통한 객실 내 장식물 설치는 불가합니다"]',
-     '2025-08-20 15:00:00.000000', '2025-08-21 11:00:00.000000',
-     '라마다 앙코르 바이 윈덤 부산역은 446객실을 보유한 4성급 호텔로 비즈니스와 관광을 위한 최적의 장소인 부산역 광장에 위치하고 있습니다 부산역에서 1분 거리, 지하철역에서 1분 거리에 위치하여 최고의 입지를 자랑합니다',
-     35.104702, 128.591471, 115000.00,
-     '라마다 앙코르 바이 윈덤 부산역', 0.0, 'ACTIVE',
-     'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodation%2F723a32a9-0716-4491-86f8-8841fe70dd68_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+12.40.27.png?alt=media&token=beed4d92-9d5b-4c6b-b3d5-d1c1372a264d',
-     1, 2, 2, 46),
-    ('속초 호텔 더 블루테라',
-     '["미성년자는 보호자 동반없이 이용이 불가합니다","전 객실 애완동물 출입이 불가합니다","위의 정보는 호텔의 사정에 따라 변경될 수 있습니다","해당 이미지는 실제와 상이 할 수 있습니다","체크인 시 배정 또는 베드 타입 미기재 상품은 특정객실과 베드 타입을 보장하지 않습니다","해당 객실가는 세금","봉사료가 포함된 금액입니다"]',
-     '2025-08-20 15:00:00.000000', '2025-08-21 00:00:00.000000',
-     '2021년 4월에 오픈한 속초 호텔 더 블루테라는 속초해수욕장과 도보 5분 거리에 있습니다 속초바다의 아름다운 일출과 야경을 객실 테라스에서 편안하게 감상하세요',
-     35.820876, 128.591471, 67900.00,
-     '속초 호텔 더 블루테라', 0.0, 'ACTIVE',
-     'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodation%2F21de6c0f-c933-484c-84c9-69f2b32268c5_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+1.20.05.png?alt=media&token=6e0702bd-a2c9-43b2-afe1-3e66ba6644d9',
-     1, 2, 10, 133),
-    ('전주 소소한 한옥',
-     '["위의 정보는 게스트하우스 사정에 따라 변경될 수 있습니다","해당 이미지는 실제와 상이 할 수 있습니다","예약 확정 이후의 취소는 취소환불규정에 의거하여 적용됩니다"]',
-     '2025-08-20 15:00:00.000000', '2025-08-21 11:30:00.000000',
-     '소소하게 행복이 머무는 공간입니다. 새로오픈했어요 전주 한옥마을 내에 위치 하고 있으며 전주 한옥마을 공용주차장에서 도보로 3~5분 소요 됩니다. 전 객실 소독용 에탄올로 소독하고 있으며 객실청소,퇴실후,입실전 총 3번 소독을 하고 있습니다. 침구는 화학약품 및 락스를 사용하지 않으며 베이킹,과탄산소다 오직 천연 세제를 사용하며 매 번 침구 교체를 원칙으로 합니다. 쾌적하고 깨끗한 공간을 위해 노력하고 있으며 신생아,영아,모든 고객들이 안심하고 사용할수 있는 공간 입니다. 전주 한옥 마을 공용주차장과 주요 관광지 그리고 먹거리와 즐길거리 모두 도보로 가능한 위치에 있습니다.',
-     35.820876, 127.149963, 49000.00,
-     '전주 소소한 한옥', 0.0, 'ACTIVE',
-     'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodation%2Fea1e4dc3-3f76-4fb0-850c-630fb8e63172_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+2.10.46.png?alt=media&token=4371c240-e203-4187-8ee4-3393868dac87',
-     4, 2, 13, 176),
-    ('수원 구운동 앤드 호텔',
-     '["주차시설을 보유한 숙소입니다.(차량 이용 시 숙소에 문의해 주세요.)","객실은 체크인 시 배정되며 사진과 다를 수 있습니다.","만 19세 미만 청소년 혼숙은 법적으로 불가하며","이에 대한 숙소의 입실 거부 시 취소/환불이 불가합니다.","만 19세 미만 청소년 예약에 대한 숙소의 입실 거부 시 취소/환불이 불가하오니","예약 전 반드시 숙소에 확인하시기 바랍니다."]',
-     '2025-08-20 15:00:00.000000', '2025-08-21 00:00:00.000000',
-     '[GRAND OPEN] 넓고 쾌적한 수원 최고의 시설',37.263698, 127.027042, 41000.00,
-     '수원 구운동 앤드 호텔', 0.0, 'PENDING',
-     'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodation%2F921d1bc3-296a-4885-8f84-89fed04b9cdb_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%92%E1%85%AE+10.27.31.png?alt=media&token=5f20f59b-c2e0-48d4-b8f8-9df77fdd9f9a',
-     1, 2, 9, 106),
-    ('강릉시 주문진읍 해변로 123',
-     '["무선인터넷","에어컨","욕실용품","TV","냉장고","전자레인지","커피머신","헤어드라이어","수건","침대 시트","옷장","주방용품","세탁기","주차 가능","테라스/발코니","바다 전망","개인 온천","난방","청소 서비스","반려동물 가능","바베큐 (유료)","조식 제공 (유료)","픽업 서비스 (사전 연락필요)"]',
-     '2025-08-20 15:00:00.000000', '2025-08-21 11:00:00.000000',
-     '강릉 바다뷰 펜션에 오신 것을 환영합니다!/탁 트인 오션뷰를 감상하며 여유로운 시간을 보내실 수 있어요./객실마다 개인 온천이 완비되어 있어, 언제든 따뜻한 온천을 즐기실 수 있습니다./감각적이고 아늑한 인테리어 덕분에 사진 찍기 좋은 포인트도 많아요./소규모 가족, 친구, 커플 누구와도 편안하게 머무르실 수 있답니다./아침에는 창문을 열면 파도 소리와 햇살을 함께 느낄 수 있고, 저녁에는 바닷가 노을을 바라보며 로맨틱한 시간을 보내실 수 있어요./편의시설로는 무선인터넷, 에어컨, TV, 냉장고, 전자레인지, 커피머신, 헤어드라이어, 수건과 침구, 옷장, 주방용품, 세탁기 등이 준비되어 있으며, 주차도 가능합니다./바베큐(유료), 조식 제공(유료), 렌터카 서비스(유료)도 이용하실 수 있어요./주변에는 관광 명소, 카페, 맛집이 가까워 여행 일정도 알차게 즐기실 수 있고, 조용하고 한적한 환경 덕분에 힐링과 휴식을 동시에 누리실 수 있는 최적의 공간입니다.',
-     37.805123, 128.905678, 120000.00,
-     '강릉 바다뷰 펜션', 4.7, 'ACTIVE',
-     'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F43%2Fs_thumb.jpg?alt=media&token=2a685103-048b-4ed1-bacc-f8a2676acbf4',
-     2, 1, 10, 132);
-
+-- ============================================================
+-- 목데이터 실행 순서 (FK 의존성 순서 엄수)
+-- 1. insert.sql          ← 지금 이 파일 (기초 데이터)
+--    : region, accommodation_category, accommodation_tag,
+--      company, banner, coupon, event
+-- 2. insert_pk_1-20.sql  (accommodation 1~20 + 관련 데이터)
+-- 3. insert_pk_21-30.sql (accommodation 21~30 + 관련 데이터)
+-- 4. insert_pk_31-33.sql (accommodation 31~33 + 관련 데이터)
+-- ============================================================
 
 INSERT INTO accommodation_category (icon_url, name, sort_order)
 VALUES
@@ -66,55 +16,6 @@ VALUES
     ('https://cdn-icons-png.flaticon.com/512/235/235864.png', '게스트하우스', 4),
     ('https://cdn-icons-png.flaticon.com/512/235/235865.png', '캠핑/글램핑', 5),
     ('https://cdn-icons-png.flaticon.com/512/10507/10507013.png','한옥',6);
-
-
-INSERT INTO accommodation_image
-(image_type, image_url, sort_order, accommodation_id)
-VALUES
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F6%2Fimages%2Fa19393f3-d6ea-4a7e-8ed7-920c82ef4612_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%92%E1%85%AE+10.27.08.png?alt=media&token=761857bd-7960-4119-b35a-a77933ccc8a3',1,6),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F6%2Fimages%2Fea30373a-114c-457c-808a-10b066597e4d_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%92%E1%85%AE+10.27.20.png?alt=media&token=be00bab3-3128-472d-90cf-f219c262de03',2,6),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F6%2Fimages%2F4eea2921-1328-4781-bf8c-428c7445012a_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%92%E1%85%AE+10.27.12.png?alt=media&token=c5e6b92b-ac66-4465-831a-89138a627cc3',3,6),
-    ('MAIN','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodation%2Fea1e4dc3-3f76-4fb0-850c-630fb8e63172_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+2.10.46.png?alt=media&token=4371c240-e203-4187-8ee4-3393868dac87',0,5),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F5%2Fimages%2Fe3b1c03a-949f-4b46-8d98-38780e929343_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+2.10.39.png?alt=media&token=15e4e199-a543-4753-9523-21cdcc754e23',1,5),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F5%2Fimages%2F707dcd1f-f69b-4a4b-b9d9-57029d02651b_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+2.10.33.png?alt=media&token=4825c14e-0ac4-4f20-bb39-a9cc4f7c152c',2,5),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F5%2Fimages%2F99de375e-1760-4a26-aee2-369710adc360_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+2.10.29.png?alt=media&token=3e578536-34ab-49c9-ad0e-e3bb48e7f090',3,5),
-    ('MAIN','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodation%2F21de6c0f-c933-484c-84c9-69f2b32268c5_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+1.20.05.png?alt=media&token=6e0702bd-a2c9-43b2-afe1-3e66ba6644d9',0,4),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F4%2Fimages%2F92fe88e9-b80e-4472-8b75-e8a995627b4b_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+1.20.19.png?alt=media&token=367ab87e-fa5a-4d76-8404-a77c500c4f06',1,4),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F4%2Fimages%2Ff90bde16-e4a1-4354-bac8-e9e9a770ee77_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+1.20.26.png?alt=media&token=850c3d4b-e2fc-4668-a5d4-cec18179309d',2,4),
-    ('MAIN','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodation%2F723a32a9-0716-4491-86f8-8841fe70dd68_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+12.40.27.png?alt=media&token=beed4d92-9d5b-4c6b-b3d5-d1c1372a264d',0,3),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F3%2Fimages%2Fbe6106f5-8117-443f-8109-ddbeed5bd541_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+12.40.50.png?alt=media&token=846dfd84-9320-4434-8a1a-719041d022a1',1,3),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F3%2Fimages%2F856610c5-8a9b-4f8b-a00c-dedbe291de95_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+12.40.45.png?alt=media&token=f6e446bc-b37f-4986-bc9d-5e99a551d8d7',2,3),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F3%2Fimages%2F112a2001-ed52-47da-b9b1-27b2772a3a21_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+12.40.37.png?alt=media&token=49c5dc85-ab43-4f3e-95af-859aa7df09a8',3,3),
-    ('MAIN','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodation%2Fc63d4c62-c9c1-413a-9fca-5f61a371c21f_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-08-31+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+1.00.27.png?alt=media&token=754c0091-020f-4ee9-bd10-560840c7c4a5',0,2),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F2%2Fimages%2F663c8b48-948d-4965-89b8-ed175132f1e1_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+10.22.14.png?alt=media&token=02d991ca-7f86-46bd-9bfb-d5797feca9c5',1,2),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F2%2Fimages%2Fd686479f-e07c-48d8-899d-f36382bff1ae_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+10.22.17.png?alt=media&token=75948854-8dab-4ca7-ae7a-b15c3e34befb',2,2),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F2%2Fimages%2Ff9b078c7-cf62-4b69-b891-6c6a05061370_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+10.22.21.png?alt=media&token=2b0ecc55-030e-4f32-9c2a-a005b83c51bb',3,2),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F1%2Fimages%2F263750aa-ec49-4f9d-b3e4-fcf641b5718b_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+2.09.44.png?alt=media&token=c1f07eed-48f7-469a-bb0e-28294b138316',1,1),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F1%2Fimages%2Fe9d5a256-3fd8-42a8-b9f0-a4177ddaf25a_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+2.09.55.png?alt=media&token=2b4ab864-86f8-4dd5-a3cd-3c18bae1a3f7',2,1),
-    ('COMMON','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F1%2Fimages%2F34c70692-0586-4fda-8e1b-4f33a613adcd_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%8C%E1%85%A5%E1%86%AB+2.09.38.png?alt=media&token=ad5b82d1-818e-40de-955f-b401ebbd9c70',3,1),
-    ('MAIN','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodation%2F4df60cfc-c920-4be2-9873-b0a6fa7762c5_%E1%84%80%E1%85%A7%E1%86%BC%E1%84%8C%E1%85%AE%E1%84%92%E1%85%A1%E1%86%AB%E1%84%8B%E1%85%A9%E1%86%A8-%E1%84%8C%E1%85%A5%E1%86%AB%E1%84%80%E1%85%A7%E1%86%BC.png?alt=media&token=a9d9bc07-d39b-4bc9-8dba-57fe00f3dcd3',0,1),
-    ('MAIN','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodation%2F921d1bc3-296a-4885-8f84-89fed04b9cdb_%E1%84%89%E1%85%B3%E1%84%8F%E1%85%B3%E1%84%85%E1%85%B5%E1%86%AB%E1%84%89%E1%85%A3%E1%86%BA+2025-09-02+%E1%84%8B%E1%85%A9%E1%84%92%E1%85%AE+10.27.31.png?alt=media&token=5f20f59b-c2e0-48d4-b8f8-9df77fdd9f9a',0,6);
-
--- 7
-INSERT INTO accommodation_image (
-    created_at,
-    updated_at,
-    image_type,
-    image_url,
-    sort_order,
-    accommodation_id
-) VALUES
-      ( '2025-08-20 15:45:34.000000', '2025-08-20 15:45:31.000000', 'VIEW',
-       'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F43%2Fview1.jpg?alt=media&token=81b4667e-05e4-4fd2-93c9-301c6f12e777',
-       1, 7),
-
-      ( '2025-08-20 15:45:39.000000', '2025-08-20 15:45:40.000000', 'VIEW',
-       'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F43%2Fvew2.jpg?alt=media&token=90d598e7-cd1f-432f-bae3-27627364b4a8',
-       2, 7),
-
-      ('2025-08-20 15:46:19.000000', '2025-08-20 15:46:18.000000', 'VIEW',
-       'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F43%2Fview3.jpg?alt=media&token=4d1b73e7-55a6-4e62-97b3-9b41b049295d',
-       3, 7);
 
 
 

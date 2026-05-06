@@ -1,3 +1,10 @@
+-- ============================================================
+-- 실행 순서: insert_pk_21-30.sql 완료 후 이 파일 실행
+-- 포함 데이터: accommodation 31~33 (명시적 PK),
+--             accommodation_image, accommodation_tag_map,
+--             room 91~101 (자동 증가), room_image 91~101,
+--             cancellation_policy
+-- ============================================================
 
 -- accommodations
 -- 31
@@ -120,14 +127,14 @@ INSERT INTO accommodation (
 -- accommodation_image
 
 -- 31
-INSERT INTO accommodation_image (image_url, sort_order, accommodation_id) VALUES
-                                                                              ('https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Fimages%2Fimg1.jpg?alt=media&token=06634b3f-a818-4e57-9eec-ae245b82fb61', 1, 31),
-                                                                              ('https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Fimages%2Fimg2.jpg?alt=media&token=20567142-9569-4459-8353-2ad840f9af38', 2, 31),
-                                                                              ('https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Fimages%2Fimg3.jpg?alt=media&token=83c64758-0355-4828-8cc0-0f47413329b2', 3, 31),
-                                                                              ('https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Fimages%2Fimg4.jpg?alt=media&token=feb039f2-56d2-4ef8-a9f0-5e5d9f417288', 4, 31),
-                                                                              ('https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Fimages%2Fimg5.jpg?alt=media&token=542c30e3-f41c-42cb-bd67-318d65d50d6e', 5, 31),
-                                                                              ('https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Fimages%2Fimg6.jpg?alt=media&token=2e4b380c-5b40-4e20-8982-3309146ea320', 6, 31),
-                                                                              ('https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Fimages%2Fimg7.jpeg?alt=media&token=0c34450c-e03f-4f49-b87e-c36f58afd9ac', 7, 31);
+INSERT INTO accommodation_image (created_at, updated_at, image_type, image_url, sort_order, accommodation_id) VALUES
+    ('2025-09-04 23:00:00.000000', '2025-09-04 23:00:00.000000', 'MAIN', 'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Fimages%2Fimg1.jpg?alt=media&token=06634b3f-a818-4e57-9eec-ae245b82fb61', 1, 31),
+    ('2025-09-04 23:00:00.000000', '2025-09-04 23:00:00.000000', 'SUB', 'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Fimages%2Fimg2.jpg?alt=media&token=20567142-9569-4459-8353-2ad840f9af38', 2, 31),
+    ('2025-09-04 23:00:00.000000', '2025-09-04 23:00:00.000000', 'SUB', 'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Fimages%2Fimg3.jpg?alt=media&token=83c64758-0355-4828-8cc0-0f47413329b2', 3, 31),
+    ('2025-09-04 23:00:00.000000', '2025-09-04 23:00:00.000000', 'SUB', 'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Fimages%2Fimg4.jpg?alt=media&token=feb039f2-56d2-4ef8-a9f0-5e5d9f417288', 4, 31),
+    ('2025-09-04 23:00:00.000000', '2025-09-04 23:00:00.000000', 'SUB', 'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Fimages%2Fimg5.jpg?alt=media&token=542c30e3-f41c-42cb-bd67-318d65d50d6e', 5, 31),
+    ('2025-09-04 23:00:00.000000', '2025-09-04 23:00:00.000000', 'SUB', 'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Fimages%2Fimg6.jpg?alt=media&token=2e4b380c-5b40-4e20-8982-3309146ea320', 6, 31),
+    ('2025-09-04 23:00:00.000000', '2025-09-04 23:00:00.000000', 'SUB', 'https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Fimages%2Fimg7.jpeg?alt=media&token=0c34450c-e03f-4f49-b87e-c36f58afd9ac', 7, 31);
 
 -- 32번 숙소 이미지
 INSERT INTO accommodation_image (created_at, updated_at, image_url, sort_order, accommodation_id) VALUES
@@ -444,69 +451,69 @@ INSERT INTO room (
 
 -- room_image
 
--- 31 숙소 (room_id: 123~127)
+-- 31 숙소 (room_id: 91~95)
 INSERT INTO room_image (created_at, updated_at, image_url, sort_order, room_id) VALUES
--- 사랑방 (room_id = 123)
-('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom1%2F%E1%84%89%E1%85%A1%E1%84%85%E1%85%A1%E1%86%BC1.jpg?alt=media&token=2d96889a-a8bc-42ca-b1e8-16996767d33f',1,123),
-('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom1%2F%E1%84%89%E1%85%A1%E1%84%85%E1%85%A1%E1%86%BC2.jpeg?alt=media&token=fc544408-b8b8-4d05-beef-fb85524b8dfa',2,123),
-('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom1%2F%E1%84%89%E1%85%A1%E1%84%85%E1%85%A1%E1%86%BC3.jpg?alt=media&token=c67efa2b-8948-48d4-8eb4-822f9741d4f0',3,123),
-('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom1%2F%E1%84%89%E1%85%A1%E1%84%85%E1%85%A1%E1%86%BC4.jpeg?alt=media&token=093f2984-5fdd-4d87-89bf-999cd1485a10',4,123),
+-- 사랑방 (room_id = 91)
+('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom1%2F%E1%84%89%E1%85%A1%E1%84%85%E1%85%A1%E1%86%BC1.jpg?alt=media&token=2d96889a-a8bc-42ca-b1e8-16996767d33f',1,91),
+('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom1%2F%E1%84%89%E1%85%A1%E1%84%85%E1%85%A1%E1%86%BC2.jpeg?alt=media&token=fc544408-b8b8-4d05-beef-fb85524b8dfa',2,91),
+('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom1%2F%E1%84%89%E1%85%A1%E1%84%85%E1%85%A1%E1%86%BC3.jpg?alt=media&token=c67efa2b-8948-48d4-8eb4-822f9741d4f0',3,91),
+('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom1%2F%E1%84%89%E1%85%A1%E1%84%85%E1%85%A1%E1%86%BC4.jpeg?alt=media&token=093f2984-5fdd-4d87-89bf-999cd1485a10',4,91),
 
--- 지혜방 (room_id = 124)
-('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom2%2F%E1%84%8C%E1%85%B5%E1%84%92%E1%85%A81.jpeg?alt=media&token=1dc0dbb0-5aec-432d-a174-914214f8577c',1,124),
-('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom2%2F%E1%84%8C%E1%85%B5%E1%84%92%E1%85%A82.jpeg?alt=media&token=439ab36d-bb49-4f08-b645-980223d21e24',2,124),
-('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom2%2F%E1%84%8C%E1%85%B5%E1%84%92%E1%85%A83.jpg?alt=media&token=5c4df88f-8784-431b-9399-adad3b7d66e6',3,124),
-('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom2%2F%E1%84%8C%E1%85%B5%E1%84%92%E1%85%A84.jpeg?alt=media&token=8eaf48e8-5ab6-4894-9c4b-105cca100432',4,124),
+-- 지혜방 (room_id = 92)
+('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom2%2F%E1%84%8C%E1%85%B5%E1%84%92%E1%85%A81.jpeg?alt=media&token=1dc0dbb0-5aec-432d-a174-914214f8577c',1,92),
+('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom2%2F%E1%84%8C%E1%85%B5%E1%84%92%E1%85%A82.jpeg?alt=media&token=439ab36d-bb49-4f08-b645-980223d21e24',2,92),
+('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom2%2F%E1%84%8C%E1%85%B5%E1%84%92%E1%85%A83.jpg?alt=media&token=5c4df88f-8784-431b-9399-adad3b7d66e6',3,92),
+('2025-09-08 14:30:00.000000','2025-09-08 14:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom2%2F%E1%84%8C%E1%85%B5%E1%84%92%E1%85%A84.jpeg?alt=media&token=8eaf48e8-5ab6-4894-9c4b-105cca100432',4,92),
 
--- 순수방 (room_id = 125)
-('2025-09-08 14:40:00.000000','2025-09-08 14:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom3%2F%E1%84%89%E1%85%AE%E1%86%AB%E1%84%89%E1%85%AE1.jpg?alt=media&token=f3fc8fbb-8032-43f8-9ba9-8dce01d7d7c8',1,125),
-('2025-09-08 14:40:00.000000','2025-09-08 14:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom3%2F%E1%84%89%E1%85%AE%E1%86%AB%E1%84%89%E1%85%AE2.jpeg?alt=media&token=296bfb80-4da5-40ac-bead-f7b254688c1f',2,125),
-('2025-09-08 14:40:00.000000','2025-09-08 14:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom3%2F%E1%84%89%E1%85%AE%E1%86%AB%E1%84%89%E1%85%AE3.jpg?alt=media&token=84584d2e-c91e-4ebe-aba4-e3c4fe007532',3,125),
-('2025-09-08 14:40:00.000000','2025-09-08 14:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom3%2F%E1%84%89%E1%85%AE%E1%86%AB%E1%84%89%E1%85%AE5.jpeg?alt=media&token=46bf3c5d-5222-4f48-90b1-61e3dfbb8532',4,125),
+-- 순수방 (room_id = 93)
+('2025-09-08 14:40:00.000000','2025-09-08 14:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom3%2F%E1%84%89%E1%85%AE%E1%86%AB%E1%84%89%E1%85%AE1.jpg?alt=media&token=f3fc8fbb-8032-43f8-9ba9-8dce01d7d7c8',1,93),
+('2025-09-08 14:40:00.000000','2025-09-08 14:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom3%2F%E1%84%89%E1%85%AE%E1%86%AB%E1%84%89%E1%85%AE2.jpeg?alt=media&token=296bfb80-4da5-40ac-bead-f7b254688c1f',2,93),
+('2025-09-08 14:40:00.000000','2025-09-08 14:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom3%2F%E1%84%89%E1%85%AE%E1%86%AB%E1%84%89%E1%85%AE3.jpg?alt=media&token=84584d2e-c91e-4ebe-aba4-e3c4fe007532',3,93),
+('2025-09-08 14:40:00.000000','2025-09-08 14:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom3%2F%E1%84%89%E1%85%AE%E1%86%AB%E1%84%89%E1%85%AE5.jpeg?alt=media&token=46bf3c5d-5222-4f48-90b1-61e3dfbb8532',4,93),
 
--- 해돋이방 (room_id = 126)
-('2025-09-08 14:41:00.000000','2025-09-08 14:41:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom4%2F%E1%84%92%E1%85%A2%E1%84%83%E1%85%A9%E1%86%AE%E1%84%8B%E1%85%B51.jpeg?alt=media&token=44e321b6-7a74-4ef1-bf61-9e3ad1299190',1,126),
-('2025-09-08 14:41:00.000000','2025-09-08 14:41:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom4%2F%E1%84%92%E1%85%A2%E1%84%83%E1%85%A9%E1%86%AE%E1%84%8B%E1%85%B52.jpg?alt=media&token=62e6ec00-fc17-4906-8352-c596d2ab90f6',2,126),
-('2025-09-08 14:41:00.000000','2025-09-08 14:41:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom4%2F%E1%84%92%E1%85%A2%E1%84%83%E1%85%A9%E1%86%AE%E1%84%8B%E1%85%B53.jpeg?alt=media&token=6d7070b4-8477-4096-a507-b0ca9dea9e61',3,126),
-('2025-09-08 14:41:00.000000','2025-09-08 14:41:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom4%2F%E1%84%92%E1%85%A2%E1%84%83%E1%85%A9%E1%86%AE%E1%84%8B%E1%85%B54.jpeg?alt=media&token=63b0cd87-3b38-4422-99c3-c931ed576c31',4,126),
+-- 해돋이방 (room_id = 94)
+('2025-09-08 14:41:00.000000','2025-09-08 14:41:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom4%2F%E1%84%92%E1%85%A2%E1%84%83%E1%85%A9%E1%86%AE%E1%84%8B%E1%85%B51.jpeg?alt=media&token=44e321b6-7a74-4ef1-bf61-9e3ad1299190',1,94),
+('2025-09-08 14:41:00.000000','2025-09-08 14:41:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom4%2F%E1%84%92%E1%85%A2%E1%84%83%E1%85%A9%E1%86%AE%E1%84%8B%E1%85%B52.jpg?alt=media&token=62e6ec00-fc17-4906-8352-c596d2ab90f6',2,94),
+('2025-09-08 14:41:00.000000','2025-09-08 14:41:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom4%2F%E1%84%92%E1%85%A2%E1%84%83%E1%85%A9%E1%86%AE%E1%84%8B%E1%85%B53.jpeg?alt=media&token=6d7070b4-8477-4096-a507-b0ca9dea9e61',3,94),
+('2025-09-08 14:41:00.000000','2025-09-08 14:41:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom4%2F%E1%84%92%E1%85%A2%E1%84%83%E1%85%A9%E1%86%AE%E1%84%8B%E1%85%B54.jpeg?alt=media&token=63b0cd87-3b38-4422-99c3-c931ed576c31',4,94),
 
--- 오방방 (room_id = 127)
-('2025-09-08 14:42:00.000000','2025-09-08 14:42:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom5%2F%E1%84%8B%E1%85%A9%E1%84%87%E1%85%A1%E1%86%BC%E1%84%87%E1%85%A1%E1%86%BC1.jpg?alt=media&token=56b8a2b3-ab78-4d42-8e0d-7e321da82295',1,127),
-('2025-09-08 14:42:00.000000','2025-09-08 14:42:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom5%2F%E1%84%8B%E1%85%A9%E1%84%87%E1%85%A1%E1%86%BC%E1%84%87%E1%85%A1%E1%86%BC2.jpeg?alt=media&token=19ce6549-4460-4d53-80cc-90669ae0d493',2,127),
-('2025-09-08 14:42:00.000000','2025-09-08 14:42:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom5%2F%E1%84%8B%E1%85%A9%E1%84%87%E1%85%A1%E1%86%BC%E1%84%87%E1%85%A1%E1%86%BC3.jpg?alt=media&token=2d27db46-930e-4ca3-b95c-e7e0d39b604d',3,127),
-('2025-09-08 14:42:00.000000','2025-09-08 14:42:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom5%2F%E1%84%8B%E1%85%A9%E1%84%87%E1%85%A1%E1%86%BC%E1%84%87%E1%85%A1%E1%86%BC5.jpeg?alt=media&token=5e95309c-ba51-4319-9426-0c5bd3d32908',4,127);
+-- 오방방 (room_id = 95)
+('2025-09-08 14:42:00.000000','2025-09-08 14:42:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom5%2F%E1%84%8B%E1%85%A9%E1%84%87%E1%85%A1%E1%86%BC%E1%84%87%E1%85%A1%E1%86%BC1.jpg?alt=media&token=56b8a2b3-ab78-4d42-8e0d-7e321da82295',1,95),
+('2025-09-08 14:42:00.000000','2025-09-08 14:42:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom5%2F%E1%84%8B%E1%85%A9%E1%84%87%E1%85%A1%E1%86%BC%E1%84%87%E1%85%A1%E1%86%BC2.jpeg?alt=media&token=19ce6549-4460-4d53-80cc-90669ae0d493',2,95),
+('2025-09-08 14:42:00.000000','2025-09-08 14:42:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom5%2F%E1%84%8B%E1%85%A9%E1%84%87%E1%85%A1%E1%86%BC%E1%84%87%E1%85%A1%E1%86%BC3.jpg?alt=media&token=2d27db46-930e-4ca3-b95c-e7e0d39b604d',3,95),
+('2025-09-08 14:42:00.000000','2025-09-08 14:42:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F31%2Froom%2Froom5%2F%E1%84%8B%E1%85%A9%E1%84%87%E1%85%A1%E1%86%BC%E1%84%87%E1%85%A1%E1%86%BC5.jpeg?alt=media&token=5e95309c-ba51-4319-9426-0c5bd3d32908',4,95);
 
--- 32 숙소 (더블룸=128, 가족룸=129)
+-- 32 숙소 (더블룸=96, 가족룸=97)
 INSERT INTO room_image (created_at, updated_at, image_url, sort_order, room_id) VALUES
--- 더블룸 (room_id=128)
-('2025-09-08 16:40:00.000000','2025-09-08 16:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom1%2F9e21ecc6d0816b1716f8ffe94fcbc0a6.jpg?alt=media&token=b6736a06-289d-4de5-90f7-af78fe42404e',1,128),
-('2025-09-08 16:40:00.000000','2025-09-08 16:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom1%2Fa5fe7d3f359917060e5a67fcc1c479d9.jpg?alt=media&token=c5a4a0c0-7972-4824-8246-6da83c6a978f',2,128),
-('2025-09-08 16:40:00.000000','2025-09-08 16:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom1%2Faff57f4c2f31638b72f4fecc6a3c4cb5.jpg?alt=media&token=b81f7a45-d803-473a-b208-678ee6788ac3',3,128),
-('2025-09-08 16:40:00.000000','2025-09-08 16:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom1%2F30c206e9639948831dbe6554139d9ab5.jpeg?alt=media&token=757a4ece-58be-4391-bcf1-015e8dc971e1',4,128),
-('2025-09-08 16:40:00.000000','2025-09-08 16:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom1%2F7f4b903a6c858a6b7b037a862232a34c.jpg?alt=media&token=c356a08c-77de-47a6-9c94-b66b41c335ef',5,128),
-('2025-09-08 16:40:00.000000','2025-09-08 16:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom1%2F005f77a8a1f9d0b89e4560926e374863.jpeg?alt=media&token=692f4f21-8471-49ce-a16d-2dbc43cc3f49',6,128),
+-- 더블룸 (room_id=96)
+('2025-09-08 16:40:00.000000','2025-09-08 16:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom1%2F9e21ecc6d0816b1716f8ffe94fcbc0a6.jpg?alt=media&token=b6736a06-289d-4de5-90f7-af78fe42404e',1,96),
+('2025-09-08 16:40:00.000000','2025-09-08 16:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom1%2Fa5fe7d3f359917060e5a67fcc1c479d9.jpg?alt=media&token=c5a4a0c0-7972-4824-8246-6da83c6a978f',2,96),
+('2025-09-08 16:40:00.000000','2025-09-08 16:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom1%2Faff57f4c2f31638b72f4fecc6a3c4cb5.jpg?alt=media&token=b81f7a45-d803-473a-b208-678ee6788ac3',3,96),
+('2025-09-08 16:40:00.000000','2025-09-08 16:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom1%2F30c206e9639948831dbe6554139d9ab5.jpeg?alt=media&token=757a4ece-58be-4391-bcf1-015e8dc971e1',4,96),
+('2025-09-08 16:40:00.000000','2025-09-08 16:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom1%2F7f4b903a6c858a6b7b037a862232a34c.jpg?alt=media&token=c356a08c-77de-47a6-9c94-b66b41c335ef',5,96),
+('2025-09-08 16:40:00.000000','2025-09-08 16:40:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom1%2F005f77a8a1f9d0b89e4560926e374863.jpeg?alt=media&token=692f4f21-8471-49ce-a16d-2dbc43cc3f49',6,96),
 
--- 가족룸 (room_id=129)
-('2025-09-08 16:45:00.000000','2025-09-08 16:45:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom2%2Ffc76f547678c31dfbe5a82c0958233fd.jpg?alt=media&token=ba0c4adf-3a18-4acc-98a8-a33aa1f187f4',1,129),
-('2025-09-08 16:45:00.000000','2025-09-08 16:45:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom2%2Fa7d5e61c81858043b916ca11940d544a.jpg?alt=media&token=b0b4b552-587c-474e-b92b-f20fe59e2e79',2,129),
-('2025-09-08 16:45:00.000000','2025-09-08 16:45:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom2%2F5826cb7e4d77dcd17c2ba1ee93b87068.jpg?alt=media&token=631230cc-7281-4aa1-8c7a-e2517c09e032',3,129),
-('2025-09-08 16:45:00.000000','2025-09-08 16:45:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom2%2F77cd95df66ad32acb3bec18ed6a193fa.jpg?alt=media&token=7803232f-ca65-4433-bb05-dcecffc3df30',4,129),
-('2025-09-08 16:45:00.000000','2025-09-08 16:45:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom2%2Fb554c2d0f6ae05a876f589ab425f72a1.jpg?alt=media&token=333a0193-5ee1-4316-97f2-b5a8e2282569',5,129),
-('2025-09-08 16:45:00.000000','2025-09-08 16:45:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom2%2F99c8e4158f4d2e963d444e98e55552a1.jpeg?alt=media&token=52dfe298-1731-4f1f-995a-cbbd22aedcd7',6,129);
+-- 가족룸 (room_id=97)
+('2025-09-08 16:45:00.000000','2025-09-08 16:45:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom2%2Ffc76f547678c31dfbe5a82c0958233fd.jpg?alt=media&token=ba0c4adf-3a18-4acc-98a8-a33aa1f187f4',1,97),
+('2025-09-08 16:45:00.000000','2025-09-08 16:45:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom2%2Fa7d5e61c81858043b916ca11940d544a.jpg?alt=media&token=b0b4b552-587c-474e-b92b-f20fe59e2e79',2,97),
+('2025-09-08 16:45:00.000000','2025-09-08 16:45:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom2%2F5826cb7e4d77dcd17c2ba1ee93b87068.jpg?alt=media&token=631230cc-7281-4aa1-8c7a-e2517c09e032',3,97),
+('2025-09-08 16:45:00.000000','2025-09-08 16:45:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom2%2F77cd95df66ad32acb3bec18ed6a193fa.jpg?alt=media&token=7803232f-ca65-4433-bb05-dcecffc3df30',4,97),
+('2025-09-08 16:45:00.000000','2025-09-08 16:45:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom2%2Fb554c2d0f6ae05a876f589ab425f72a1.jpg?alt=media&token=333a0193-5ee1-4316-97f2-b5a8e2282569',5,97),
+('2025-09-08 16:45:00.000000','2025-09-08 16:45:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F32%2Froom%2Froom2%2F99c8e4158f4d2e963d444e98e55552a1.jpeg?alt=media&token=52dfe298-1731-4f1f-995a-cbbd22aedcd7',6,97);
 
--- 33 숙소 (도미토리, 개인실) → room_id 130~133
+-- 33 숙소 (도미토리, 개인실) → room_id 98~101
 INSERT INTO room_image (created_at, updated_at, image_url, sort_order, room_id) VALUES
--- 4인 여자 도미토리 (room_id=130)
-('2025-09-08 17:20:00.000000','2025-09-08 17:20:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F33%2Froom%2Froom1%2Fac3c455dd734c7e97837454d05d7c253.jpg?alt=media&token=cbeebb69-30d4-46f6-acf7-e2042e942c76',1,130),
+-- 4인 여자 도미토리 (room_id=98)
+('2025-09-08 17:20:00.000000','2025-09-08 17:20:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F33%2Froom%2Froom1%2Fac3c455dd734c7e97837454d05d7c253.jpg?alt=media&token=cbeebb69-30d4-46f6-acf7-e2042e942c76',1,98),
 
--- 6인 여자 도미토리 (room_id=131)
-('2025-09-08 17:25:00.000000','2025-09-08 17:25:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F33%2Froom%2Froom2%2F21289b5e9481c1d7b938aac37d0c2f67.jpg?alt=media&token=3cf671f0-a94b-454b-baa0-c27899c09c66',1,131),
+-- 6인 여자 도미토리 (room_id=99)
+('2025-09-08 17:25:00.000000','2025-09-08 17:25:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F33%2Froom%2Froom2%2F21289b5e9481c1d7b938aac37d0c2f67.jpg?alt=media&token=3cf671f0-a94b-454b-baa0-c27899c09c66',1,99),
 
--- 온돌 개인실 (room_id=132)
-('2025-09-08 17:30:00.000000','2025-09-08 17:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F33%2Froom%2Froom3%2F229999adb9f2226ba179998571e53b94.jpg?alt=media&token=5a6a1338-796e-4572-9155-e87ed30f657d',1,132),
+-- 온돌 개인실 (room_id=100)
+('2025-09-08 17:30:00.000000','2025-09-08 17:30:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F33%2Froom%2Froom3%2F229999adb9f2226ba179998571e53b94.jpg?alt=media&token=5a6a1338-796e-4572-9155-e87ed30f657d',1,100),
 
--- 침대 개인실 (room_id=133)
-('2025-09-08 17:35:00.000000','2025-09-08 17:35:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F33%2Froom%2Froom4%2F3152c94da6f71e04f4595f2dce4fa181.jpg?alt=media&token=b122cc4c-e728-418a-b9bb-85e7b67816e0',1,133);
+-- 침대 개인실 (room_id=101)
+('2025-09-08 17:35:00.000000','2025-09-08 17:35:00.000000','https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/accommodations%2F33%2Froom%2Froom4%2F3152c94da6f71e04f4595f2dce4fa181.jpg?alt=media&token=b122cc4c-e728-418a-b9bb-85e7b67816e0',1,101);
 -- cancellation_policy
 -- 31
 INSERT INTO cancellation_policy (
@@ -560,7 +567,7 @@ INSERT INTO cancellation_policy (
     policy_name,
     accommodation_id
 ) VALUES
-      ('2025-09-08 15:20:00.000000','2025-09-08 15:20:00.000000','체크인일 기준 7일 전까지 취소 시: 전액 환불','[기본] 체크인 7일 전까지 100% 환불',32),
-      ('2025-09-08 15:20:00.000000','2025-09-08 15:20:00.000000','체크인일 기준 6 ~ 4일 전까지 취소 시: 50% 환불','[성수기] 체크인 6~4일 전까지 50% 환불',32),
-      ('2025-09-08 15:20:00.000000','2025-09-08 15:20:00.000000','체크인일 기준 3일 전 ~ 당일 및 No-Show 취소 시: 환불 불가','[비수기] 체크인 3일 전 ~ 당일 및 No-Show',32),
-      ('2025-09-08 15:20:00.000000','2025-09-08 15:20:00.000000','예약 후 10분 내 취소 시 수수료 없음. 10분 경과 시 상기 숙소 취소 및 환불 규정 적용','[당일예약] 예약 후 10분 내 취소 규정',32);
+      ('2025-09-08 15:20:00.000000','2025-09-08 15:20:00.000000','체크인일 기준 7일 전까지 취소 시: 전액 환불','[기본] 체크인 7일 전까지 100% 환불',33),
+      ('2025-09-08 15:20:00.000000','2025-09-08 15:20:00.000000','체크인일 기준 6 ~ 4일 전까지 취소 시: 50% 환불','[성수기] 체크인 6~4일 전까지 50% 환불',33),
+      ('2025-09-08 15:20:00.000000','2025-09-08 15:20:00.000000','체크인일 기준 3일 전 ~ 당일 및 No-Show 취소 시: 환불 불가','[비수기] 체크인 3일 전 ~ 당일 및 No-Show',33),
+      ('2025-09-08 15:20:00.000000','2025-09-08 15:20:00.000000','예약 후 10분 내 취소 시 수수료 없음. 10분 경과 시 상기 숙소 취소 및 환불 규정 적용','[당일예약] 예약 후 10분 내 취소 규정',33);
