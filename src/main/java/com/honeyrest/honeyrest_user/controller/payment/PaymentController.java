@@ -3,6 +3,7 @@ package com.honeyrest.honeyrest_user.controller.payment;
 import com.honeyrest.honeyrest_user.dto.payment.toss.TossConfirmRequest;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationCompleteDTO;
 import com.honeyrest.honeyrest_user.service.payment.PaymentOrchestrationService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,7 @@ public class PaymentController {
     private final PaymentOrchestrationService paymentOrchestrationService;
 
     @PostMapping("/toss/confirm")
-    public ResponseEntity<ReservationCompleteDTO> confirmTossPayment(@RequestBody TossConfirmRequest request) throws Exception {
+    public ResponseEntity<ReservationCompleteDTO> confirmTossPayment(@Valid @RequestBody TossConfirmRequest request) throws Exception {
         ReservationCompleteDTO dto = paymentOrchestrationService.confirmAndSave(request);
         return ResponseEntity.ok(dto);
     }

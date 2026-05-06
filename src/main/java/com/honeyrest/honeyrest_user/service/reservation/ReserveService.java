@@ -91,6 +91,7 @@ public class ReserveService {
     }
 
 
+    @Transactional(readOnly = true)
     public ReservationCompleteDTO findGuestReservation(GuestReservationLookupRequestDTO request) {
         Reservation reservation = reservationRepository.findByReservationNumberAndGuestPhone(
                 request.getReservationCode(), request.getGuestPhone()
@@ -121,6 +122,7 @@ public class ReserveService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public ReservationDetailDTO getReservationDetail(Long userId, Long reservationId) {
         Reservation reservation = reservationRepository.findByReservationIdAndUser_UserId(reservationId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("예약 정보를 찾을 수 없습니다."));

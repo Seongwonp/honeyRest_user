@@ -38,6 +38,7 @@ public class AccommodationService {
     /**
      * 인기 숙소 조회 (카테고리별, Redis ZSet 활용)
      */
+    @Transactional(readOnly = true)
     public List<AccommodationSummaryDTO> getPopularByCategory(String category) {
         // 전체 조회(카테고리 "전체" 또는 null)일 때 모든 카테고리 ZSet에서 상위 6개씩 모아서 반환
         if (category == null || category.isBlank() || "전체".equals(category)) {
@@ -68,7 +69,7 @@ public class AccommodationService {
                     .limit(30)
                     .map(Long::parseLong)
                     .toList();
-            List<Accommodation> accommodations = accommodationRepository.findAllById(accommodationIds);
+            List<Accommodation> accommodations = accommodationRepository.findAllByIdWithCategory(accommodationIds);
             Map<Long, Accommodation> accMap = new HashMap<>();
             accommodations.forEach(a -> accMap.put(a.getAccommodationId(), a));
             List<AccommodationSummaryDTO> result = new ArrayList<>();
@@ -102,7 +103,7 @@ public class AccommodationService {
             List<Long> accommodationIds = topIds.stream()
                     .map(obj -> Long.parseLong(obj.toString()))
                     .toList();
-            List<Accommodation> accommodations = accommodationRepository.findAllById(accommodationIds);
+            List<Accommodation> accommodations = accommodationRepository.findAllByIdWithCategory(accommodationIds);
             Map<Long, Accommodation> accMap = new HashMap<>();
             accommodations.forEach(a -> accMap.put(a.getAccommodationId(), a));
             List<AccommodationSummaryDTO> result = new ArrayList<>();
@@ -135,6 +136,7 @@ public class AccommodationService {
     }
 
     // 숙소 검색
+    @Transactional(readOnly = true)
     public PageResponseDTO<AccommodationSearchDTO> searchAvailable(
             String location,
             Double lat,
@@ -184,11 +186,13 @@ public class AccommodationService {
     }
 
     //가격 범위 조회
+    @Transactional(readOnly = true)
     public Map<String, BigDecimal> getPriceRange() {
         BigDecimal maxPrice = accommodationRepository.findMaxMinPriceByStatus("ACTIVE");
         return Map.of("min", BigDecimal.ZERO, "max", maxPrice != null ? maxPrice : BigDecimal.ZERO);
     }
 
+    @Transactional(readOnly = true)
     public AccommodationDetailDTO getDetail(Long id, Long userId, LocalDate checkIn, LocalDate checkOut, Integer guests){
         AccommodationDetailDTO dto = detailQueryRepository.fetchDetailById(id, userId, checkIn, checkOut, guests);
         incrementPopularity(dto.getId(),dto.getCategory());

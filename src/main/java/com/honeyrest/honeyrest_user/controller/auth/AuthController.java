@@ -8,6 +8,7 @@ import com.honeyrest.honeyrest_user.service.RefreshTokenService;
 import com.honeyrest.honeyrest_user.service.UserService;
 import com.honeyrest.honeyrest_user.util.RefreshTokenCookieManager;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
@@ -27,12 +28,12 @@ public class AuthController {
     private final RefreshTokenCookieManager refreshTokenCookieManager;
 
     @PostMapping("/signup")
-    public UserResponseDTO signup(@ModelAttribute UserSignupRequestDTO request) throws Exception {
+    public UserResponseDTO signup(@Valid @ModelAttribute UserSignupRequestDTO request) throws Exception {
         return userService.signup(request);
     }
 
     @PostMapping("/login")
-    public LoginResponseDTO login(@RequestBody UserLoginRequestDTO request, HttpServletResponse response) {
+    public LoginResponseDTO login(@Valid @RequestBody UserLoginRequestDTO request, HttpServletResponse response) {
         return userService.login(request, response);
     }
 

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public interface AccommodationRepository extends JpaRepository<Accommodation, Long>, AccommodationSearch {
 
@@ -17,5 +18,8 @@ public interface AccommodationRepository extends JpaRepository<Accommodation, Lo
 
     @Query("SELECT MAX(a.minPrice) FROM Accommodation a WHERE a.status = :status")
     BigDecimal findMaxMinPriceByStatus(@Param("status") String status);
+
+    @Query("SELECT a FROM Accommodation a JOIN FETCH a.category WHERE a.accommodationId IN :ids")
+    List<Accommodation> findAllByIdWithCategory(@Param("ids") List<Long> ids);
 
 }

@@ -2,6 +2,7 @@ package com.honeyrest.honeyrest_user.controller.review;
 
 import com.honeyrest.honeyrest_user.dto.review.ReviewRequestDTO;
 import com.honeyrest.honeyrest_user.service.ReviewService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +17,7 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     @PostMapping("/write")
-    public ResponseEntity<Void> createReview(@RequestBody ReviewRequestDTO request) {
+    public ResponseEntity<Void> createReview(@Valid @RequestBody ReviewRequestDTO request) {
         reviewService.createReview(request);
         return ResponseEntity.ok().build();
     }

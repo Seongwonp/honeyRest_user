@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.dto.reservation;
 
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,25 +14,45 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @Builder
 public class ReservationRequestDTO {
+
+    @NotNull
     private Long roomId;
+
+    @NotNull
     private LocalDate checkIn;
+
+    @NotNull
     private LocalDate checkOut;
+
+    @NotNull
+    @Min(1)
     private Integer guests;
-    private String reservationCode; // 프론트에서 생성한 예약번호 (비회원 비밀번호 포함 가능)
+
+    @NotBlank
+    @Size(max = 100)
+    private String reservationCode;
+
+    @NotBlank
+    @Size(max = 50)
     private String guestName;
+
+    @NotBlank
+    @Pattern(regexp = "^01[016789]\\d{7,8}$", message = "올바른 전화번호 형식이 아닙니다")
     private String guestPhone;
+
+    @Size(max = 500)
     private String specialRequest;
 
-    private Long couponId; // 선택
-    private Long userId;   // 선택 (비회원이면 null)
+    private Long couponId;
+    private Long userId;
 
-    private Boolean isEmailSend; // 선택
+    private Boolean isEmailSend;
 
-    private BigDecimal originalPrice;   // 객실 원가
-    private BigDecimal discountAmount;  // 할인 금액
-    private String couponName;          // 쿠폰 이름
+    private BigDecimal originalPrice;
+    private BigDecimal discountAmount;
+    private String couponName;
 
-    private Integer usedPoint; // 사용된 포인트 (선택)
-
+    @Min(0)
+    private Integer usedPoint;
 
 }

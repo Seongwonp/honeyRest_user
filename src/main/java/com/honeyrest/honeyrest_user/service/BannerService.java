@@ -7,8 +7,11 @@ import com.honeyrest.honeyrest_user.util.FileUploadUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -23,6 +26,7 @@ public class BannerService {
     private final ModelMapper modelMapper;
     private final FileUploadUtil fileUploadUtil;
 
+    @CacheEvict(value = "banners", allEntries = true)
     public void saveBanner(MultipartFile image, BannerDTO dto) throws IOException {
         String imageUrl = "";
         try {
@@ -39,6 +43,8 @@ public class BannerService {
         bannerRepository.save(banner);
     }
 
+    @Transactional(readOnly = true)
+    @Cacheable(value = "banners")
     public List<BannerDTO> getBanners() {
         LocalDateTime now = LocalDateTime.now();
         List<Banner> banners = bannerRepository.findByIsActiveTrueAndStartDateBeforeAndEndDateAfterOrderBySortOrderAsc(now, now);
@@ -56,6 +62,7 @@ public class BannerService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public BannerDTO getRandomBanner() {
         List<Banner> result = bannerRepository.findRandomBanner(LocalDateTime.now(), PageRequest.of(0, 1));
         if (result.isEmpty()) throw new IllegalStateException("활성화된 배너가 없습니다");

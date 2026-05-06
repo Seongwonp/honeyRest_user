@@ -6,6 +6,7 @@ import com.honeyrest.honeyrest_user.dto.reservation.guest.GuestReservationLookup
 import com.honeyrest.honeyrest_user.entity.Reservation;
 import com.honeyrest.honeyrest_user.service.reservation.ReserveInfoService;
 import com.honeyrest.honeyrest_user.service.reservation.ReserveService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -37,7 +38,7 @@ public class ReserveController {
     }
 
     @PostMapping("/guest-lookup")
-    public ResponseEntity<ReservationCompleteDTO> guestLookup(@RequestBody GuestReservationLookupRequestDTO request) {
+    public ResponseEntity<ReservationCompleteDTO> guestLookup(@Valid @RequestBody GuestReservationLookupRequestDTO request) {
         ReservationCompleteDTO dto = reserveService.findGuestReservation(request);
         log.info("비회원 조회: {}",dto);
         return ResponseEntity.ok(dto);
