@@ -151,7 +151,7 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                         a.rating,
                         rv.reviewId.countDistinct(),
                         a.category.name,
-                        w.wishlistId.isNotNull(),
+                        w.wishlistId.max().isNotNull(),
                         a.mainRegion.name,
                         a.subRegion.name,
                         a.latitude.doubleValue(),
