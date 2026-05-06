@@ -38,10 +38,9 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
-    // 데이터베이스 (JPA, MyBatis, MariaDB)
+    // 데이터베이스 (JPA, MyBatis, MySQL)
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.5'
-    runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 
     // 문자 발송 (Nurigo API)
     implementation 'net.nurigo:sdk:4.3.2'
@@ -90,6 +89,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.5'
     testImplementation 'org.springframework.security:spring-security-test'
+    runtimeOnly 'com.mysql:mysql-connector-j'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
