@@ -33,7 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = jwtTokenProvider.resolveToken(request);
-        log.info("[JwtAuthenticationFilter] 요청 토큰: {}", token);
+        log.debug("[JwtAuthenticationFilter] 토큰 존재 여부: {}", token != null);
 
         try {
             if (token != null) {

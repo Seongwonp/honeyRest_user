@@ -50,12 +50,12 @@ public class KakaoOAuthService {
 
         Map<String, Object> responseBody = response.getBody();
         if (responseBody == null || !responseBody.containsKey("access_token")) {
-            log.error("카카오 access token 발급 실패: {}", responseBody);
+            log.error("카카오 access token 발급 실패");
             throw new RuntimeException("카카오 access token 발급 실패");
         }
 
         String accessToken = (String) responseBody.get("access_token");
-        log.info("카카오 access token 발급 성공: {}", accessToken);
+        log.info("카카오 access token 발급 성공");
         return accessToken;
     }
 
@@ -99,7 +99,6 @@ public class KakaoOAuthService {
                 ? (String) profile.get("profile_image_url") : null;
 
         log.info("카카오 사용자 정보 조회 성공");
-        log.info("ID: {}, Email: {}, Nickname: {}", id, email, nickname);
 
         return SocialLoginRequestDTO.builder()
                 .socialType("KAKAO")

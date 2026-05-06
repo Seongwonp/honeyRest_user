@@ -49,9 +49,28 @@ public class PaymentDetail extends BaseEntity{
     @Column(name = "toss_payment_key", length = 100)
     private String tossPaymentKey; // 토스 결제 키
 
+    // ===== 편의 메서드 =====
 
+    /**
+     * 카드 결제 여부 확인
+     */
+    public boolean isCardPayment() {
+        return cardCompany != null && !cardCompany.isEmpty();
+    }
 
+    /**
+     * 가상계좌 결제 여부 확인
+     */
+    public boolean isVirtualAccountPayment() {
+        return virtualAccountNumber != null && !virtualAccountNumber.isEmpty();
+    }
 
+    /**
+     * 할부 결제 여부 확인
+     */
+    public boolean isInstalledPayment() {
+        return installmentMonths != null && installmentMonths > 0;
+    }
 
 
 

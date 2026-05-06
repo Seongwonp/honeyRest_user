@@ -29,6 +29,7 @@ public class ReservationMapper {
                 .guests(reservation.getGuestCount())
                 .guestName(reservation.getGuestName())
                 .guestPhone(reservation.getGuestPhone())
+                .guestEmail(reservation.getUser() != null ? reservation.getUser().getEmail() : null)
                 .paymentMethod(payment != null ? payment.getPaymentMethod() : null)
                 .paymentStatus(payment != null ? payment.getPaymentStatus() : null)
                 .receiptUrl(payment != null ? payment.getReceiptUrl() : null)

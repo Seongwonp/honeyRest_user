@@ -12,7 +12,12 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "reservation")
+@Table(name = "reservation", indexes = {
+        @Index(name = "idx_reservation_user_id", columnList = "user_id"),
+        @Index(name = "idx_reservation_status", columnList = "status"),
+        @Index(name = "idx_reservation_check_in_date", columnList = "check_in_date"),
+        @Index(name = "idx_reservation_check_out_date", columnList = "check_out_date")
+})
 public class Reservation extends BaseEntity{
 
     @Id

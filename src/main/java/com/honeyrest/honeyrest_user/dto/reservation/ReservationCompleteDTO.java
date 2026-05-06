@@ -22,6 +22,7 @@ public class ReservationCompleteDTO {
     // 사용자 정보
     private String guestName;
     private String guestPhone;
+    private String guestEmail;
 
     // 결제 정보
     private String paymentMethod; // TOSS, CARD, BANK

@@ -79,8 +79,8 @@ public class TossService {
         Map<String, Object> responseMap = mapper.readValue(responseStream, typeRef);
         responseStream.close();
 
-        // 응답 전체 로그
-        log.info("✅ 토스 결제 승인 응답 JSON: {}", responseMap);
+        log.info("✅ 토스 결제 승인 응답 수신: orderId={}, status={}",
+                responseMap.get("orderId"), responseMap.get("status"));
 
         //  안전한 필드 추출
         BigDecimal amount = responseMap.get("totalAmount") != null

@@ -128,6 +128,7 @@ public class ReviewService {
     }
 
 
+    @Transactional(readOnly = true)
     public PageResponseDTO<MyReviewDTO> getUserReviews(Long userId, Pageable pageable) {
         // 1. 리뷰 페이징 조회
         Page<Review> page = reviewRepository.findByUser_UserId(userId, pageable);

@@ -92,9 +92,8 @@ public class ReserveService {
 
 
     public ReservationCompleteDTO findGuestReservation(GuestReservationLookupRequestDTO request) {
-        String reservationCode = request.getReservationCode()+"-"+request.getGuestPassword();
         Reservation reservation = reservationRepository.findByReservationNumberAndGuestPhone(
-                reservationCode, request.getGuestPhone()
+                request.getReservationCode(), request.getGuestPhone()
         );
         if (reservation == null) {
             throw new IllegalArgumentException("예약 정보를 찾을 수 없습니다.");

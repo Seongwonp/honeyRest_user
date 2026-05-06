@@ -59,7 +59,7 @@ public class JwtTokenProvider {
     // Refresh Token 생성 (UUID 기반)
     public String createRefreshToken() {
         String token = UUID.randomUUID().toString();
-        log.info("✅ RefreshToken 생성 완료: {}", token);
+        log.info("✅ RefreshToken 생성 완료");
         return token;
     }
 

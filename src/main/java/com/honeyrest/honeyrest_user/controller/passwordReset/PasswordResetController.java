@@ -31,7 +31,7 @@ public class PasswordResetController {
         String token = body.get("token");
         String newPassword = body.get("newPassword");
         passwordResetService.resetPassword(token, newPassword);
-        log.info("🔐 비밀번호 재설정 완료: token={}", token);
+        log.info("🔐 비밀번호 재설정 완료");
         return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다");
     }
 }

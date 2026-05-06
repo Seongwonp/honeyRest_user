@@ -4,6 +4,7 @@ import com.honeyrest.honeyrest_user.dto.reservation.ReservationCompleteDTO;
 import com.honeyrest.honeyrest_user.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -17,15 +18,10 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    public void sendReservationConfirmation(User user, ReservationCompleteDTO dto) {
+    @Async
+    public void sendReservationConfirmation(String email, ReservationCompleteDTO dto) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setTo(user.getEmail());
-            helper.setSubject("HoneyRest 예약 완료 안내");
-
-            String template = """
+            String html = """
                         <html>
                           <body style="font-family: 'Arial', sans-serif; line-height: 1.6; background-color: #f9f9f9; padding: 20px;">
                             <div style="max-width: 600px; margin: auto; background-color: #fff; border-radius: 8px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
@@ -75,10 +71,7 @@ public class EmailService {
                             </div>
                           </body>
                         </html>
-                    """;
-
-            String html = template
-                    .replace("{guestName}", dto.getGuestName())
+                    """.replace("{guestName}", dto.getGuestName())
                     .replace("{accommodationName}", dto.getAccommodationName())
                     .replace("{roomName}", dto.getRoomName())
                     .replace("{reservationCode}", dto.getReservationCode())
@@ -92,22 +85,17 @@ public class EmailService {
                     .replace("{couponName}", dto.getCouponName() != null ? dto.getCouponName() : "미사용")
                     .replace("{finalPrice}", dto.getFinalPrice().toPlainString());
 
-            helper.setText(html, true);
-            mailSender.send(message);
-            log.info("📧 예약 완료 이메일 발송 성공: {}", user.getEmail());
+            sendHtmlMail(email, "HoneyRest 예약 완료 안내", html);
+
+            log.info("📧 예약 완료 이메일 발송 성공: {}", email);
         } catch (Exception e) {
             log.error("📧 예약 완료 이메일 발송 실패", e);
         }
     }
 
+    @Async
     public void sendPasswordReset(String email, String tokenValue) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            helper.setTo(email);
-            helper.setSubject("HoneyRest 비밀번호 재설정 안내");
-
             String resetLink = "http://localhost:5173/reset-password/change?token=" + tokenValue;
 
             String html = """
@@ -140,12 +128,72 @@ public class EmailService {
             </html>
         """.formatted(resetLink);
 
-            helper.setText(html, true);
-            mailSender.send(message);
-            log.info("📧 비밀번호 재설정 이메일 발송 성공: {}", email);
+            sendHtmlMail(email, "HoneyRest 비밀번호 재설정 안내", html);
         } catch (Exception e) {
             log.error("📧 비밀번호 재설정 이메일 발송 실패", e);
         }
+    }
+
+    @Async
+    public void sendVerificationEmail(String email, String link) {
+        try {
+            String htmlContent = """
+                    <html>
+                      <body style="font-family: 'Pretendard', sans-serif; background-color: #f9f9f9; padding: 40px;">
+                        <div style="max-width: 600px; margin: auto; background-color: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 32px;">
+                          <h2 style="color: #ffb300; margin-bottom: 16px;">HoneyRest 이메일 인증</h2>
+                          <p style="font-size: 16px; color: #333;">안녕하세요, <strong>HoneyRest</strong>를 이용해 주셔서 감사합니다.<br>아래 버튼을 클릭하여 이메일 인증을 완료해 주세요.</p>
+                          <div style="margin: 24px 0;">
+                            <a href="%s" style="display: inline-block; background-color: #ffb300; color: #fff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                              이메일 인증하기
+                            </a>
+                          </div>
+                          <p style="font-size: 14px; color: #999;">이 링크는 24시간 동안 유효합니다.<br>문의사항은 support@honeyrest.com 으로 연락 주세요.</p>
+                        </div>
+                      </body>
+                    </html>
+            """.formatted(link);
+
+            sendHtmlMail(email, "HoneyRest 이메일 인증", htmlContent);
+        } catch (Exception e) {
+            log.error("이메일 인증 메일 전송 실패", e);
+        }
+    }
+
+    @Async
+    public void sendEmailChangeToken(String email, String link) {
+        try {
+            String htmlContent = """
+        <html>
+          <body style="font-family: 'Pretendard', sans-serif; background-color: #f9f9f9; padding: 40px;">
+            <div style="max-width: 600px; margin: auto; background-color: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 32px;">
+              <h2 style="color: #ffb300; margin-bottom: 16px;">HoneyRest 이메일 변경 인증</h2>
+              <p style="font-size: 16px; color: #333;">안녕하세요, <strong>HoneyRest</strong>를 이용해 주셔서 감사합니다.<br>아래 버튼을 클릭하여 이메일 변경 인증을 완료해 주세요.</p>
+              <div style="margin: 24px 0;">
+                <a href="%s" style="display: inline-block; background-color: #ffb300; color: #fff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                  이메일 인증하기
+                </a>
+              </div>
+              <p style="font-size: 14px; color: #999;">이 링크는 24시간 동안 유효합니다.<br>문의사항은 support@honeyrest.com 으로 연락 주세요.</p>
+            </div>
+          </body>
+        </html>
+        """.formatted(link);
+
+            sendHtmlMail(email, "HoneyRest 이메일 변경 인증", htmlContent);
+        } catch (Exception e) {
+            log.error("이메일 변경 인증 메일 전송 실패", e);
+        }
+    }
+
+    private void sendHtmlMail(String to, String subject, String html) throws Exception {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+        helper.setTo(to);
+        helper.setSubject(subject);
+        helper.setText(html, true);
+        mailSender.send(message);
+        log.info("📧 이메일 발송 성공: {} / {}", to, subject);
     }
 
 

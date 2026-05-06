@@ -51,6 +51,6 @@ public class PasswordResetService {
         userRepository.save(user);
 
         tokenRepository.delete(token); // 사용 후 즉시 삭제
-        log.info("🔐 비밀번호 초기화 완료 및 토큰 삭제: userId={}, token={}", user.getUserId(), tokenValue);
+        log.info("🔐 비밀번호 초기화 완료 및 토큰 삭제: userId={}", user.getUserId());
     }
 }

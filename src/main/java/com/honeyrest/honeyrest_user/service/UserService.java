@@ -7,10 +7,10 @@ import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.security.JwtTokenProvider;
 import com.honeyrest.honeyrest_user.service.email.EmailVerificationTokenService;
 import com.honeyrest.honeyrest_user.util.FileUploadUtil;
+import com.honeyrest.honeyrest_user.util.RefreshTokenCookieManager;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,8 +30,10 @@ public class UserService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final FileUploadUtil fileUploadUtil;
+    private final RefreshTokenCookieManager refreshTokenCookieManager;
 
     // 회원가입
+    @Transactional
     public UserResponseDTO signup(UserSignupRequestDTO dto) throws Exception {
         if (userRepository.existsByEmail((dto.getEmail()))){
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
@@ -83,6 +85,7 @@ public class UserService {
     }
 
     // 로그인 작업
+    @Transactional
     public LoginResponseDTO login(UserLoginRequestDTO dto, HttpServletResponse response) {
         User user = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다."));
@@ -109,15 +112,7 @@ public class UserService {
         refreshTokenService.saveRefreshToken(user, refreshToken, expiry);
 
         // RefreshToken을 HttpOnly 쿠키로 설정
-        ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
-                .httpOnly(true)
-                .secure(true)
-                .path("/")
-                .maxAge(7 * 24 * 60 * 60)
-                .sameSite("Strict")
-                .build();
-
-        response.addHeader("Set-Cookie", cookie.toString());
+        response.addHeader("Set-Cookie", refreshTokenCookieManager.create(refreshToken).toString());
 
         user.updateLastLogin(LocalDateTime.now());
         userRepository.save(user);
@@ -137,6 +132,7 @@ public class UserService {
     }
 
     // 소셜로그인
+    @Transactional
     public LoginResponseDTO socialLogin(SocialLoginRequestDTO dto, HttpServletResponse response) {
         User user = userRepository.findBySocialTypeAndSocialId(dto.getSocialType(), dto.getSocialId())
                 .orElseGet(() -> {
@@ -166,15 +162,7 @@ public class UserService {
         refreshTokenService.saveRefreshToken(user, refreshToken, expiry);
 
         // RefreshToken을 HttpOnly 쿠키로 설정
-        ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
-                .httpOnly(true)
-                .secure(true)
-                .path("/")
-                .maxAge(7 * 24 * 60 * 60)
-                .sameSite("Strict")
-                .build();
-
-        response.addHeader("Set-Cookie", cookie.toString());
+        response.addHeader("Set-Cookie", refreshTokenCookieManager.create(refreshToken).toString());
 
         return LoginResponseDTO.builder()
                 .user(UserResponseDTO.builder()
@@ -190,6 +178,7 @@ public class UserService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public UserInfoDTO getUserInfo(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
@@ -199,6 +188,7 @@ public class UserService {
 
 
 
+    @Transactional(readOnly = true)
     public boolean verifyPassword(Long userId, String password) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
@@ -260,6 +250,7 @@ public class UserService {
         log.info("✅ 비밀번호 변경 완료: userId={}", userId);
     }
 
+    @Transactional
     public void deleteAccount(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));

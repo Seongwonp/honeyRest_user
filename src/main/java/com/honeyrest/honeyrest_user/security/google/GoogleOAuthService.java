@@ -52,11 +52,11 @@ public class GoogleOAuthService {
 
         String accessToken = (String) response.getBody().get("access_token");
         if (accessToken == null) {
-            log.error("구글 access token 발급 실패: {}", response.getBody());
+            log.error("구글 access token 발급 실패");
             throw new RuntimeException("구글 access token 발급 실패");
         }
 
-        log.info("구글 access token 발급 성공: {}", accessToken);
+        log.info("구글 access token 발급 성공");
         return accessToken;
     }
 

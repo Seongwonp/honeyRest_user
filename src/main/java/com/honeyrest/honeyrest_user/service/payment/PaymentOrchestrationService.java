@@ -21,7 +21,7 @@ import com.honeyrest.honeyrest_user.service.reservation.ReserveService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -40,6 +40,7 @@ public class PaymentOrchestrationService {
     private final PaymentDetailService paymentDetailService;
     private final ReservationMapper reservationMapper;
     private final EmailService emailService;
+    private final TransactionTemplate transactionTemplate;
 
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
@@ -47,7 +48,6 @@ public class PaymentOrchestrationService {
     private final PaymentRepository paymentRepository;
     private final ReservationRepository reservationRepository;
 
-    @Transactional
     public ReservationCompleteDTO confirmAndSave(TossConfirmRequest request) throws Exception {
         TossPaymentResult result = tossService.confirmPayment(request);
 
@@ -57,37 +57,34 @@ public class PaymentOrchestrationService {
 
         validatePaymentConsistency(request, result);
 
-        if (paymentRepository.existsByTransactionId(result.getPaymentKey())) {
-            throw new IllegalStateException("이미 처리된 결제입니다.");
-        }
-
-        ReservationRequestDTO reservationInfo = request.getReservationInfo();
-        if (reservationRepository.existsByReservationNumber(reservationInfo.getReservationCode())) {
-            throw new IllegalStateException("이미 처리된 예약번호입니다.");
-        }
-
-        Reservation reservation = reserveService.createReservation(
-                reservationInfo,
-                result.getAmount(),
-                reservationInfo.getDiscountAmount()
-        );
-
-        Payment payment = paymentService.saveTossPayment(result, reservation);
-        paymentDetailService.saveTossDetails(result, payment);
-
-        ReservationCompleteDTO dto = reservationMapper.toCompleteDTO(reservation, payment);
-        dto.setCouponName(result.getCouponName());
-
-        if (Boolean.TRUE.equals(result.getIsEmailSend())) {
-            User user = reservation.getUser();
-            if (user != null) {
-                emailService.sendReservationConfirmation(user, dto);
-                dto.setIsEmailSent(true);
-            } else {
-                dto.setIsEmailSent(false);
+        ReservationCompleteDTO dto = transactionTemplate.execute(status -> {
+            if (paymentRepository.existsByTransactionId(result.getPaymentKey())) {
+                throw new IllegalStateException("이미 처리된 결제입니다.");
             }
-        } else {
-            dto.setIsEmailSent(false);
+
+            ReservationRequestDTO reservationInfo = request.getReservationInfo();
+            if (reservationRepository.existsByReservationNumber(reservationInfo.getReservationCode())) {
+                throw new IllegalStateException("이미 처리된 예약번호입니다.");
+            }
+
+            Reservation reservation = reserveService.createReservation(
+                    reservationInfo,
+                    result.getAmount(),
+                    reservationInfo.getDiscountAmount()
+            );
+
+            Payment payment = paymentService.saveTossPayment(result, reservation);
+            paymentDetailService.saveTossDetails(result, payment);
+
+            ReservationCompleteDTO created = reservationMapper.toCompleteDTO(reservation, payment);
+            created.setCouponName(result.getCouponName());
+            created.setIsEmailSent(false);
+            return created;
+        });
+
+        if (Boolean.TRUE.equals(result.getIsEmailSend()) && dto != null && dto.getGuestEmail() != null) {
+            emailService.sendReservationConfirmation(dto.getGuestEmail(), dto);
+            dto.setIsEmailSent(true);
         }
 
         return dto;
@@ -254,4 +251,3 @@ public class PaymentOrchestrationService {
     ) {
     }
 }
-

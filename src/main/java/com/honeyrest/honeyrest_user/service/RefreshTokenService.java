@@ -26,13 +26,13 @@ public class RefreshTokenService {
                 .build();
 
         refreshTokenRepository.save(token);
-        log.info("💾 RefreshToken 저장 완료: userId={}, token={}", user.getUserId(), tokenValue);
+        log.info("💾 RefreshToken 저장 완료: userId={}", user.getUserId());
     }
 
     public String validateAndReissue(String refreshTokenValue) {
         RefreshToken token = refreshTokenRepository.findByTokenValue(refreshTokenValue)
                 .orElseThrow(() -> {
-                    log.warn("❌ RefreshToken 조회 실패: {}", refreshTokenValue);
+                    log.warn("❌ RefreshToken 조회 실패");
                     return new RuntimeException("유효하지 않은 리프레시 토큰입니다.");
                 });
 

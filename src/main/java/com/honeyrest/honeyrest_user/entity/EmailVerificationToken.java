@@ -9,7 +9,9 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "email_verification_token")
+@Table(name = "email_verification_token", indexes = {
+        @Index(name = "idx_email_verification_token_user_id", columnList = "user_id")
+})
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor

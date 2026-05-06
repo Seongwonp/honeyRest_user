@@ -34,18 +34,36 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/verify-password").authenticated()
                         .requestMatchers(
                                 "/api/auth/**",
+                                "/api/password-reset/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/api/user/email/**",
+                                "/api/accommodations/**",
+                                "/api/event/**",
+                                "/api/banner/**",
+                                "/api/weather/**",
+                                "/api/region/**",
+                                "/api/room/**",
+                                "/api/reserve/form-info",
+                                "/api/reserve/guest-lookup",
                                 "/swagger-resources/**",
                                 "/webjars/**"
                         ).permitAll()
-                        .requestMatchers("/api/user/**").authenticated()
+                        .requestMatchers(
+                                "/api/user/**",
+                                "/api/wishList/**",
+                                "/api/review/**",
+                                "/api/payment/**",
+                                "/api/files/**"
+                        ).authenticated()
+                        .requestMatchers("/api/**").denyAll()
                         .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth2 -> oauth2

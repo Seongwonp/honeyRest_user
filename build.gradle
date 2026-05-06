@@ -114,7 +114,7 @@ dependencies {
 
 }
 
-def querydslDir = file("src/main/generated")
+def querydslDir = file("$buildDir/generated/sources/annotationProcessor/java/main")
 
 sourceSets {
     main {
@@ -125,7 +125,7 @@ sourceSets {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.generatedSourceOutputDirectory = file("src/main/generated")
+    options.generatedSourceOutputDirectory = querydslDir
 }
 
 

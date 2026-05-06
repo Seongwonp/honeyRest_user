@@ -11,7 +11,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "review_image")
+@Table(name = "review_image", indexes = {
+        @Index(name = "idx_review_image_review_id", columnList = "review_id")
+})
 public class ReviewImage extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

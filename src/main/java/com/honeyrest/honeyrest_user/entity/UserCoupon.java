@@ -14,7 +14,10 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "user_coupon")
+@Table(name = "user_coupon", indexes = {
+        @Index(name = "idx_user_coupon_user_id", columnList = "user_id"),
+        @Index(name = "idx_user_coupon_status", columnList = "status")
+})
 public class UserCoupon {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

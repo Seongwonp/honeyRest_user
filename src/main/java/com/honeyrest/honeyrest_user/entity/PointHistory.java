@@ -14,7 +14,10 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "point_history")
+@Table(name = "point_history", indexes = {
+        @Index(name = "idx_point_history_user_created_at", columnList = "user_id, created_at"),
+        @Index(name = "idx_point_history_related_id", columnList = "related_id")
+})
 public class PointHistory extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

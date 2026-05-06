@@ -77,6 +77,7 @@ public class PointHistoryService {
                 userId, reservationId, usedPoint, user.getPoint());
     }
 
+    @Transactional(readOnly = true)
     public PointHistoryResponseDTO getHistoryByUser(Long userId, Pageable pageable) {
 
         Page<PointHistory> entities = pointHistoryRepository.findByUser_UserIdOrderByCreatedAtDesc(userId, pageable);

@@ -7,7 +7,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "inquiry")
+@Table(name = "inquiry", indexes = {
+        @Index(name = "idx_inquiry_user_id", columnList = "user_id"),
+        @Index(name = "idx_inquiry_accommodation_id", columnList = "accommodation_id"),
+        @Index(name = "idx_inquiry_is_replied", columnList = "is_replied")
+})
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor

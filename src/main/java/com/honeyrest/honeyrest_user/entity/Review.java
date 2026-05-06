@@ -11,7 +11,12 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "review")
+@Table(name = "review", indexes = {
+        @Index(name = "idx_review_user_id", columnList = "user_id"),
+        @Index(name = "idx_review_reservation_id", columnList = "reservation_id"),
+        @Index(name = "idx_review_accommodation_id", columnList = "accommodation_id"),
+        @Index(name = "idx_review_status", columnList = "status")
+})
 public class Review extends BaseEntity {
 
     @Id

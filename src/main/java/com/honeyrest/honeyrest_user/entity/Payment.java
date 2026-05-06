@@ -15,7 +15,11 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "payment")
+@Table(name = "payment", indexes = {
+        @Index(name = "idx_payment_reservation_id", columnList = "reservation_id"),
+        @Index(name = "idx_payment_user_id", columnList = "user_id"),
+        @Index(name = "idx_payment_transaction_id", columnList = "transaction_id")
+})
 public class Payment extends BaseEntity {
 
     @Id
@@ -51,6 +55,31 @@ public class Payment extends BaseEntity {
     @Column(name = "payment_date")
     private LocalDateTime paymentDate; // 결제일시
 
+    // ===== 양방향 관계 =====
+    @OneToOne(mappedBy = "payment", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private PaymentDetail paymentDetail;
 
+    // ===== 편의 메서드 =====
+
+    /**
+     * 결제 완료 상태 확인
+     */
+    public boolean isCompleted() {
+        return "COMPLETED".equals(paymentStatus) || "DONE".equals(paymentStatus);
+    }
+
+    /**
+     * 결제 환불 상태 확인
+     */
+    public boolean isCancelled() {
+        return "CANCELLED".equals(paymentStatus) || "REFUNDED".equals(paymentStatus);
+    }
+
+    /**
+     * 토스 결제 여부 확인
+     */
+    public boolean isTossPayment() {
+        return "TOSS".equals(pgProvider);
+    }
 
 }

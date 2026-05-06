@@ -6,10 +6,10 @@ import com.honeyrest.honeyrest_user.security.google.GoogleOAuthService;
 import com.honeyrest.honeyrest_user.security.kakao.KakaoOAuthService;
 import com.honeyrest.honeyrest_user.service.RefreshTokenService;
 import com.honeyrest.honeyrest_user.service.UserService;
+import com.honeyrest.honeyrest_user.util.RefreshTokenCookieManager;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +24,7 @@ public class AuthController {
     private final KakaoOAuthService kakaoOAuthService;
     private final GoogleOAuthService googleOAuthService;
     private final RefreshTokenService refreshTokenService;
+    private final RefreshTokenCookieManager refreshTokenCookieManager;
 
     @PostMapping("/signup")
     public UserResponseDTO signup(@ModelAttribute UserSignupRequestDTO request) throws Exception {
@@ -43,15 +44,7 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@AuthenticationPrincipal CustomUserPrincipal principal, HttpServletResponse response) {
         // RefreshToken 쿠키 삭제는 무조건 수행
-        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
-                .httpOnly(true)
-                .secure(true)
-                .path("/")
-                .maxAge(0)
-                .sameSite("Strict")
-                .build();
-
-        response.addHeader("Set-Cookie", deleteCookie.toString());
+        response.addHeader("Set-Cookie", refreshTokenCookieManager.clear().toString());
 
         // 인증 객체가 있을 경우만 DB에서 RefreshToken 삭제
         if (principal != null) {
@@ -124,7 +117,7 @@ public class AuthController {
             return ResponseEntity.status(401).body("로그인이 필요합니다.");
         }
 
-        log.info("🔄 Refresh 요청 수신 (쿠키 기반): {}", refreshToken);
+        log.info("🔄 Refresh 요청 수신 (쿠키 기반)");
         try {
             String newAccessToken = refreshTokenService.validateAndReissue(refreshToken);
             return ResponseEntity.ok(newAccessToken);
