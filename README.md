@@ -47,6 +47,7 @@
 | [🧑‍💻 FEATURES.md](docs/FEATURES.md) | 주요 기능 및 화면 소개 |
 | [🗂️ ARCHITECTURE.md](docs/ARCHITECTURE.md) | 프로젝트 구조, ERD, DB 설계 |
 | [⚡ IMPROVEMENTS.md](docs/IMPROVEMENTS.md) | 안정화 · 테스트 · 성능 최적화 · DB 안정화 |
+| [🧰 STABILIZATION.md](docs/STABILIZATION.md) | 재가동 안정화 단계와 검증 결과 |
 | [🗃️ DB_SCHEMA.md](DB_SCHEMA.md) | 전체 테이블 컬럼 상세 명세 |
 | [💭 RETROSPECTIVE.md](docs/RETROSPECTIVE.md) | 프로젝트 회고 |
 

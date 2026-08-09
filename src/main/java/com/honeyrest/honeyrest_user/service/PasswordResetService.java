@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -23,9 +24,14 @@ public class PasswordResetService {
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
 
+    @Transactional
     public void requestReset(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일입니다"));
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            // 계정 존재 여부가 외부 응답으로 노출되지 않도록 요청은 동일하게 처리한다.
+            log.info("비밀번호 초기화 요청을 일반 응답으로 처리했습니다.");
+            return;
+        }
 
         String tokenValue = UUID.randomUUID().toString();
         LocalDateTime expiry = LocalDateTime.now().plusMinutes(30);
@@ -36,6 +42,7 @@ public class PasswordResetService {
         emailService.sendPasswordReset(user.getEmail(), tokenValue);
     }
 
+    @Transactional
     public void resetPassword(String tokenValue, String newPassword) {
         PasswordResetToken token = tokenRepository.findByTokenValue(tokenValue)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 토큰입니다"));
