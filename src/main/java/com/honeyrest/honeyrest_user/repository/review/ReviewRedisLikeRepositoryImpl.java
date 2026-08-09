@@ -33,6 +33,7 @@ public class ReviewRedisLikeRepositoryImpl implements ReviewRedisLikeRepository 
     @Override
     public Integer getLikeCount(Long reviewId) {
         Object raw = redisTemplate.opsForValue().get(getKey(reviewId));
-        return raw != null ? Integer.parseInt(raw.toString()) : 0;
+        // 캐시가 없으면 호출자가 DB의 like_count를 유지할 수 있도록 null을 반환한다.
+        return raw != null ? Integer.parseInt(raw.toString()) : null;
     }
 }

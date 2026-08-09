@@ -39,6 +39,48 @@ public class AccommodationSearchImpl implements AccommodationSearch {
         return new JPAQueryFactory(em);
     }
 
+    static String buildCacheKey(
+            String location,
+            Double lat,
+            Double lng,
+            LocalDate checkIn,
+            LocalDate checkOut,
+            int guests,
+            Long userId,
+            String sort,
+            List<String> selectedCategories,
+            List<String> selectedTags,
+            BigDecimal maxPrice,
+            Pageable pageable
+    ) {
+        String normalizedLocation = location == null || location.isBlank()
+                ? "any"
+                : location.trim().toLowerCase(Locale.ROOT);
+        String normalizedCategories = selectedCategories == null || selectedCategories.isEmpty()
+                ? "any"
+                : selectedCategories.stream().sorted().collect(Collectors.joining(","));
+        String normalizedTags = selectedTags == null || selectedTags.isEmpty()
+                ? "any"
+                : selectedTags.stream().sorted().collect(Collectors.joining(","));
+
+        return String.join(":",
+                "search", "recommend", "v2",
+                "location=" + normalizedLocation,
+                "lat=" + (lat == null ? "any" : String.format(Locale.ROOT, "%.6f", lat)),
+                "lng=" + (lng == null ? "any" : String.format(Locale.ROOT, "%.6f", lng)),
+                "checkIn=" + checkIn,
+                "checkOut=" + checkOut,
+                "guests=" + guests,
+                "user=" + (userId == null ? "guest" : userId),
+                "sort=" + (sort == null ? "default" : sort),
+                "categories=" + normalizedCategories,
+                "tags=" + normalizedTags,
+                "maxPrice=" + (maxPrice == null ? "any" : maxPrice.stripTrailingZeros().toPlainString()),
+                "page=" + pageable.getPageNumber(),
+                "size=" + pageable.getPageSize()
+        );
+    }
+
     @Override
     public Page<AccommodationSearchDTO> searchAvailable(
             String location,
@@ -112,31 +154,26 @@ public class AccommodationSearchImpl implements AccommodationSearch {
             default -> a.minPrice.asc();
         };
 
-        // Redis 캐시 키에 좌표 포함
-        String cacheKey = String.format(
-                "search:recommend:%s:%s:%s:%s:%f:%f:%d:%d",
-                location != null ? location : "any",
-                selectedCategories != null ? String.join("-", selectedCategories) : "any",
-                selectedTags != null ? String.join("-", selectedTags) : "any",
-                sort != null ? sort : "default",
-                lat != null ? lat : 0.0,
-                lng != null ? lng : 0.0,
-                pageable.getPageNumber(),
-                pageable.getPageSize()
+        String cacheKey = buildCacheKey(
+                location, lat, lng, checkIn, checkOut, guests, userId, sort,
+                selectedCategories, selectedTags, maxPrice, pageable
         );
+        String totalCacheKey = cacheKey + ":total";
 
         Object raw = redisTemplate.opsForValue().get(cacheKey);
+        Object rawTotal = redisTemplate.opsForValue().get(totalCacheKey);
         List<AccommodationSearchDTO> cachedResults = raw != null
                 ? objectMapper.convertValue(raw, new TypeReference<List<AccommodationSearchDTO>>() {})
                 : null;
+        Long cachedTotal = rawTotal != null ? objectMapper.convertValue(rawTotal, Long.class) : null;
 
         if (cachedResults == null || cachedResults.isEmpty()) {
             log.info("🟡 Redis 캐시 MISS: {}", cacheKey);
         }
 
-        if (cachedResults != null && !cachedResults.isEmpty()) {
+        if (cachedResults != null && !cachedResults.isEmpty() && cachedTotal != null) {
             log.info("🚀 Redis 캐시 HIT: {}", cacheKey);
-            return new PageImpl<>(cachedResults, pageable, cachedResults.size());
+            return new PageImpl<>(cachedResults, pageable, cachedTotal);
         }
 
         // 숙소 리스트 조회
@@ -235,10 +272,6 @@ public class AccommodationSearchImpl implements AccommodationSearch {
 
         results.forEach(dto -> dto.setTags(tagMap.getOrDefault(dto.getId(), List.of())));
 
-        // 캐시 저장
-        redisTemplate.opsForValue().set(cacheKey, results, Duration.ofHours(6));
-        log.info("📦 Redis 캐시 저장: {}", cacheKey);
-
         Long total = queryFactory()
                 .select(a.accommodationId.countDistinct())
                 .from(a)
@@ -246,6 +279,11 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                 .where(builder)
                 .fetchOne();
 
-        return new PageImpl<>(results, pageable, total != null ? total : 0);
+        long totalElements = total != null ? total : 0;
+        redisTemplate.opsForValue().set(cacheKey, results, Duration.ofHours(6));
+        redisTemplate.opsForValue().set(totalCacheKey, totalElements, Duration.ofHours(6));
+        log.info("📦 Redis 캐시 저장: {}, total={}", cacheKey, totalElements);
+
+        return new PageImpl<>(results, pageable, totalElements);
     }
 }

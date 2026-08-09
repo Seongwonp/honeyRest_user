@@ -281,6 +281,8 @@ public class AccommodationDetailQueryRepository {
                             review.content,
                             review.reply,
                             review.likeCount, // 초기값: DB에 저장된 값
+                            review.createdAt,
+                            review.updatedAt,
                             review.user.name.as("nickname"),
                             review.user.userId.as("userId")
                     ))
