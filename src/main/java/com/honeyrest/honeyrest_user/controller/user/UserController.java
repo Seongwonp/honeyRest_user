@@ -136,7 +136,7 @@ public class UserController {
             @RequestBody UserProfileUpdateRequestDTO request,
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        log.info("프로필 업데이트: {}",request);
+        log.info("프로필 업데이트: userId={}", principal.getUserId());
         userService.updateProfile(principal.getUserId(), request);
         return ResponseEntity.ok().build();
     }
@@ -147,7 +147,7 @@ public class UserController {
             @PageableDefault(size = 10, sort = "createdAt", direction = DESC) Pageable pageable
     ){
         PointHistoryResponseDTO response = pointHistoryService.getHistoryByUser(principal.getUserId(), pageable);
-        log.info("포인스 사용내역 요청:{}", response);
+        log.info("포인트 사용내역 요청: userId={}", principal.getUserId());
         return ResponseEntity.ok(response);
     }
 
@@ -156,7 +156,7 @@ public class UserController {
             @RequestBody EmailChangeRequestDTO dto,
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        log.info("계정 이메일 변경: {}", dto);
+        log.info("계정 이메일 변경 요청: userId={}", principal.getUserId());
         emailVerificationTokenService.sendEmailChangeToken(principal.getUserId(), dto.getNewEmail(), dto.isPasswordVerified());
         return ResponseEntity.ok("인증 메일을 발송했습니다.");
     }
@@ -178,7 +178,7 @@ public class UserController {
             @RequestBody PasswordChangeRequestDTO dto
     ) {
         Long userId = principal.getUserId();
-        log.info("🔐 비밀번호 변경 요청: userId={}, dto={}", userId, dto);
+        log.info("🔐 비밀번호 변경 요청: userId={}", userId);
 
         userService.changePassword(userId, dto.getCurrentPassword(), dto.getNewPassword());
 
@@ -225,7 +225,7 @@ public class UserController {
         }
 
         InquiryResponseDTO dto = inquiryService.createInquiry(request);
-        log.info("✅ 문의 생성: userId={}, inquiry내용={}", userId, dto);
+        log.info("✅ 문의 생성: userId={}, inquiryId={}", userId, dto.getInquiryId());
         return ResponseEntity.ok(dto);
     }
 
@@ -267,7 +267,7 @@ public class UserController {
 
         Long userId = principal.getUserId();
         InquiryDetailResponseDTO dto = inquiryService.getInquiryById(userId, inquiryId);
-        log.info("🔍 문의 조회: userId={}, inquiryId={}, 내용={}", userId, inquiryId, dto);
+        log.info("🔍 문의 조회: userId={}, inquiryId={}", userId, inquiryId);
         return ResponseEntity.ok(dto);
     }
 
@@ -324,7 +324,7 @@ public class UserController {
 
         Long userId = principal.getUserId();
         PageResponseDTO<UserCouponDTO> dto = userCouponService.getUserCoupons(userId, pageable);
-        log.info("쿠폰 정보: {}",dto);
+        log.info("쿠폰 정보 조회: userId={}", userId);
         return ResponseEntity.ok(dto);
     }
 

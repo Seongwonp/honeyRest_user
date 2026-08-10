@@ -104,7 +104,9 @@ public class TossService {
                 .isEmailSend(request.getReservationInfo().getIsEmailSend())
                 .raw(responseMap) // 토스 원본 JSON도 저장하고 싶으면
                 .build();
-        log.info("🎯 최종 TossPaymentResult: {}", result);
+        // raw/reservationInfo에는 카드·구매자 정보와 예약자 실명·전화번호가 들어있어 통째로 로깅하지 않는다.
+        log.info("🎯 최종 TossPaymentResult: orderId={}, status={}, paymentKey={}",
+                result.getOrderId(), result.getStatus(), result.getPaymentKey());
         return result;
     }
 
@@ -124,7 +126,8 @@ public class TossService {
                 "failUrl", request.getFailUrl()
         );
 
-        log.info("Toss 결제 요청: {}", body);
+        // body에는 고객 실명·전화번호가 포함되어 있어 통째로 로깅하지 않는다.
+        log.info("Toss 결제 요청: orderId={}, amount={}", request.getOrderId(), request.getAmount());
 
         try {
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
@@ -132,8 +135,8 @@ public class TossService {
                     "https://api.tosspayments.com/v1/payments", entity, Map.class
             );
 
-            log.warn("토스 응답 상태 코드: {}", response.getStatusCode());
-            log.warn("토스 응답 바디: {}", response.getBody());
+            // 응답 바디에도 결제/구매자 정보가 포함될 수 있어 상태 코드만 남긴다.
+            log.info("토스 응답 상태 코드: {}", response.getStatusCode());
 
             Map<String, Object> result = response.getBody();
             String paymentUrl = (String) result.get("paymentUrl");

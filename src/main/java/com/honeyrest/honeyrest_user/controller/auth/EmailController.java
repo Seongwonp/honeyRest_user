@@ -3,9 +3,12 @@ package com.honeyrest.honeyrest_user.controller.auth;
 import com.honeyrest.honeyrest_user.dto.email.EmailRequestDTO;
 import com.honeyrest.honeyrest_user.dto.email.ResendEmailRequestDTO;
 import com.honeyrest.honeyrest_user.dto.email.TokenStatusResponseDTO;
+import com.honeyrest.honeyrest_user.security.CustomUserPrincipal;
 import com.honeyrest.honeyrest_user.service.email.EmailVerificationTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -43,13 +46,17 @@ public class EmailController {
         return ResponseEntity.ok(status);
     }
 
-    // 이메일 변경 인증 처리
+    // 이메일 변경 인증 처리 (본인 인증 필요 - SecurityConfig에서 이 경로만 별도로 authenticated 처리)
     @PostMapping("/verify-change")
     public ResponseEntity<String> verifyEmailChange(
+            @AuthenticationPrincipal CustomUserPrincipal principal,
             @RequestParam("token") String token,
             @RequestParam("newEmail") String newEmail
     ) {
-        emailService.confirmEmailChange(token, newEmail);
+        if (principal == null) {
+            throw new AccessDeniedException("로그인이 필요합니다.");
+        }
+        emailService.confirmEmailChange(principal.getUserId(), token, newEmail);
         return ResponseEntity.ok("이메일 변경이 완료되었습니다.");
     }
 
