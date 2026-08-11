@@ -245,9 +245,20 @@ public class UserService {
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
+        // 비밀번호 변경 전에 유출됐을 수 있는 기존 access token을 모두 무효화한다(P1-10).
+        user.revokeExistingTokens();
         userRepository.save(user);
 
         log.info("✅ 비밀번호 변경 완료: userId={}", userId);
+    }
+
+    /** 로그아웃 시 호출: 기존에 발급된 access token을 모두 무효화한다(P1-10). */
+    @Transactional
+    public void revokeTokens(Long userId) {
+        userRepository.findById(userId).ifPresent(user -> {
+            user.revokeExistingTokens();
+            userRepository.save(user);
+        });
     }
 
     @Transactional

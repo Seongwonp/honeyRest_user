@@ -48,9 +48,18 @@ public class ReviewService {
     private final RedisTemplate<String, Object> redisTemplate;
 
     @Transactional
-    public void createReview(ReviewRequestDTO request) {
+    public void createReview(Long userId, ReviewRequestDTO request) {
         Reservation reservation = reservationRepository.findById(request.getReservationId())
                 .orElseThrow(() -> new IllegalArgumentException("예약 정보를 찾을 수 없습니다"));
+
+        // 호출자가 이 예약의 소유자인지, 체크아웃이 끝난 예약인지 확인하지 않으면 아무 reservationId나
+        // 넣어 타인 명의로 리뷰를 작성하고 평점을 조작할 수 있었다(P0-6).
+        if (reservation.getUser() == null || !reservation.getUser().getUserId().equals(userId)) {
+            throw new IllegalArgumentException("본인의 예약에만 리뷰를 작성할 수 있습니다.");
+        }
+        if (!"COMPLETED".equals(reservation.getStatus())) {
+            throw new IllegalStateException("이용이 완료된 예약만 리뷰를 작성할 수 있습니다.");
+        }
 
         if (reviewRepository.existsByReservation(reservation)) {
             throw new IllegalArgumentException("이미 리뷰가 작성된 예약입니다");

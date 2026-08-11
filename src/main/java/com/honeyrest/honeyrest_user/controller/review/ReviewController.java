@@ -1,11 +1,13 @@
 package com.honeyrest.honeyrest_user.controller.review;
 
 import com.honeyrest.honeyrest_user.dto.review.ReviewRequestDTO;
+import com.honeyrest.honeyrest_user.security.CustomUserPrincipal;
 import com.honeyrest.honeyrest_user.service.ReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Log4j2
@@ -17,8 +19,9 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     @PostMapping("/write")
-    public ResponseEntity<Void> createReview(@Valid @RequestBody ReviewRequestDTO request) {
-        reviewService.createReview(request);
+    public ResponseEntity<Void> createReview(@AuthenticationPrincipal CustomUserPrincipal principal,
+                                             @Valid @RequestBody ReviewRequestDTO request) {
+        reviewService.createReview(principal.getUserId(), request);
         return ResponseEntity.ok().build();
     }
 

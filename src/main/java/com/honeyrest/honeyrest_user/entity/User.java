@@ -67,6 +67,9 @@ public class User extends BaseEntity {
     @Column(name = "is_verified", nullable = false)
     private Boolean isVerified = false; // 이메일 인증 여부
 
+    @Column(name = "token_valid_after")
+    private LocalDateTime tokenValidAfter; // 이 시각보다 먼저 발급된 access token은 모두 무효로 취급한다
+
     public void verify() {
         this.isVerified = true;
     }
@@ -93,6 +96,11 @@ public class User extends BaseEntity {
     }
     public void deleteAccount() {
         this.status = "DELETED";
+    }
+
+    /** 로그아웃·비밀번호 변경 시 호출: 그 이전에 발급된 access token을 전부 무효화한다. */
+    public void revokeExistingTokens() {
+        this.tokenValidAfter = LocalDateTime.now();
     }
 
 }

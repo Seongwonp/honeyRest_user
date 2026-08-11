@@ -135,7 +135,8 @@ public class ReserveService {
         boolean isReviewed = reviewRepository.existsByReservation(reservation);
         ReservationDetailDTO dto = reservationMapper.toDetailDTO(reservation, payment, detail, isReviewed);
 
-        log.info("예약내역 조회: {}",dto);
+        // dto에는 결제 상세, 예약자 개인정보가 포함되어 있어 통째로 로깅하지 않는다.
+        log.info("예약내역 조회: userId={}, reservationId={}", userId, reservationId);
 
         return dto;
     }
