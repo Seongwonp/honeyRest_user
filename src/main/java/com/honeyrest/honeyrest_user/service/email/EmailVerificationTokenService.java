@@ -111,6 +111,7 @@ public class EmailVerificationTokenService {
                 .user(user)
                 .tokenValue(token)
                 .tokenType("EMAIL_CHANGE")
+                .pendingEmail(newEmail)
                 .build();
 
         tokenRepository.save(tokenEntity);
@@ -120,13 +121,30 @@ public class EmailVerificationTokenService {
     }
 
 
+    /**
+     * requestingUserId는 인증된 호출자의 id다. 과거에는 (1) 토큰 종류를 확인하지 않아 SIGNUP 토큰으로도
+     * 이메일을 바꿀 수 있었고, (2) 승인된 이메일을 서버에 저장하지 않아 newEmail 파라미터를 신뢰했으며,
+     * (3) 엔드포인트가 인증 없이 열려 있었다(P0-8). 넷 다 여기서 막는다.
+     */
     @Transactional
-    public void confirmEmailChange(String tokenValue, String newEmail) {
+    public void confirmEmailChange(Long requestingUserId, String tokenValue, String newEmail) {
         EmailVerificationToken token = tokenRepository.findByTokenValue(tokenValue)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 토큰입니다."));
 
         if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
             throw new IllegalStateException("토큰이 만료되었습니다.");
+        }
+        if (!"EMAIL_CHANGE".equals(token.getTokenType())) {
+            throw new IllegalArgumentException("이메일 변경용 토큰이 아닙니다.");
+        }
+        if (requestingUserId == null || !requestingUserId.equals(token.getUser().getUserId())) {
+            throw new SecurityException("본인 계정의 이메일만 변경할 수 있습니다.");
+        }
+        if (token.getPendingEmail() == null || !token.getPendingEmail().equals(newEmail)) {
+            throw new IllegalArgumentException("요청한 이메일과 토큰이 승인한 이메일이 일치하지 않습니다.");
+        }
+        if (userRepository.existsByEmail(newEmail)) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
 
         User user = token.getUser();
@@ -134,7 +152,7 @@ public class EmailVerificationTokenService {
         tokenRepository.delete(token);
 
         userRepository.save(user);
-        log.info("✅ 이메일 변경 완료: {}", newEmail);
+        log.info("✅ 이메일 변경 완료: userId={}", user.getUserId());
     }
 
 

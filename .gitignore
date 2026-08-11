@@ -40,3 +40,4 @@ out/
 /src/main/resources/application_security.properties
 
 src/main/resources/honeyrest-7fb60-firebase-adminsdk-fbsvc-3d84826567.json
+**/honeyrest-7fb60-*.json

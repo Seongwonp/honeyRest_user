@@ -31,6 +31,9 @@ public class EmailVerificationToken {
 
     private String tokenType; // 예: SIGNUP, EMAIL_CHANGE
 
+    @Column(name = "pending_email")
+    private String pendingEmail; // EMAIL_CHANGE 토큰이 승인하는 새 이메일. 확정 시 파라미터와 대조한다.
+
     private LocalDateTime expiryDate;
 
     private LocalDateTime createdAt;
