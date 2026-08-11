@@ -59,7 +59,7 @@
 | `POST /admin/rooms/{roomId}` | COMPANY_ADMIN | `roomId` 소유권 + 폼의 `accommodationId`도 같은 회사 소속인지 검증 | 안전 (P1-3 수정) |
 | 숙소 이미지 삭제(`deleteSubImageIds`) | COMPANY_ADMIN | `accommodationId`와 `imageId`가 실제로 연결된 경우만 삭제(`deleteByAccommodation_AccommodationIdAndImageIdIn`) | 안전 (P1-4 수정) |
 | JWT 인증 전반 | - | `typ` 클레임이 `access`인 토큰만 인증에 사용, `refresh` 토큰으로는 인증 불가 | 안전 (P1-7 수정) |
-| 폼 기반 관리자 콘솔 전체 (`/admin/**`, `/owner/**`의 POST) | COMPANY_ADMIN/SUPER_ADMIN | CSRF 보호 **비활성 상태** | **미해결** — 별도 작업으로 분리(30개+ 템플릿에 토큰 필드 추가 필요) |
+| 폼 기반 관리자 콘솔 전체 (`/admin/**`, `/owner/**`의 POST) | COMPANY_ADMIN/SUPER_ADMIN | CookieCsrfTokenRepository + 조기 로딩 필터 + MultipartFilter 순서 조정으로 재활성화 | 안전 (2026-08-11 완료) |
 
 ## 5. 알려진 잔여 위험 (3단계 이후로 이연)
 

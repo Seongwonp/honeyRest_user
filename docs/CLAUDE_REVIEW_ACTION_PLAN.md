@@ -72,7 +72,7 @@
 | 인증 전달 방식 | Bearer 중심인지 HttpOnly 쿠키 중심인지, CSRF 적용 범위 | 인증·CSRF ADR |
 | 신원 원천 | 모든 변경 API에서 principal의 user/company/role을 어떻게 해석할지 | 공통 권한 규칙표 |
 | 관리자 역할 | SUPER_ADMIN 생성 주체와 COMPANY_ADMIN 권한 한계 | 역할 매트릭스 |
-| 예약 재고 | 날짜별 재고 테이블, 잠금 또는 원자 조건부 갱신 방식 | 예약·재고 ADR |
+| 예약 재고 | 날짜별 재고 테이블, 잠금 또는 원자 조건부 갱신 방식 | [예약·재고 ADR](ADR_RESERVATION_INVENTORY.md) (초안 완료, 승인 대기) |
 | 가격 원천 | 기본가, `price_calendar`, 추가 요금의 우선순위 | 가격 계산 명세 |
 | 결제 상태 | 카드·가상계좌 지원 범위, 승인·대기·실패·취소 상태 | 결제 상태도 |
 | 실패 복구 | 결제 승인 후 DB 실패 시 즉시 취소와 재처리 큐 정책 | 보상 처리 명세 |
@@ -135,11 +135,13 @@
 5. 숙소 승인·거절을 SUPER_ADMIN 워크플로로 분리한다.
 6. access/refresh token의 `typ`, 로그아웃·비밀번호 변경 후 폐기 정책을 적용한다.
 7. 인증 방식 결정에 맞춰 CSRF, 쿠키 Secure/SameSite, CORS, 보안 헤더를 환경별로 정리한다.
-   - **[보류, 별도 작업 필요]** 호스트 백엔드는 `http.csrf(csrf -> csrf.disable())` 상태다. 재활성화하려면
-     `CookieCsrfTokenRepository`로 전환해야 하는데(STATELESS 세션이라 기본 세션 기반 저장소는 동작 안 함),
-     POST 폼이 있는 템플릿 41개 중 `_csrf`를 전혀 참조하지 않는 템플릿이 30개 이상이다(로그인 폼 포함).
-     이 상태로 그냥 켜면 관리자/총관리자 콘솔의 상당수 폼이 403으로 깨진다. 30개 템플릿에 숨은 입력을
-     추가하고 로그인을 포함한 주요 흐름을 브라우저로 직접 검증하는 별도 작업으로 분리한다.
+   - **[완료, 2026-08-11]** 호스트 백엔드 CSRF 재활성화. `CookieCsrfTokenRepository`로 전환(STATELESS라
+     기본 세션 저장소 불가), `MultipartFilter`를 `CsrfFilter`보다 앞에 빈으로 등록(이미지 업로드 폼이
+     바디 파싱 전이라 `_csrf`를 못 읽던 문제), CsrfToken을 필터 체인 초입에서 강제로 미리 로드하는
+     필터 추가(지연 로딩 탓에 큰 페이지에서 응답 버퍼가 먼저 커밋돼 `Set-Cookie`가 누락되던 문제).
+     템플릿 34개(로그인 폼 포함)에 `_csrf` 히든 필드 추가/주석 해제. 회귀 테스트도 Spring Security 6
+     기본 `XorCsrfTokenRequestAttributeHandler`(BREACH 방지 토큰 마스킹)에 맞춰 실제 페이지에서 토큰을
+     읽어오는 방식으로 재작성함.
    - JWT `typ` 검증(access/refresh 구분)은 완료됨.
 8. 익명·다른 사용자·다른 회사·권한 부족을 모두 포함한 negative security test를 추가한다.
 
