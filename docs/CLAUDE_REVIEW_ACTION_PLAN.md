@@ -135,6 +135,12 @@
 5. 숙소 승인·거절을 SUPER_ADMIN 워크플로로 분리한다.
 6. access/refresh token의 `typ`, 로그아웃·비밀번호 변경 후 폐기 정책을 적용한다.
 7. 인증 방식 결정에 맞춰 CSRF, 쿠키 Secure/SameSite, CORS, 보안 헤더를 환경별로 정리한다.
+   - **[보류, 별도 작업 필요]** 호스트 백엔드는 `http.csrf(csrf -> csrf.disable())` 상태다. 재활성화하려면
+     `CookieCsrfTokenRepository`로 전환해야 하는데(STATELESS 세션이라 기본 세션 기반 저장소는 동작 안 함),
+     POST 폼이 있는 템플릿 41개 중 `_csrf`를 전혀 참조하지 않는 템플릿이 30개 이상이다(로그인 폼 포함).
+     이 상태로 그냥 켜면 관리자/총관리자 콘솔의 상당수 폼이 403으로 깨진다. 30개 템플릿에 숨은 입력을
+     추가하고 로그인을 포함한 주요 흐름을 브라우저로 직접 검증하는 별도 작업으로 분리한다.
+   - JWT `typ` 검증(access/refresh 구분)은 완료됨.
 8. 익명·다른 사용자·다른 회사·권한 부족을 모두 포함한 negative security test를 추가한다.
 
 완료 게이트 G2:
@@ -214,6 +220,8 @@
 - localhost OAuth redirect와 하드코딩된 호스트 URL을 환경 변수로 전환한다.
 - 모달 role, focus trap, Escape, 아이콘 이름, label 연결, 키보드 조작, 색 대비를 개선한다.
 - route splitting, 대형 이미지 최적화, icon import 정리로 번들 크기를 줄인다.
+- `docs/screenshots/`의 반응형이 깨진 캡처를 모든 게이트 통과 후 실제 화면으로 재촬영해 교체한다.
+  그 전까지는 README에서 이 캡처들을 노출하지 않는다.
 
 호스트 화면:
 

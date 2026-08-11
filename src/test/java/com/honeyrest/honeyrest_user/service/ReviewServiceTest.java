@@ -77,7 +77,7 @@ class ReviewServiceTest {
                 .room(room)
                 .accommodation(accommodation)
                 .reservationNumber("RES-001")
-                .status("CONFIRMED")
+                .status("COMPLETED")
                 .price(BigDecimal.valueOf(100000))
                 .build();
     }
@@ -98,7 +98,7 @@ class ReviewServiceTest {
         when(reviewRepository.save(any(Review.class))).thenReturn(Review.builder().reviewId(1L).build());
         doNothing().when(ratingCacheService).evictAllAccommodationCache(any());
 
-        assertThatCode(() -> reviewService.createReview(request))
+        assertThatCode(() -> reviewService.createReview(1L, request))
                 .doesNotThrowAnyException();
 
         verify(reviewRepository).save(any(Review.class));
@@ -116,7 +116,7 @@ class ReviewServiceTest {
 
         when(reservationRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> reviewService.createReview(request))
+        assertThatThrownBy(() -> reviewService.createReview(1L, request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("예약 정보를 찾을 수 없습니다");
     }
@@ -133,9 +133,51 @@ class ReviewServiceTest {
         when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
         when(reviewRepository.existsByReservation(reservation)).thenReturn(true);
 
-        assertThatThrownBy(() -> reviewService.createReview(request))
+        assertThatThrownBy(() -> reviewService.createReview(1L, request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("이미 리뷰가 작성된 예약");
+    }
+
+    @Test
+    @DisplayName("타인의 예약으로 리뷰 작성 시 예외 발생")
+    void createReview_notOwner() {
+        ReviewRequestDTO request = ReviewRequestDTO.builder()
+                .reservationId(1L)
+                .rating(BigDecimal.valueOf(4))
+                .content("남의 예약에 리뷰를 써보려는 시도입니다.")
+                .build();
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+
+        assertThatThrownBy(() -> reviewService.createReview(99L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("본인의 예약");
+    }
+
+    @Test
+    @DisplayName("이용 완료되지 않은 예약으로 리뷰 작성 시 예외 발생")
+    void createReview_notCompleted() {
+        Reservation confirmedOnly = Reservation.builder()
+                .reservationId(1L)
+                .user(user)
+                .room(room)
+                .accommodation(accommodation)
+                .reservationNumber("RES-001")
+                .status("CONFIRMED")
+                .price(BigDecimal.valueOf(100000))
+                .build();
+
+        ReviewRequestDTO request = ReviewRequestDTO.builder()
+                .reservationId(1L)
+                .rating(BigDecimal.valueOf(4))
+                .content("체크인 전인데 리뷰를 써보려는 시도입니다.")
+                .build();
+
+        when(reservationRepository.findById(1L)).thenReturn(Optional.of(confirmedOnly));
+
+        assertThatThrownBy(() -> reviewService.createReview(1L, request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("이용이 완료된 예약");
     }
 
     // ── toggleLike ─────────────────────────────────────────

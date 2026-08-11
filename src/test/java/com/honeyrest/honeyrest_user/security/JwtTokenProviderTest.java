@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.security;
 
+import com.honeyrest.honeyrest_user.entity.User;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,7 +9,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.time.LocalDateTime;
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 @DisplayName("JwtTokenProvider 테스트")
 class JwtTokenProviderTest {
@@ -100,5 +105,53 @@ class JwtTokenProviderTest {
         String token2 = jwtTokenProvider.createAccessToken(2L, "USER");
 
         assertThat(token1).isNotEqualTo(token2);
+    }
+
+    @Test
+    @DisplayName("로그아웃/비밀번호 변경 이후 발급 시각(tokenValidAfter)보다 먼저 발급된 토큰은 거부된다")
+    void getAuthentication_revokedToken() {
+        String token = jwtTokenProvider.createAccessToken(1L, "USER");
+        User user = User.builder()
+                .userId(1L)
+                .role("USER")
+                .status("ACTIVE")
+                .tokenValidAfter(LocalDateTime.now().plusSeconds(5)) // 토큰 발급 이후 시각
+                .build();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> jwtTokenProvider.getAuthentication(token))
+                .isInstanceOf(JwtException.class);
+    }
+
+    @Test
+    @DisplayName("tokenValidAfter 이후 발급된 토큰은 인증에 성공한다")
+    void getAuthentication_validToken() {
+        User user = User.builder()
+                .userId(1L)
+                .role("USER")
+                .status("ACTIVE")
+                .tokenValidAfter(LocalDateTime.now().minusMinutes(1)) // 토큰 발급 이전 시각
+                .build();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        String token = jwtTokenProvider.createAccessToken(1L, "USER");
+
+        assertThatCode(() -> jwtTokenProvider.getAuthentication(token))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("탈퇴한 계정의 토큰은 거부된다")
+    void getAuthentication_deletedAccount() {
+        String token = jwtTokenProvider.createAccessToken(1L, "USER");
+        User user = User.builder()
+                .userId(1L)
+                .role("USER")
+                .status("DELETED")
+                .build();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> jwtTokenProvider.getAuthentication(token))
+                .isInstanceOf(JwtException.class);
     }
 }

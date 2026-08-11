@@ -117,13 +117,32 @@ public class JwtTokenProvider {
 
     // 인증 객체 생성
     public Authentication getAuthentication(String token) {
-        Long userId = getUserId(token);
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        Long userId = Long.parseLong(claims.getSubject());
+        Date issuedAt = claims.getIssuedAt();
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {
                     log.error("❌ 사용자 정보 조회 실패: userId={}", userId);
                     return new RuntimeException("User not found");
                 });
+
+        // 로그아웃/비밀번호 변경 이후 발급된 시각(tokenValidAfter)보다 이 토큰이 먼저 발급됐다면
+        // 이미 폐기된 토큰이다(P1-10). 만료 전이라도 인증을 거부한다.
+        if (user.getTokenValidAfter() != null && issuedAt != null
+                && issuedAt.toInstant().isBefore(user.getTokenValidAfter().atZone(java.time.ZoneId.systemDefault()).toInstant())) {
+            log.warn("❌ 폐기된 토큰: userId={}, issuedAt={}", userId, issuedAt);
+            throw new JwtException("폐기된 토큰입니다. 다시 로그인해주세요.");
+        }
+        if ("DELETED".equals(user.getStatus())) {
+            log.warn("❌ 탈퇴한 계정의 토큰: userId={}", userId);
+            throw new JwtException("탈퇴한 계정입니다.");
+        }
 
         CustomUserPrincipal principal = new CustomUserPrincipal(user, Map.of());
         log.info("✅ 인증 객체 생성 완료: userId={}, role={}", user.getUserId(), user.getRole());
@@ -133,21 +152,5 @@ public class JwtTokenProvider {
                 null,
                 principal.getAuthorities()
         );
-    }
-
-    // 이메일 기반 토큰 생성 (소셜 로그인용)
-    public String createToken(String email) {
-        Date now = new Date();
-        Date expiry = new Date(now.getTime() + accessTokenExpiration);
-
-        String token = Jwts.builder()
-                .setSubject(email)
-                .setIssuedAt(now)
-                .setExpiration(expiry)
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
-
-        log.info("✅ 이메일 기반 AccessToken 생성 완료: email={}, 만료={}", email, expiry);
-        return token;
     }
 }
