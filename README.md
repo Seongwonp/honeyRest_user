@@ -1,4 +1,7 @@
 # 🐝 HoneyRest – 감성 숙소 예약 플랫폼 (User API)
+
+[![CI](https://github.com/Seongwonp/honeyRest_user/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Seongwonp/honeyRest_user/actions/workflows/ci.yml)
+
 👨‍💻 Created by 박성원 (Seongwon Park) – User 영역 총괄 & 팀장
 
 ## 🎥 HoneyRest 광고 영상

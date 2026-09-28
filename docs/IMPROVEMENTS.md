@@ -53,10 +53,30 @@ Toss 결제 승인 후 이메일 전송은 `TransactionTemplate.execute()` 블�
 
 ## 🧪 Phase 2 — 테스트
 
-JUnit 5 + Mockito 기반 단위 테스트가 중심이며, 이 단위 테스트들은 외부 의존성(DB, Redis) 없이 실행됩니다.
-단, `@SpringBootTest` 기반 테스트(`HoneyRestUserApplicationTests`, `AdminWriteApiSecurityTest`)는
-전체 컨텍스트를 띄우므로 `test` 프로필 기준 로컬 MySQL(`honeyrest_user_test` 스키마)·Redis와
-`application_security.properties`가 필요합니다. 해당 환경이 없으면 이 테스트들은 실패합니다.
+JUnit 5 + Mockito 기반 단위 테스트가 중심이며, `./gradlew test` 는 **외부 서비스(MySQL, Redis,
+`application_security.properties`, Firebase) 없이** 전체가 통과합니다. GitHub Actions(`.github/workflows/ci.yml`)가
+`main` 대상 push/PR 마다 `./gradlew build`(테스트 포함)를 실행합니다.
+
+### test 프로필 구성 (`src/test/resources/application-test.properties`)
+
+`@SpringBootTest` 기반 테스트(`HoneyRestUserApplicationTests`, `AdminWriteApiSecurityTest`)는 `@ActiveProfiles("test")`로
+아래 자급자족 설정을 사용합니다.
+
+| 항목 | 운영/개발 | test 프로필 |
+|------|----------|------------|
+| DB | MySQL + Flyway(`validate`) | H2 인메모리 `MODE=MySQL` (`testRuntimeOnly 'com.h2database:h2'`), Flyway 비활성, `ddl-auto=create-drop` |
+| 캐시 | `spring.cache.type=redis` | `simple` (인메모리). RedisTemplate 빈은 생성되지만 Lettuce 지연 연결이라 기동 시 Redis 불필요 |
+| 비밀값 | `application_security.properties` | `spring.config.import=optional:...` 로 파일 부재 허용 + 더미 값(JWT 32바이트 이상, Toss, OAuth, Gmail) |
+| 파일 저장소 | local / firebase | `app.storage.type=local` 고정 → `FirebaseConfig` 비활성 |
+
+- H2 URL 의 `NON_KEYWORDS=USER,...` 는 `user` 테이블이 H2 예약어라 DDL 이 조용히 실패하는 것을 막기 위함입니다.
+- **트레이드오프**: Flyway V10 이 MySQL 전용 구문(`PREPARE`/`EXECUTE`, `information_schema` 조회)을 사용해 H2 에서
+  실행할 수 없으므로, 테스트 스키마는 마이그레이션이 아닌 JPA 엔티티로 생성됩니다. 따라서
+  (1) 마이그레이션 SQL 자체의 오류, (2) 엔티티 ↔ 실제 MySQL 스키마 불일치(`ddl-auto=validate` 실패),
+  (3) MySQL 고유 동작(JSON 함수, 콜레이션, 락) 은 이 테스트로 검출되지 않습니다.
+  후속 과제: CI(ubuntu-latest, Docker 사용 가능)에 Testcontainers MySQL 기반 통합 테스트 프로필을 추가해
+  Flyway V1~V10 적용 + `validate` 를 검증.
+- `ReviewRedisLikeRepositoryImplTest` 는 `RedisTemplate` 을 Mockito 로 대체한 단위 테스트라 실제 Redis 가 필요 없습니다.
 
 | 테스트 클래스 | 대상 | 주요 테스트 케이스 |
 |------------|------|----------------|
@@ -66,14 +86,24 @@ JUnit 5 + Mockito 기반 단위 테스트가 중심이며, 이 단위 테스트�
 | `JwtTokenProviderTest` | `JwtTokenProvider` | 토큰 생성, 유효/만료/위변조 검증, userId 추출, RefreshToken UUID 형식 |
 | `PaymentDetailServiceTest` | `PaymentDetailService` | 카드결제저장, 가상계좌저장, null결제객체예외, 빈 결제정보 안전처리 |
 
-**총 33개 테스트**
+**총 77개 테스트 (15개 클래스, 전체 통과)** — 아래 표는 주요 클래스만 발췌
 
 ```
-✅ UserServiceTest         (10)
-✅ ReserveServiceTest       (6)
-✅ ReviewServiceTest        (7)
-✅ JwtTokenProviderTest     (6)
-✅ PaymentDetailServiceTest (4)
+✅ UserServiceTest                   (11)
+✅ JwtTokenProviderTest              (10)
+✅ ReviewServiceTest                  (9)
+✅ ReserveServiceTest                 (8)
+✅ PaymentOrchestrationServiceTest    (7)
+✅ PriceCalculatorTest                (5)
+✅ PaymentDetailServiceTest           (4)
+✅ PasswordResetServiceTest           (4)
+✅ FileControllerTest                 (4)
+✅ LocalFileStorageTest               (4)
+✅ TossServiceTest                    (3)
+✅ AdminWriteApiSecurityTest          (3)  ← @SpringBootTest (H2)
+✅ AccommodationSearchCacheKeyTest    (2)
+✅ ReviewRedisLikeRepositoryImplTest  (2)
+✅ HoneyRestUserApplicationTests      (1)  ← @SpringBootTest (H2)
 ```
 
 ---
