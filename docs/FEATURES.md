@@ -71,4 +71,4 @@
 - 예약 내역, 리뷰 작성, 프로필 수정, 쿠폰 확인 등
 - 사용자 경험을 고려한 기능 배치
 
-> 전체 흐름은 [시연 영상](https://firebasestorage.googleapis.com/v0/b/honeyrest-7fb60.firebasestorage.app/o/video%2FHoneyRest_Pay.mp4?alt=media&token=b96a6897-b48b-4138-a5cf-fdd2e53caefb)에서 확인 가능합니다.
+> 시연 영상: 추후 GitHub Release에 첨부 예정
