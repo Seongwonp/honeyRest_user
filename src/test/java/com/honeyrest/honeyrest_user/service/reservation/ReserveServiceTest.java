@@ -106,6 +106,8 @@ class ReserveServiceTest {
 
         assertThat(result.getReservationNumber()).isEqualTo("RES-001");
         assertThat(result.getStatus()).isEqualTo("CONFIRMED");
+        // 숙소명 스냅샷(accommodation_name, NOT NULL)이 객실의 숙소명으로 채워져야 호스트 화면/검증과 맞는다.
+        assertThat(result.getAccommodationName()).isEqualTo("테스트 숙소");
     }
 
     @Test

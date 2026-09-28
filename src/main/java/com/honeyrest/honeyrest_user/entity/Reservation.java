@@ -37,6 +37,9 @@ public class Reservation extends BaseEntity{
     @JoinColumn(name = "accommodation_id", nullable = false)
     private Accommodation accommodation;
 
+    // 숙소명 스냅샷 (V10). 호스트 저장소가 NOT NULL 로 매핑하므로 예약 생성 시 반드시 채운다.
+    @Column(name = "accommodation_name", nullable = false, length = 255)
+    private String accommodationName;
 
     @Column(name = "room_name", nullable = false, length = 255)
     private String roomName; // 객실명

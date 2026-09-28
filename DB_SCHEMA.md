@@ -89,6 +89,7 @@
 | **original_price** | decimal(10,2) | YES | | 할인 전 원가 |
 | **price** | decimal(10,2) | NO | | 최종 결제 금액 |
 | **reservation_number** | varchar(50) | NO | UNIQUE | 고유 예약 번호 |
+| **accommodation_name** | varchar(255) | NO | | 숙소명 (예약 시점 스냅샷, V10) |
 | **room_name** | varchar(255) | NO | | 객실명 |
 | **special_requests** | text | YES | | 특별 요청 사항 |
 | **status** | varchar(20) | NO | | 예약 상태 |

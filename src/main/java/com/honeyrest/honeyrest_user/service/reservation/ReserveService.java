@@ -65,6 +65,7 @@ public class ReserveService {
         Reservation reservation = Reservation.builder()
                 .room(room)
                 .accommodation(accommodation)
+                .accommodationName(accommodation.getName()) // 숙소명 스냅샷 (reservation.accommodation_name NOT NULL)
                 .roomName(room.getName())
                 .checkInDate(request.getCheckIn())
                 .checkOutDate(request.getCheckOut())
