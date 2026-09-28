@@ -8,7 +8,7 @@
 
 **HoneyRest**는 숙소 검색 → 객실 선택 → 쿠폰·포인트 적용 → 토스 결제 → 리뷰까지 이어지는 숙소 예약 플랫폼입니다.
 이 저장소는 사용자(React SPA)가 호출하는 **REST API 서버**로, 인증(JWT + OAuth2), 숙소 검색, 예약·재고, 결제, 리뷰, 마이페이지를 담당하고
-**공유 DB 스키마(Flyway V1~V10)의 소유자**입니다. 4주 팀 프로젝트(2025.08) 이후 예약 동시성, 결제 보상, 권한 경계, 테스트·CI를 단독으로 보강했습니다.
+**공유 DB 스키마(Flyway V1~V11)의 소유자**입니다. 4주 팀 프로젝트(2025.08) 이후 예약 동시성, 결제 보상, 권한 경계, 테스트·CI를 단독으로 보강했습니다.
 
 | 저장소 | 역할 |
 |--------|------|
@@ -46,7 +46,7 @@
 |------|------|
 | Language / Framework | Java 17, Spring Boot 3.5.4 (Web, Validation, Actuator) |
 | 인증 / 인가 | Spring Security, JJWT 0.11.5 (access token), HttpOnly refresh token 쿠키, OAuth2 소셜 로그인 (Google, Kakao) |
-| 데이터 | MySQL 8, Spring Data JPA, QueryDSL 5.0, Flyway (V1~V10, `ddl-auto=validate`) |
+| 데이터 | MySQL 8, Spring Data JPA, QueryDSL 5.0, Flyway (V1~V11, `ddl-auto=validate`) |
 | 캐시 | Redis (Spring Data Redis: 검색 결과 캐시, ZSet 인기 지역 랭킹, 리뷰 좋아요 카운터), Spring Cache |
 | 결제 | Toss Payments 결제 승인·취소 API (`RestTemplate`) |
 | 파일 저장 | `FileStorage` 추상화 — 로컬 디스크(기본) / Firebase Storage(선택), Thumbnailator |
@@ -74,7 +74,7 @@ flowchart LR
     end
 
     FE -- "REST /api/**<br/>refreshToken: HttpOnly 쿠키" --> F
-    Q --> DB[("MySQL 8<br/>Flyway V1~V10")]
+    Q --> DB[("MySQL 8<br/>Flyway V1~V11")]
     S --> R[("Redis<br/>검색 캐시 · ZSet 랭킹")]
     S -- "승인 / 보상 취소" --> TOSS["Toss Payments API"]
     S --> MAIL["Gmail SMTP"]
@@ -120,9 +120,9 @@ flowchart LR
 
 ### 6. 두 앱이 공유하는 스키마 — Flyway 소유권과 상태 값 통일
 - **문제**: 관리자 앱이 `ddl-auto=validate`로 기동하는데, 관리자 엔티티에만 있는 컬럼(`reservation.accommodation_name`)과 저장소마다 다른 상태 철자(`CANCELED`/`CANCELLED`)로 기동 실패·취소 집계 0건 같은 문제가 생겼습니다.
-- **결정**: 스키마 변경은 이 저장소 Flyway에서만 하고(이미 적용된 파일은 수정하지 않고 교정 마이그레이션 추가), V10으로 관리자 매핑에 맞춘 컬럼을 추가. 예약 상태·재고 점유 상태 목록은 `ReservationStatus` 상수로 두 저장소에 동일하게 정의했습니다.
-- **결과**: Flyway로 새로 만든 DB에서 두 앱 모두 스키마 검증을 통과합니다.
-- 코드: [`db/migration`](src/main/resources/db/migration) · [`V10`](src/main/resources/db/migration/V10__add_reservation_accommodation_name.sql)
+- **결정**: 스키마 변경은 이 저장소 Flyway에서만 하고(이미 적용된 파일은 수정하지 않고 교정 마이그레이션 추가), V10으로 관리자 매핑에 맞춘 컬럼을, V11로 관리자 전용 `error_log` 테이블과 구세대 NOT NULL 컬럼 완화를 추가. 예약 상태·재고 점유 상태 목록은 `ReservationStatus` 상수로 두 저장소에 동일하게 정의했습니다.
+- **결과**: 두 저장소 모두 `integrationTest`(Testcontainers MySQL 8.0)로 "Flyway로 새로 만든 DB에서 스키마 검증 통과"를 CI에서 자동 확인합니다. 차이 목록은 [DB_SCHEMA.md §6](DB_SCHEMA.md) 참고.
+- 코드: [`db/migration`](src/main/resources/db/migration) · [`V10`](src/main/resources/db/migration/V10__add_reservation_accommodation_name.sql) · [`V11`](src/main/resources/db/migration/V11__host_schema_alignment.sql)
 
 ### 7. Firebase 키 없이는 실행조차 안 되던 구조 — `FileStorage` 추상화
 - **문제**: 업로드가 Firebase SDK에 직접 묶여 있어 서비스 계정 키가 없으면 앱과 테스트가 기동되지 않았습니다.
@@ -146,7 +146,7 @@ flowchart LR
    | `APP_STORAGE_LOCAL_DIR` | `app.storage.local.dir` | `./uploads` |
    | `FIREBASE_STORAGE_BUCKET` / `FIREBASE_PROJECT_ID` | `app.storage.firebase.*` | firebase 모드에서만 사용 |
 
-3. **실행**: 기동 시 Flyway가 `honeyrest_db`에 V1~V10을 적용합니다.
+3. **실행**: 기동 시 Flyway가 `honeyrest_db`에 V1~V11을 적용합니다.
    ```bash
    ./gradlew bootRun                                            # http://localhost:8080
    ./gradlew bootRun --args='--spring.profiles.active=local'    # SQL 로그 출력
@@ -165,14 +165,17 @@ Swagger UI: `http://localhost:8080/swagger-ui.html` · 상세 설정: [SETUP.md]
 ## 테스트 & CI
 
 ```bash
-./gradlew test     # MySQL·Redis·시크릿 파일 없이 실행
-./gradlew build    # CI와 동일
+./gradlew test               # MySQL·Redis·시크릿 파일 없이 실행 (H2)
+./gradlew build              # CI 1단계와 동일
+./gradlew integrationTest    # Docker 필요: 실제 MySQL 8.0 으로 마이그레이션·스키마 검증 (CI 2단계)
 ```
 
 - **85개 테스트** — 결제 보상(`PaymentOrchestrationServiceTest`), 재고 겹침(`ReserveServiceTest`), 가격 계산(`PriceCalculatorTest`), 토큰 폐기(`JwtTokenProviderTest`), 관리자 쓰기 API 인가(`AdminWriteApiSecurityTest`), 검색 캐시 키, 로컬 파일 저장소 등
 - **test 프로필**: H2 인메모리(MySQL 모드) + 더미 시크릿 + `app.storage.type=local` + `spring.cache.type=simple` → 외부 서비스 없이 어디서든 동일하게 동작하고 개발 DB를 건드리지 않습니다.
-- **트레이드오프**: V3·V10 등 일부 마이그레이션이 MySQL 전용 구문(`information_schema` 조회 + `PREPARE`)을 써서 테스트에서는 Flyway를 끄고 엔티티로 스키마를 생성(`create-drop`)합니다. 따라서 **마이그레이션 SQL 자체의 정합성은 테스트로 검증되지 않으며**, Testcontainers(MySQL) 도입이 후속 과제입니다. 동시성 역시 락 호출·겹침 판정을 단위 테스트로 검증했고, 실제 병렬 부하 테스트는 아직 없습니다.
-- **CI**: [GitHub Actions](.github/workflows/ci.yml) — `main` push/PR마다 JDK 17로 `./gradlew build`, 실패 시 테스트 리포트 업로드
+- **트레이드오프**: V3·V10 등 일부 마이그레이션이 MySQL 전용 구문(`information_schema` 조회 + `PREPARE`)을 써서 테스트에서는 Flyway를 끄고 엔티티로 스키마를 생성(`create-drop`)합니다. 마이그레이션 SQL 자체는 아래 스키마 통합 테스트가 따로 검증합니다. 동시성 역시 락 호출·겹침 판정을 단위 테스트로 검증했고, 실제 병렬 부하 테스트는 아직 없습니다.
+- **스키마 통합 테스트** (`@Tag("integration")`, 기본 `test`에서는 제외): [`FlywayMigrationMySqlIntegrationTest`](src/test/java/com/honeyrest/honeyrest_user/schema/FlywayMigrationMySqlIntegrationTest.java)가 Testcontainers로 `mysql:8.0`을 띄워 빈 DB에 V1~최신을 적용하고, ① 모든 마이그레이션 성공 ② `reservation.accommodation_name` NOT NULL ③ 사용자 엔티티 `ddl-auto=validate` 통과 ④ V10·V11 재실행 안전성을 확인합니다. 관리자 앱 쪽은 [honeyRest_host](https://github.com/Seongwonp/honeyRest_host)의 `integrationTest`가 이 저장소의 마이그레이션으로 관리자 엔티티를 교차 검증합니다.
+- **로컬 실행**: Docker(Desktop/Engine)를 켠 뒤 `./gradlew integrationTest`. 첫 실행은 `mysql:8.0` 이미지 pull로 1~2분 걸립니다. Docker가 없으면 실패가 아니라 skip 됩니다.
+- **CI**: [GitHub Actions](.github/workflows/ci.yml) — `main` push/PR마다 JDK 17로 `./gradlew build` → `./gradlew integrationTest`(`INTEGRATION_REQUIRE_DOCKER=true`로 Docker 부재 시 skip 대신 실패), 실패 시 테스트 리포트 업로드
 
 ---
 

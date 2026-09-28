@@ -1,5 +1,7 @@
 # main 브랜치 대상 push / PR 마다 빌드 + 테스트를 실행한다.
-# 테스트는 test 프로필(H2 인메모리, 더미 비밀값)로 동작하므로 MySQL/Redis 서비스 컨테이너가 필요 없다.
+# - test: test 프로필(H2 인메모리, 더미 비밀값)로 동작하므로 MySQL/Redis 서비스 컨테이너가 필요 없다.
+# - integrationTest: Testcontainers 로 실제 MySQL 8.0 을 띄워 Flyway V1~최신 적용 + 엔티티 validate 를 검증한다.
+#   ubuntu-latest 러너에는 Docker 가 있으므로 별도 서비스 설정 없이 동작한다.
 name: CI
 
 on:
@@ -26,8 +28,14 @@ jobs:
       - name: gradlew 실행 권한 부여
         run: chmod +x gradlew
 
-      - name: 빌드 및 테스트
+      - name: 빌드 및 테스트 (H2)
         run: ./gradlew build --no-daemon
+
+      - name: 스키마 통합 테스트 (Testcontainers MySQL 8.0)
+        # Docker 가 없으면 조용히 skip 되지 않고 실패하도록 강제한다 (DockerAvailabilityGuardTest).
+        env:
+          INTEGRATION_REQUIRE_DOCKER: 'true'
+        run: ./gradlew integrationTest --no-daemon
 
       - name: 테스트 리포트 업로드 (실패 시)
         if: failure()

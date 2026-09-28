@@ -86,6 +86,10 @@ dependencies {
     testRuntimeOnly 'com.h2database:h2'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
+    // 스키마 통합 테스트 (integrationTest 태스크 전용): Docker 로 실제 MySQL 8.0 을 띄워
+    // Flyway V1~최신 적용 + Hibernate ddl-auto=validate 를 검증한다. 버전은 Spring Boot BOM 이 관리한다.
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mysql'
 
 
     // 캐싱 기능 (Spring Cache)
@@ -123,6 +127,27 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 
+// 기본 test: H2(test 프로필) 기반의 빠른 테스트만 실행한다. Docker 가 필요한 integration 태그는 제외.
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags 'integration'
+    }
+}
+
+// integrationTest: @Tag("integration") 테스트만 실행한다 (Testcontainers MySQL 8.0).
+// - Docker 가 없으면 해당 테스트는 실패가 아니라 건너뛴다(skip).
+// - CI 처럼 반드시 실행돼야 하는 환경에서는 INTEGRATION_REQUIRE_DOCKER=true 로 두면
+//   Docker 부재 시 DockerAvailabilityGuardTest 가 실패해 '조용히 전부 skip 된 초록불'을 막는다.
+// 실행: ./gradlew test integrationTest
+tasks.register('integrationTest', Test) {
+    description = 'Testcontainers(MySQL 8.0) 로 Flyway 마이그레이션과 엔티티 스키마 검증을 실행한다.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'integration'
+    }
+    systemProperty 'integration.requireDocker',
+            providers.environmentVariable('INTEGRATION_REQUIRE_DOCKER').getOrElse('false')
+    shouldRunAfter tasks.named('test')
 }
