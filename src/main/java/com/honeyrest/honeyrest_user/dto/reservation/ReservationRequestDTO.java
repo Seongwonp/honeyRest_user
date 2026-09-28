@@ -37,7 +37,8 @@ public class ReservationRequestDTO {
     private String guestName;
 
     @NotBlank
-    @Pattern(regexp = "^01[016789]\\d{7,8}$", message = "올바른 전화번호 형식이 아닙니다")
+    // 하이픈 유무 모두 허용 (회원 프로필의 010-1234-5678 형식이 결제 검증에서 거부되던 문제)
+    @Pattern(regexp = "^01[016789]-?\\d{3,4}-?\\d{4}$", message = "올바른 전화번호 형식이 아닙니다")
     private String guestPhone;
 
     @Size(max = 500)
