@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.repository;
 
-import com.honeyrest.honeyrest_user.entity.Event;
+import com.honeyrest.domain.entity.Event;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;

@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.repository.reservation;
 
-import com.honeyrest.honeyrest_user.entity.Reservation;
+import com.honeyrest.domain.entity.Reservation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import jakarta.persistence.LockModeType;

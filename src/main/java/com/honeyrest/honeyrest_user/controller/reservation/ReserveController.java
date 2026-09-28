@@ -3,7 +3,7 @@ package com.honeyrest.honeyrest_user.controller.reservation;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationCompleteDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationFormInfoDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.guest.GuestReservationLookupRequestDTO;
-import com.honeyrest.honeyrest_user.entity.Reservation;
+import com.honeyrest.domain.entity.Reservation;
 import com.honeyrest.honeyrest_user.security.CustomUserPrincipal;
 import com.honeyrest.honeyrest_user.service.reservation.ReserveInfoService;
 import com.honeyrest.honeyrest_user.service.reservation.ReserveService;

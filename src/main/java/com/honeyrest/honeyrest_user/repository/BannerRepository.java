@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.repository;
 
-import com.honeyrest.honeyrest_user.entity.Banner;
+import com.honeyrest.domain.entity.Banner;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

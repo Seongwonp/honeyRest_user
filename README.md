@@ -79,9 +79,19 @@ flowchart LR
     S -- "승인 / 보상 취소" --> TOSS["Toss Payments API"]
     S --> MAIL["Gmail SMTP"]
     HOST -. "같은 스키마 공유<br/>validate만 수행" .-> DB
+    DOM["honeyrest-domain<br/>공유 JPA 엔티티 모듈"]
+    Q -. "엔티티" .-> DOM
+    HOST -. "git submodule +<br/>composite build" .-> DOM
 ```
 
 - 사용자 API와 관리자 앱은 **하나의 MySQL 스키마를 공유**합니다. 스키마 변경은 이 저장소의 Flyway 마이그레이션으로만 하고, 관리자 앱은 `ddl-auto=validate`로 매핑 정합성만 확인합니다.
+- **공유 도메인 모듈** `honeyrest-domain`: 두 앱이 각자 복사해 쓰던 JPA 엔티티(서로 조금씩 달라져 있던 사본 — 공유 엔티티 30개 + `BaseEntity`)를 이 저장소의 Gradle 서브프로젝트 하나로 합쳤습니다. 패키지는 `com.honeyrest.domain.entity`(엔티티)·`com.honeyrest.domain.type`(`ReservationStatus`, `BannerPosition`)이고 Spring 서비스/리포지토리는 없습니다(의존성: `jakarta.persistence-api`, Lombok, Hibernate 어노테이션, QueryDSL Q 타입 생성). 관리자 앱은 이 저장소를 `libs/honeyrest-user` git submodule로 두고 Gradle composite build(`includeBuild`)로 `com.honeyrest:honeyrest-domain`을 이 모듈로 치환해 사용합니다. 사본별 차이와 통합 결정은 [DOMAIN_MODULE.md](docs/DOMAIN_MODULE.md)에 정리했습니다.
+  ```text
+  honeyRest_user/                  (rootProject: 사용자 API, Flyway 마이그레이션 소유)
+  ├── honeyrest-domain/            (:honeyrest-domain — 공유 엔티티, 두 앱이 @EntityScan("com.honeyrest.domain"))
+  └── src/main/resources/db/migration/   (V1~V11, 도메인 모듈이 아니라 API 모듈에 남음)
+  ```
+- 엔티티를 바꿀 때는 **이 저장소에서 엔티티 + Flyway 마이그레이션을 같은 커밋으로** 바꾸고, 관리자 저장소는 서브모듈을 그 커밋으로 재고정(re-pin)합니다.
 - 도메인·ERD: [ARCHITECTURE.md](docs/ARCHITECTURE.md) · 컬럼 명세: [DB_SCHEMA.md](DB_SCHEMA.md) · 기능 목록: [FEATURES.md](docs/FEATURES.md)
 
 ---
@@ -98,7 +108,7 @@ flowchart LR
 - **문제**: 예약 시 재고 검사가 없어 같은 객실·기간에 `total_rooms`를 초과하는 예약이 저장될 수 있었습니다.
 - **결정**: 재고 = `room.total_rooms − [체크인, 체크아웃)과 겹치는 점유 상태 예약 수`. 저장 직전 `RoomRepository.findByIdForUpdate`(`PESSIMISTIC_WRITE`)로 객실 행을 잠그고 `ReservationRepository.countOverlapping`으로 재확인, 부족하면 409. 공유 스키마에 `version` 컬럼이 없어 낙관적 락 대신 행 락을 택했고, 관리자 화면이 쓰는 스냅샷 값 `price_calendar.available_room`은 판정에 쓰지 않습니다.
 - **결과**: 같은 객실의 예약 트랜잭션이 직렬화되고, 관리자 저장소도 동일 규칙(`ReservationInventoryGuard`)을 적용해 두 앱이 같은 재고 기준을 사용합니다.
-- 코드: [`ReserveService`](src/main/java/com/honeyrest/honeyrest_user/service/reservation/ReserveService.java) · [`ReservationRepository`](src/main/java/com/honeyrest/honeyrest_user/repository/reservation/ReservationRepository.java) · [`ReservationStatus`](src/main/java/com/honeyrest/honeyrest_user/entity/ReservationStatus.java)
+- 코드: [`ReserveService`](src/main/java/com/honeyrest/honeyrest_user/service/reservation/ReserveService.java) · [`ReservationRepository`](src/main/java/com/honeyrest/honeyrest_user/repository/reservation/ReservationRepository.java) · [`ReservationStatus`](honeyrest-domain/src/main/java/com/honeyrest/domain/type/ReservationStatus.java)
 
 ### 3. 화면 금액과 결제 금액 불일치 — 가격 계산기 단일화
 - **문제**: 예약 폼과 결제 검증이 각자 금액을 계산해 날짜별 요금(`price_calendar`)·추가 인원 요금 반영 여부가 달랐고, 클라이언트가 보낸 금액을 그대로 믿는 경로도 있었습니다.
@@ -120,7 +130,7 @@ flowchart LR
 
 ### 6. 두 앱이 공유하는 스키마 — Flyway 소유권과 상태 값 통일
 - **문제**: 관리자 앱이 `ddl-auto=validate`로 기동하는데, 관리자 엔티티에만 있는 컬럼(`reservation.accommodation_name`)과 저장소마다 다른 상태 철자(`CANCELED`/`CANCELLED`)로 기동 실패·취소 집계 0건 같은 문제가 생겼습니다.
-- **결정**: 스키마 변경은 이 저장소 Flyway에서만 하고(이미 적용된 파일은 수정하지 않고 교정 마이그레이션 추가), V10으로 관리자 매핑에 맞춘 컬럼을, V11로 관리자 전용 `error_log` 테이블과 구세대 NOT NULL 컬럼 완화를 추가. 예약 상태·재고 점유 상태 목록은 `ReservationStatus` 상수로 두 저장소에 동일하게 정의했습니다.
+- **결정**: 스키마 변경은 이 저장소 Flyway에서만 하고(이미 적용된 파일은 수정하지 않고 교정 마이그레이션 추가), V10으로 관리자 매핑에 맞춘 컬럼을, V11로 관리자 전용 `error_log` 테이블과 구세대 NOT NULL 컬럼 완화를 추가. 예약 상태·재고 점유 상태 목록은 `ReservationStatus` 상수로 정의했고, 이후 엔티티와 함께 공유 도메인 모듈(`honeyrest-domain`)로 옮겨 두 앱이 같은 클래스를 씁니다.
 - **결과**: 두 저장소 모두 `integrationTest`(Testcontainers MySQL 8.0)로 "Flyway로 새로 만든 DB에서 스키마 검증 통과"를 CI에서 자동 확인합니다. 차이 목록은 [DB_SCHEMA.md §6](DB_SCHEMA.md) 참고.
 - 코드: [`db/migration`](src/main/resources/db/migration) · [`V10`](src/main/resources/db/migration/V10__add_reservation_accommodation_name.sql) · [`V11`](src/main/resources/db/migration/V11__host_schema_alignment.sql)
 
@@ -135,6 +145,13 @@ flowchart LR
 ## 실행 방법
 
 **필요 환경**: JDK 17, MySQL 8, Redis (기본 포트 6379)
+
+0. **클론**: 이 저장소 자체는 서브모듈이 없지만, 관리자 저장소와 같은 방식으로 받는 것을 권장합니다.
+   ```bash
+   git clone --recurse-submodules https://github.com/Seongwonp/honeyRest_user.git
+   git clone --recurse-submodules https://github.com/Seongwonp/honeyRest_host.git   # 관리자 앱: libs/honeyrest-user 에 이 저장소가 서브모듈로 들어옴
+   ```
+   루트 프로젝트(`./gradlew bootRun`)가 사용자 API이고, `:honeyrest-domain`은 빌드 시 함께 컴파일됩니다.
 
 1. **시크릿 파일**: `src/main/resources/application_security_ex.properties`를 복사해 같은 폴더에 `application_security.properties`를 만들고 값을 채웁니다(gitignore 대상).
    DB 비밀번호, `jwt.secret-key-value`, Toss 위젯 키, Google/Kakao OAuth, Gmail, OpenWeather 키가 들어갑니다.
@@ -165,15 +182,15 @@ Swagger UI: `http://localhost:8080/swagger-ui.html` · 상세 설정: [SETUP.md]
 ## 테스트 & CI
 
 ```bash
-./gradlew test               # MySQL·Redis·시크릿 파일 없이 실행 (H2)
+./gradlew test               # MySQL·Redis·시크릿 파일 없이 실행 (H2) — 루트(API) + :honeyrest-domain 모두 실행
 ./gradlew build              # CI 1단계와 동일
 ./gradlew integrationTest    # Docker 필요: 실제 MySQL 8.0 으로 마이그레이션·스키마 검증 (CI 2단계)
 ```
 
-- **85개 테스트** — 결제 보상(`PaymentOrchestrationServiceTest`), 재고 겹침(`ReserveServiceTest`), 가격 계산(`PriceCalculatorTest`), 토큰 폐기(`JwtTokenProviderTest`), 관리자 쓰기 API 인가(`AdminWriteApiSecurityTest`), 검색 캐시 키, 로컬 파일 저장소 등
+- **124개 테스트** (API 118 + 도메인 모듈 6) — 결제 보상(`PaymentOrchestrationServiceTest`), 재고 겹침(`ReserveServiceTest`), 가격 계산(`PriceCalculatorTest`), 토큰 폐기(`JwtTokenProviderTest`), 관리자 쓰기 API 인가(`AdminWriteApiSecurityTest`), 검색 캐시 키, 로컬 파일 저장소 등
 - **test 프로필**: H2 인메모리(MySQL 모드) + 더미 시크릿 + `app.storage.type=local` + `spring.cache.type=simple` → 외부 서비스 없이 어디서든 동일하게 동작하고 개발 DB를 건드리지 않습니다.
 - **트레이드오프**: V3·V10 등 일부 마이그레이션이 MySQL 전용 구문(`information_schema` 조회 + `PREPARE`)을 써서 테스트에서는 Flyway를 끄고 엔티티로 스키마를 생성(`create-drop`)합니다. 마이그레이션 SQL 자체는 아래 스키마 통합 테스트가 따로 검증합니다. 동시성 역시 락 호출·겹침 판정을 단위 테스트로 검증했고, 실제 병렬 부하 테스트는 아직 없습니다.
-- **스키마 통합 테스트** (`@Tag("integration")`, 기본 `test`에서는 제외): [`FlywayMigrationMySqlIntegrationTest`](src/test/java/com/honeyrest/honeyrest_user/schema/FlywayMigrationMySqlIntegrationTest.java)가 Testcontainers로 `mysql:8.0`을 띄워 빈 DB에 V1~최신을 적용하고, ① 모든 마이그레이션 성공 ② `reservation.accommodation_name` NOT NULL ③ 사용자 엔티티 `ddl-auto=validate` 통과 ④ V10·V11 재실행 안전성을 확인합니다. 관리자 앱 쪽은 [honeyRest_host](https://github.com/Seongwonp/honeyRest_host)의 `integrationTest`가 이 저장소의 마이그레이션으로 관리자 엔티티를 교차 검증합니다.
+- **스키마 통합 테스트** (`@Tag("integration")`, 기본 `test`에서는 제외): [`FlywayMigrationMySqlIntegrationTest`](src/test/java/com/honeyrest/honeyrest_user/schema/FlywayMigrationMySqlIntegrationTest.java)가 Testcontainers로 `mysql:8.0`을 띄워 빈 DB에 V1~최신을 적용하고, ① 모든 마이그레이션 성공 ② `reservation.accommodation_name` NOT NULL ③ 사용자 엔티티 `ddl-auto=validate` 통과 ④ V10·V11 재실행 안전성을 확인합니다. 관리자 앱 쪽은 [honeyRest_host](https://github.com/Seongwonp/honeyRest_host)의 `integrationTest`가 서브모듈(`libs/honeyrest-user`)에 들어 있는 이 저장소의 마이그레이션으로 공유 엔티티 + 관리자 전용 엔티티를 교차 검증합니다.
 - **로컬 실행**: Docker(Desktop/Engine)를 켠 뒤 `./gradlew integrationTest`. 첫 실행은 `mysql:8.0` 이미지 pull로 1~2분 걸립니다. Docker가 없으면 실패가 아니라 skip 됩니다.
 - **CI**: [GitHub Actions](.github/workflows/ci.yml) — `main` push/PR마다 JDK 17로 `./gradlew build` → `./gradlew integrationTest`(`INTEGRATION_REQUIRE_DOCKER=true`로 Docker 부재 시 skip 대신 실패), 실패 시 테스트 리포트 업로드
 

@@ -1,11 +1,12 @@
 package com.honeyrest.honeyrest_user.repository.room;
 
-import com.honeyrest.honeyrest_user.entity.ReservationStatus;
+import com.honeyrest.domain.type.ReservationStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.honeyrest.honeyrest_user.dto.review.ReviewDTO;
 import com.honeyrest.honeyrest_user.dto.room.RoomDetailDTO;
-import com.honeyrest.honeyrest_user.entity.*;
+import com.honeyrest.domain.entity.*;
+import com.honeyrest.domain.type.*;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;

@@ -4,12 +4,12 @@ import com.honeyrest.honeyrest_user.dto.payment.toss.TossConfirmRequest;
 import com.honeyrest.honeyrest_user.dto.payment.toss.TossPaymentResult;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationCompleteDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationRequestDTO;
-import com.honeyrest.honeyrest_user.entity.Coupon;
-import com.honeyrest.honeyrest_user.entity.Payment;
-import com.honeyrest.honeyrest_user.entity.Reservation;
-import com.honeyrest.honeyrest_user.entity.Room;
-import com.honeyrest.honeyrest_user.entity.User;
-import com.honeyrest.honeyrest_user.entity.UserCoupon;
+import com.honeyrest.domain.entity.Coupon;
+import com.honeyrest.domain.entity.Payment;
+import com.honeyrest.domain.entity.Reservation;
+import com.honeyrest.domain.entity.Room;
+import com.honeyrest.domain.entity.User;
+import com.honeyrest.domain.entity.UserCoupon;
 import com.honeyrest.honeyrest_user.exception.ApiException;
 import com.honeyrest.honeyrest_user.mapper.ReservationMapper;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
@@ -274,8 +274,8 @@ public class PaymentOrchestrationService {
             discount = coupon.getDiscountValue();
         }
 
-        if (coupon.getMaxOrderAmount() != null && discount.compareTo(coupon.getMaxOrderAmount()) > 0) {
-            discount = coupon.getMaxOrderAmount();
+        if (coupon.getMaxDiscountAmount() != null && discount.compareTo(coupon.getMaxDiscountAmount()) > 0) {
+            discount = coupon.getMaxDiscountAmount();
         }
 
         if (discount.compareTo(original) > 0) {

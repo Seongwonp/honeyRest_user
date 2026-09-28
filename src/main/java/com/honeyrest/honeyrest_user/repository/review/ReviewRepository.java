@@ -1,7 +1,7 @@
 package com.honeyrest.honeyrest_user.repository.review;
 
-import com.honeyrest.honeyrest_user.entity.Reservation;
-import com.honeyrest.honeyrest_user.entity.Review;
+import com.honeyrest.domain.entity.Reservation;
+import com.honeyrest.domain.entity.Review;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

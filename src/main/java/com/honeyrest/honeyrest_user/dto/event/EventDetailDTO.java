@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.dto.event;
 
-import com.honeyrest.honeyrest_user.entity.Event;
+import com.honeyrest.domain.entity.Event;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

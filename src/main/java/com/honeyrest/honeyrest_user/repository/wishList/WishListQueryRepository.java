@@ -1,10 +1,10 @@
 package com.honeyrest.honeyrest_user.repository.wishList;
 
 import com.honeyrest.honeyrest_user.dto.WishlistedAccommodationDTO;
-import com.honeyrest.honeyrest_user.entity.QAccommodation;
-import com.honeyrest.honeyrest_user.entity.QAccommodationCategory;
-import com.honeyrest.honeyrest_user.entity.QRegion;
-import com.honeyrest.honeyrest_user.entity.QWishList;
+import com.honeyrest.domain.entity.QAccommodation;
+import com.honeyrest.domain.entity.QAccommodationCategory;
+import com.honeyrest.domain.entity.QRegion;
+import com.honeyrest.domain.entity.QWishList;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;

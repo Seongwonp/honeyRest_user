@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.dto.inquiry;
 
-import com.honeyrest.honeyrest_user.entity.Inquiry;
+import com.honeyrest.domain.entity.Inquiry;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

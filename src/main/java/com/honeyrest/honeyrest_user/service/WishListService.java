@@ -2,9 +2,9 @@ package com.honeyrest.honeyrest_user.service;
 
 import com.honeyrest.honeyrest_user.dto.WishlistedAccommodationDTO;
 import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
-import com.honeyrest.honeyrest_user.entity.Accommodation;
-import com.honeyrest.honeyrest_user.entity.User;
-import com.honeyrest.honeyrest_user.entity.WishList;
+import com.honeyrest.domain.entity.Accommodation;
+import com.honeyrest.domain.entity.User;
+import com.honeyrest.domain.entity.WishList;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.repository.wishList.WishListQueryRepository;
 import com.honeyrest.honeyrest_user.repository.wishList.WishListRepository;

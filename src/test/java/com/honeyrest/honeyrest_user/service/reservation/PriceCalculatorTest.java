@@ -1,8 +1,8 @@
 package com.honeyrest.honeyrest_user.service.reservation;
 
 import com.honeyrest.honeyrest_user.dto.reservation.PriceBreakdownDTO;
-import com.honeyrest.honeyrest_user.entity.PriceCalendar;
-import com.honeyrest.honeyrest_user.entity.Room;
+import com.honeyrest.domain.entity.PriceCalendar;
+import com.honeyrest.domain.entity.Room;
 import com.honeyrest.honeyrest_user.repository.room.PriceCalendarRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

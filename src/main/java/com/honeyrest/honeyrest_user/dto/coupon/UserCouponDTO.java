@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.dto.coupon;
 
-import com.honeyrest.honeyrest_user.entity.UserCoupon;
+import com.honeyrest.domain.entity.UserCoupon;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

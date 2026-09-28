@@ -4,7 +4,7 @@ import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationDetailDTO;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationSearchDTO;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationSummaryDTO;
 import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
-import com.honeyrest.honeyrest_user.entity.Accommodation;
+import com.honeyrest.domain.entity.Accommodation;
 import com.honeyrest.honeyrest_user.repository.accommodation.AccommodationRepository;
 import com.honeyrest.honeyrest_user.repository.accommodation.AccommodationDetail.AccommodationDetailQueryRepository;
 import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;

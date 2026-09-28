@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.repository;
 
-import com.honeyrest.honeyrest_user.entity.PointHistory;
+import com.honeyrest.domain.entity.PointHistory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

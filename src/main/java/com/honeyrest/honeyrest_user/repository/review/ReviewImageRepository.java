@@ -1,7 +1,7 @@
 package com.honeyrest.honeyrest_user.repository.review;
 
-import com.honeyrest.honeyrest_user.entity.Review;
-import com.honeyrest.honeyrest_user.entity.ReviewImage;
+import com.honeyrest.domain.entity.Review;
+import com.honeyrest.domain.entity.ReviewImage;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

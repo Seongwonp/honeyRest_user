@@ -1,7 +1,7 @@
 package com.honeyrest.honeyrest_user.controller.banner;
 
 import com.honeyrest.honeyrest_user.dto.banner.BannerDTO;
-import com.honeyrest.honeyrest_user.entity.BannerPosition;
+import com.honeyrest.domain.type.BannerPosition;
 import com.honeyrest.honeyrest_user.response.ApiResponse;
 import com.honeyrest.honeyrest_user.service.BannerService;
 import lombok.RequiredArgsConstructor;

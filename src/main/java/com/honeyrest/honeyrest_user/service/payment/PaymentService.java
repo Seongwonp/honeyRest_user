@@ -1,8 +1,8 @@
 package com.honeyrest.honeyrest_user.service.payment;
 
 import com.honeyrest.honeyrest_user.dto.payment.toss.TossPaymentResult;
-import com.honeyrest.honeyrest_user.entity.Payment;
-import com.honeyrest.honeyrest_user.entity.Reservation;
+import com.honeyrest.domain.entity.Payment;
+import com.honeyrest.domain.entity.Reservation;
 import com.honeyrest.honeyrest_user.repository.payment.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 

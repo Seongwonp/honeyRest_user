@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.repository;
 
-import com.honeyrest.honeyrest_user.entity.Region;
+import com.honeyrest.domain.entity.Region;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

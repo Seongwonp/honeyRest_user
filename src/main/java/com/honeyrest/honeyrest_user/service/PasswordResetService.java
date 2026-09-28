@@ -1,7 +1,7 @@
 package com.honeyrest.honeyrest_user.service;
 
-import com.honeyrest.honeyrest_user.entity.PasswordResetToken;
-import com.honeyrest.honeyrest_user.entity.User;
+import com.honeyrest.domain.entity.PasswordResetToken;
+import com.honeyrest.domain.entity.User;
 import com.honeyrest.honeyrest_user.repository.PasswordResetTokenRepository;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.service.email.EmailRateLimiter;

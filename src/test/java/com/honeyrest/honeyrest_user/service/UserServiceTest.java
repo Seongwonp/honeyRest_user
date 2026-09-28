@@ -4,7 +4,7 @@ import com.honeyrest.honeyrest_user.dto.user.LoginResponseDTO;
 import com.honeyrest.honeyrest_user.dto.user.UserLoginRequestDTO;
 import com.honeyrest.honeyrest_user.dto.user.UserResponseDTO;
 import com.honeyrest.honeyrest_user.dto.user.UserSignupRequestDTO;
-import com.honeyrest.honeyrest_user.entity.User;
+import com.honeyrest.domain.entity.User;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.security.JwtTokenProvider;
 import com.honeyrest.honeyrest_user.service.email.EmailVerificationTokenService;

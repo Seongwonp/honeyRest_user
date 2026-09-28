@@ -1,1 +1,7 @@
 rootProject.name = 'honeyRest_user'
+
+// 멀티 프로젝트 구성
+// - 루트 프로젝트: 사용자 API 애플리케이션 (Spring Boot, Flyway 마이그레이션 소유). 기존 위치(src/) 그대로 둔다.
+// - :honeyrest-domain: 사용자 API 와 호스트 관리자 앱이 공유하는 JPA 엔티티/값 타입 (com.honeyrest.domain.*).
+//   호스트 저장소는 이 저장소를 git submodule(libs/honeyrest-user)로 두고 composite build 로 이 모듈만 가져간다.
+include 'honeyrest-domain'

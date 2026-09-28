@@ -3,7 +3,7 @@ package com.honeyrest.honeyrest_user.controller.region;
 import com.honeyrest.honeyrest_user.dto.region.HotRegionDTO;
 import com.honeyrest.honeyrest_user.dto.region.PopulerRegionDTO;
 import com.honeyrest.honeyrest_user.dto.region.RegionDTO;
-import com.honeyrest.honeyrest_user.entity.Region;
+import com.honeyrest.domain.entity.Region;
 import com.honeyrest.honeyrest_user.service.RegionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;

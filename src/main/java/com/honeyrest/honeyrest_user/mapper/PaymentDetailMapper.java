@@ -2,7 +2,7 @@ package com.honeyrest.honeyrest_user.mapper;
 
 import com.honeyrest.honeyrest_user.Enum.CardCompany;
 import com.honeyrest.honeyrest_user.dto.payment.PaymentDetailDTO;
-import com.honeyrest.honeyrest_user.entity.PaymentDetail;
+import com.honeyrest.domain.entity.PaymentDetail;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Component;
 

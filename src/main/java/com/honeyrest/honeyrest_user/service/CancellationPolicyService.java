@@ -1,7 +1,7 @@
 package com.honeyrest.honeyrest_user.service;
 
 import com.honeyrest.honeyrest_user.dto.CancellationPolicyDTO;
-import com.honeyrest.honeyrest_user.entity.CancellationPolicy;
+import com.honeyrest.domain.entity.CancellationPolicy;
 import com.honeyrest.honeyrest_user.repository.CancellationPolicyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

@@ -1,7 +1,7 @@
 package com.honeyrest.honeyrest_user.service.email;
 
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationCompleteDTO;
-import com.honeyrest.honeyrest_user.entity.User;
+import com.honeyrest.domain.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.scheduling.annotation.Async;

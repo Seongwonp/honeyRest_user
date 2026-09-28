@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.dto.region;
 
-import com.honeyrest.honeyrest_user.entity.Region;
+import com.honeyrest.domain.entity.Region;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

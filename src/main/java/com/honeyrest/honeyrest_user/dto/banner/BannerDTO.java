@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.dto.banner;
 
-import com.honeyrest.honeyrest_user.entity.BannerPosition;
+import com.honeyrest.domain.type.BannerPosition;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

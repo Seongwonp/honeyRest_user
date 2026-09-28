@@ -3,7 +3,7 @@ package com.honeyrest.honeyrest_user.service;
 import com.honeyrest.honeyrest_user.dto.event.EventCreateRequestDTO;
 import com.honeyrest.honeyrest_user.dto.event.EventDetailDTO;
 import com.honeyrest.honeyrest_user.dto.event.EventResponseDTO;
-import com.honeyrest.honeyrest_user.entity.Event;
+import com.honeyrest.domain.entity.Event;
 import com.honeyrest.honeyrest_user.repository.EventRepository;
 import com.honeyrest.honeyrest_user.storage.FileStorage;
 import lombok.RequiredArgsConstructor;

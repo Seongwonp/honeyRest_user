@@ -1,9 +1,9 @@
 package com.honeyrest.honeyrest_user.service.coupon;
 
 
-import com.honeyrest.honeyrest_user.entity.CouponUsage;
-import com.honeyrest.honeyrest_user.entity.Reservation;
-import com.honeyrest.honeyrest_user.entity.UserCoupon;
+import com.honeyrest.domain.entity.CouponUsage;
+import com.honeyrest.domain.entity.Reservation;
+import com.honeyrest.domain.entity.UserCoupon;
 import com.honeyrest.honeyrest_user.repository.coupon.CouponUsageRepository;
 import com.honeyrest.honeyrest_user.repository.coupon.UserCouponRepository;
 import lombok.RequiredArgsConstructor;

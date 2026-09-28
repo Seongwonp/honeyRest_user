@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationCategoryDTO;
-import com.honeyrest.honeyrest_user.entity.AccommodationCategory;
+import com.honeyrest.domain.entity.AccommodationCategory;
 import com.honeyrest.honeyrest_user.repository.accommodation.AccommodationCategoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;

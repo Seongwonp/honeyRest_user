@@ -1,7 +1,7 @@
 package com.honeyrest.honeyrest_user.service;
 
 import com.honeyrest.honeyrest_user.dto.review.ReviewRequestDTO;
-import com.honeyrest.honeyrest_user.entity.*;
+import com.honeyrest.domain.entity.*;
 import com.honeyrest.honeyrest_user.repository.review.ReviewImageRepository;
 import com.honeyrest.honeyrest_user.repository.review.ReviewRedisLikeRepository;
 import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;

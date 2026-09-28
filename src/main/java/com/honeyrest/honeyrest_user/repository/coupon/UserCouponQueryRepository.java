@@ -1,9 +1,9 @@
 package com.honeyrest.honeyrest_user.repository.coupon;
 
-import com.honeyrest.honeyrest_user.entity.QCoupon;
-import com.honeyrest.honeyrest_user.entity.QCouponUsage;
-import com.honeyrest.honeyrest_user.entity.QUserCoupon;
-import com.honeyrest.honeyrest_user.entity.UserCoupon;
+import com.honeyrest.domain.entity.QCoupon;
+import com.honeyrest.domain.entity.QCouponUsage;
+import com.honeyrest.domain.entity.QUserCoupon;
+import com.honeyrest.domain.entity.UserCoupon;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;

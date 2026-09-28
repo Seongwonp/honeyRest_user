@@ -1,8 +1,8 @@
 package com.honeyrest.honeyrest_user.controller.file;
 
-import com.honeyrest.honeyrest_user.entity.Review;
-import com.honeyrest.honeyrest_user.entity.ReviewImage;
-import com.honeyrest.honeyrest_user.entity.User;
+import com.honeyrest.domain.entity.Review;
+import com.honeyrest.domain.entity.ReviewImage;
+import com.honeyrest.domain.entity.User;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.repository.review.ReviewImageRepository;
 import com.honeyrest.honeyrest_user.security.CustomUserPrincipal;

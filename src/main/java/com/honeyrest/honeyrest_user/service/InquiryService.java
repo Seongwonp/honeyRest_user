@@ -2,8 +2,8 @@ package com.honeyrest.honeyrest_user.service;
 
 import com.honeyrest.honeyrest_user.dto.inquiry.*;
 import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
-import com.honeyrest.honeyrest_user.entity.Inquiry;
-import com.honeyrest.honeyrest_user.entity.User;
+import com.honeyrest.domain.entity.Inquiry;
+import com.honeyrest.domain.entity.User;
 import com.honeyrest.honeyrest_user.repository.InquiryRepository;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.repository.accommodation.AccommodationRepository;

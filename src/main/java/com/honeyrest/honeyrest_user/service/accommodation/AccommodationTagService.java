@@ -3,7 +3,7 @@ package com.honeyrest.honeyrest_user.service.accommodation;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationTagDTO;
-import com.honeyrest.honeyrest_user.entity.AccommodationTag;
+import com.honeyrest.domain.entity.AccommodationTag;
 import com.honeyrest.honeyrest_user.repository.accommodation.AccommodationTagRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;

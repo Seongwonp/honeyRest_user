@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.repository.room;
 
-import com.honeyrest.honeyrest_user.entity.PriceCalendar;
+import com.honeyrest.domain.entity.PriceCalendar;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;

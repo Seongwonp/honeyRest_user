@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.security;
 
-import com.honeyrest.honeyrest_user.entity.User;
+import com.honeyrest.domain.entity.User;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

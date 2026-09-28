@@ -1,7 +1,7 @@
 package com.honeyrest.honeyrest_user.repository.accommodation.AccommodationDetail;
 
 import com.honeyrest.honeyrest_user.service.redis.AccommodationCacheKeys;
-import com.honeyrest.honeyrest_user.entity.ReservationStatus;
+import com.honeyrest.domain.type.ReservationStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.honeyrest.honeyrest_user.dto.CancellationPolicyDTO;
@@ -11,7 +11,8 @@ import com.honeyrest.honeyrest_user.dto.location.LocationDTO;
 import com.honeyrest.honeyrest_user.dto.region.RegionDTO;
 import com.honeyrest.honeyrest_user.dto.review.ReviewDTO;
 import com.honeyrest.honeyrest_user.dto.room.RoomDTO;
-import com.honeyrest.honeyrest_user.entity.*;
+import com.honeyrest.domain.entity.*;
+import com.honeyrest.domain.type.*;
 import com.honeyrest.honeyrest_user.repository.review.ReviewRedisLikeRepository;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Projections;
@@ -29,7 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.honeyrest.honeyrest_user.entity.QReservation.reservation;
+import static com.honeyrest.domain.entity.QReservation.reservation;
 
 @Log4j2
 @Repository

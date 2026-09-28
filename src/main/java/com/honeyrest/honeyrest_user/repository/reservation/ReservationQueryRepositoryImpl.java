@@ -1,7 +1,7 @@
 package com.honeyrest.honeyrest_user.repository.reservation;
 
-import com.honeyrest.honeyrest_user.entity.ReservationStatus;
-import com.honeyrest.honeyrest_user.entity.QReservation;
+import com.honeyrest.domain.type.ReservationStatus;
+import com.honeyrest.domain.entity.QReservation;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;

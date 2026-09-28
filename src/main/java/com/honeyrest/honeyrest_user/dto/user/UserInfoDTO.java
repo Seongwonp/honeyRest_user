@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.dto.user;
 
-import com.honeyrest.honeyrest_user.entity.User;
+import com.honeyrest.domain.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

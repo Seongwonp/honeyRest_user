@@ -1,7 +1,7 @@
 package com.honeyrest.honeyrest_user.repository;
 
-import com.honeyrest.honeyrest_user.entity.RefreshToken;
-import com.honeyrest.honeyrest_user.entity.User;
+import com.honeyrest.domain.entity.RefreshToken;
+import com.honeyrest.domain.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

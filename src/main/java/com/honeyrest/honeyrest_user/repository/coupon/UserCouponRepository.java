@@ -1,8 +1,8 @@
 package com.honeyrest.honeyrest_user.repository.coupon;
 
-import com.honeyrest.honeyrest_user.entity.Coupon;
-import com.honeyrest.honeyrest_user.entity.User;
-import com.honeyrest.honeyrest_user.entity.UserCoupon;
+import com.honeyrest.domain.entity.Coupon;
+import com.honeyrest.domain.entity.User;
+import com.honeyrest.domain.entity.UserCoupon;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

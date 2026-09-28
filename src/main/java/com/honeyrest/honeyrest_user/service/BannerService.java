@@ -1,7 +1,7 @@
 package com.honeyrest.honeyrest_user.service;
 
 import com.honeyrest.honeyrest_user.dto.banner.BannerDTO;
-import com.honeyrest.honeyrest_user.entity.Banner;
+import com.honeyrest.domain.entity.Banner;
 import com.honeyrest.honeyrest_user.repository.BannerRepository;
 import com.honeyrest.honeyrest_user.storage.FileStorage;
 import lombok.RequiredArgsConstructor;

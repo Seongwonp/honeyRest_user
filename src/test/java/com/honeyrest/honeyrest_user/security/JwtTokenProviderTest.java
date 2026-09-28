@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.security;
 
-import com.honeyrest.honeyrest_user.entity.User;
+import com.honeyrest.domain.entity.User;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.service.UserService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;

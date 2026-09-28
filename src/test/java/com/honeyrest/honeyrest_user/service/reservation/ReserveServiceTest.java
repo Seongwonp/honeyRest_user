@@ -2,7 +2,7 @@ package com.honeyrest.honeyrest_user.service.reservation;
 
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationRequestDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.guest.GuestReservationLookupRequestDTO;
-import com.honeyrest.honeyrest_user.entity.*;
+import com.honeyrest.domain.entity.*;
 import com.honeyrest.honeyrest_user.mapper.ReservationMapper;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.repository.payment.PaymentDetailRepository;

@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.repository.accommodation;
 
-import com.honeyrest.honeyrest_user.entity.Accommodation;
+import com.honeyrest.domain.entity.Accommodation;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

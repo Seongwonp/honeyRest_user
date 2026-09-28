@@ -3,10 +3,10 @@ package com.honeyrest.honeyrest_user.mapper;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationCompleteDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationDetailDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationSummaryDTO;
-import com.honeyrest.honeyrest_user.entity.Payment;
-import com.honeyrest.honeyrest_user.entity.PaymentDetail;
-import com.honeyrest.honeyrest_user.entity.Reservation;
-import com.honeyrest.honeyrest_user.entity.User;
+import com.honeyrest.domain.entity.Payment;
+import com.honeyrest.domain.entity.PaymentDetail;
+import com.honeyrest.domain.entity.Reservation;
+import com.honeyrest.domain.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

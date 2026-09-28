@@ -6,14 +6,17 @@
 
 ```plaintext
 HoneyRest/
-├── honeyrest_user/         # User API 백엔드 (Spring Boot) ← 현재 레포
+├── honeyrest_user/         # User API 백엔드 (Spring Boot, Gradle 멀티 프로젝트) ← 현재 레포
+│   ├── honeyrest-domain/   # 공유 도메인 모듈 (:honeyrest-domain) — 관리자 앱도 submodule 로 사용
+│   │   └── src/main/java/com/honeyrest/domain/
+│   │       ├── entity/         # JPA 엔티티 30개 + BaseEntity, ReservationChanges
+│   │       └── type/           # ReservationStatus, BannerPosition
 │   ├── src/main/java/
 │   │   └── com/honeyrest/honeyrest_user/
 │   │       ├── config/         # Security, Redis, Firebase, Swagger 설정
 │   │       ├── controller/     # REST API 컨트롤러
 │   │       ├── service/        # 비즈니스 로직
 │   │       ├── repository/     # JPA + QueryDSL 리포지토리
-│   │       ├── entity/         # JPA 엔티티
 │   │       ├── dto/            # 요청/응답 DTO
 │   │       ├── exception/      # GlobalExceptionHandler, ApiException
 │   │       └── storage/        # 파일 저장소 추상화 (FileStorage: local / firebase)

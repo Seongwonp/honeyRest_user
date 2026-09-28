@@ -2,7 +2,7 @@ package com.honeyrest.honeyrest_user.service.coupon;
 
 import com.honeyrest.honeyrest_user.dto.coupon.UserCouponDTO;
 import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
-import com.honeyrest.honeyrest_user.entity.UserCoupon;
+import com.honeyrest.domain.entity.UserCoupon;
 import com.honeyrest.honeyrest_user.repository.coupon.UserCouponRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

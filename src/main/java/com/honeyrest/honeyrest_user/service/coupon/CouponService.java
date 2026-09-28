@@ -2,8 +2,8 @@ package com.honeyrest.honeyrest_user.service.coupon;
 
 
 import com.honeyrest.honeyrest_user.dto.coupon.AvailableCouponDTO;
-import com.honeyrest.honeyrest_user.entity.Coupon;
-import com.honeyrest.honeyrest_user.entity.UserCoupon;
+import com.honeyrest.domain.entity.Coupon;
+import com.honeyrest.domain.entity.UserCoupon;
 import com.honeyrest.honeyrest_user.repository.coupon.UserCouponQueryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -31,7 +31,7 @@ public class CouponService {
                             .discountType(coupon.getDiscountType())
                             .discountValue(coupon.getDiscountValue())
                             .minOrderAmount(coupon.getMinOrderAmount())
-                            .maxOrderAmount(coupon.getMaxOrderAmount())
+                            .maxOrderAmount(coupon.getMaxDiscountAmount())
                             .build();
                 })
                 .toList();

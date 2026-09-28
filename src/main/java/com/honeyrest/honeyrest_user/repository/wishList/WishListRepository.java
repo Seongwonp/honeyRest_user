@@ -1,6 +1,6 @@
 package com.honeyrest.honeyrest_user.repository.wishList;
 
-import com.honeyrest.honeyrest_user.entity.WishList;
+import com.honeyrest.domain.entity.WishList;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
