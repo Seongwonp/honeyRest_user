@@ -41,3 +41,8 @@ out/
 
 src/main/resources/honeyrest-7fb60-firebase-adminsdk-fbsvc-3d84826567.json
 **/honeyrest-7fb60-*.json
+
+### 로컬 파일 저장소 (app.storage.type=local) ###
+# 업로드 파일은 커밋하지 않고, 시드용 플레이스홀더 이미지만 추적한다.
+/uploads/*
+!/uploads/placeholder/

@@ -5,7 +5,7 @@ import com.honeyrest.honeyrest_user.dto.event.EventDetailDTO;
 import com.honeyrest.honeyrest_user.dto.event.EventResponseDTO;
 import com.honeyrest.honeyrest_user.entity.Event;
 import com.honeyrest.honeyrest_user.repository.EventRepository;
-import com.honeyrest.honeyrest_user.util.FileUploadUtil;
+import com.honeyrest.honeyrest_user.storage.FileStorage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EventService {
     private final EventRepository eventRepository;
-    private final FileUploadUtil fileUploadUtil;
+    private final FileStorage fileStorage;
 
     public List<EventResponseDTO> getActiveEvents() {
         LocalDateTime now = LocalDateTime.now();
@@ -38,7 +38,7 @@ public class EventService {
 
 
     public Long createEvent(EventCreateRequestDTO dto, MultipartFile imageFile) throws Exception {
-        String imageUrl = fileUploadUtil.upload(imageFile, "event");
+        String imageUrl = fileStorage.upload(imageFile, "event");
 
         Event event = Event.builder()
                 .title(dto.getTitle())

@@ -8,7 +8,7 @@ import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;
 import com.honeyrest.honeyrest_user.repository.reservation.ReservationRepository;
 import com.honeyrest.honeyrest_user.service.accommodation.AccommodationService;
 import com.honeyrest.honeyrest_user.service.redis.RatingCacheService;
-import com.honeyrest.honeyrest_user.util.FileUploadUtil;
+import com.honeyrest.honeyrest_user.storage.FileStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ class ReviewServiceTest {
     @Mock private AccommodationService accommodationService;
     @Mock private PointHistoryService pointHistoryService;
     @Mock private UserService userService;
-    @Mock private FileUploadUtil fileUploadUtil;
+    @Mock private FileStorage fileStorage;
     @Mock private RedisTemplate<String, Object> redisTemplate;
 
     @InjectMocks

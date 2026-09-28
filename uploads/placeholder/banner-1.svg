@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400">
+  <rect width="1200" height="400" fill="#FDE68A"/>
+  <path d="M360 248 L504 168 L624 224 L720 192 L840 248 Z" fill="#D97706" opacity="0.6"/>
+  <circle cx="744" cy="128" r="20" fill="#D97706" opacity="0.8"/>
+  <text x="50%" y="320" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#D97706">HoneyRest · 배너 이미지 1</text>
+</svg>

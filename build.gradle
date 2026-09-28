@@ -38,12 +38,8 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
-    // 데이터베이스 (JPA, MyBatis, MySQL)
+    // 데이터베이스 (JPA, MySQL)
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.5'
-
-    // 문자 발송 (Nurigo API)
-    implementation 'net.nurigo:sdk:4.3.2'
 
     // JPA QueryDSL
     implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
@@ -56,9 +52,6 @@ dependencies {
 
     // API 문서화 (Swagger UI)
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
-
-    // 실시간 통신 (WebSocket)
-    implementation 'org.springframework.boot:spring-boot-starter-websocket'
 
     // 이메일 발송
     implementation 'org.springframework.boot:spring-boot-starter-mail'
@@ -73,9 +66,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-log4j2'
 
     // 파일 업로드 및 이미지 처리
+    // Firebase Storage는 app.storage.type=firebase 일 때만 사용 (기본값 local은 로컬 디스크 저장)
     implementation("com.google.firebase:firebase-admin:9.2.0")
-
-    implementation 'software.amazon.awssdk:s3:2.25.0'
     implementation 'net.coobird:thumbnailator:0.4.19'
 
 
@@ -87,7 +79,6 @@ dependencies {
 
     // 테스트 관련
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter-test:3.0.5'
     testImplementation 'org.springframework.security:spring-security-test'
     runtimeOnly 'com.mysql:mysql-connector-j'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -107,9 +98,6 @@ dependencies {
     // 외부 API 재시도 처리
     implementation 'org.springframework.retry:spring-retry'
     implementation 'org.springframework:spring-aspects'
-
-    // 배치 처리 (예약 정산, 포인트 소멸 등)
-    implementation 'org.springframework.boot:spring-boot-starter-batch'
 
     // DB 마이그레이션 관리
     implementation 'org.flywaydb:flyway-core'

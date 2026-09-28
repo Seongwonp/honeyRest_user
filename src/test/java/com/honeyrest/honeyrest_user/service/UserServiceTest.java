@@ -8,7 +8,7 @@ import com.honeyrest.honeyrest_user.entity.User;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.security.JwtTokenProvider;
 import com.honeyrest.honeyrest_user.service.email.EmailVerificationTokenService;
-import com.honeyrest.honeyrest_user.util.FileUploadUtil;
+import com.honeyrest.honeyrest_user.storage.FileStorage;
 import com.honeyrest.honeyrest_user.util.RefreshTokenCookieManager;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +34,7 @@ class UserServiceTest {
     @Mock private RefreshTokenService refreshTokenService;
     @Mock private BCryptPasswordEncoder passwordEncoder;
     @Mock private JwtTokenProvider jwtTokenProvider;
-    @Mock private FileUploadUtil fileUploadUtil;
+    @Mock private FileStorage fileStorage;
     @Mock private RefreshTokenCookieManager refreshTokenCookieManager;
     @Mock private HttpServletResponse httpResponse;
 

@@ -6,7 +6,7 @@ import com.honeyrest.honeyrest_user.entity.User;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.repository.review.ReviewImageRepository;
 import com.honeyrest.honeyrest_user.security.CustomUserPrincipal;
-import com.honeyrest.honeyrest_user.util.FileUploadUtil;
+import com.honeyrest.honeyrest_user.storage.FileStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class FileControllerTest {
 
-    @Mock private FileUploadUtil fileUploadUtil;
+    @Mock private FileStorage fileStorage;
     @Mock private UserRepository userRepository;
     @Mock private ReviewImageRepository reviewImageRepository;
 
@@ -37,7 +37,7 @@ class FileControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new FileController(fileUploadUtil, userRepository, reviewImageRepository);
+        controller = new FileController(fileStorage, userRepository, reviewImageRepository);
         User user = User.builder().userId(1L).build();
         me = new CustomUserPrincipal(user, Map.of());
     }
@@ -46,7 +46,7 @@ class FileControllerTest {
     void 허용되지_않은_폴더는_삭제가_거부된다() {
         assertThatThrownBy(() -> controller.deleteFile(me, "banner", "https://example.com/banner.png"))
                 .isInstanceOf(IllegalArgumentException.class);
-        verifyNoInteractions(fileUploadUtil);
+        verifyNoInteractions(fileStorage);
     }
 
     @Test
@@ -56,7 +56,7 @@ class FileControllerTest {
 
         assertThatThrownBy(() -> controller.deleteFile(me, "profile", "https://example.com/someone-else-profile.png"))
                 .isInstanceOf(IllegalArgumentException.class);
-        verifyNoInteractions(fileUploadUtil);
+        verifyNoInteractions(fileStorage);
     }
 
     @Test
@@ -66,7 +66,7 @@ class FileControllerTest {
 
         controller.deleteFile(me, "profile", "https://example.com/my-profile.png");
 
-        verify(fileUploadUtil).delete("profile", "https://example.com/my-profile.png");
+        verify(fileStorage).delete("profile", "https://example.com/my-profile.png");
     }
 
     @Test
@@ -80,6 +80,6 @@ class FileControllerTest {
 
         assertThatThrownBy(() -> controller.deleteFile(me, "reviews", "https://example.com/review.png"))
                 .isInstanceOf(IllegalArgumentException.class);
-        verifyNoInteractions(fileUploadUtil);
+        verifyNoInteractions(fileStorage);
     }
 }

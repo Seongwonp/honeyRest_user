@@ -99,7 +99,10 @@ gmail.access-token=YOUR_GMAIL_APP_PASSWORD
 
 ---
 
-## 4️⃣ Firebase 설정
+## 4️⃣ Firebase 설정 (선택)
+
+> 기본 파일 저장소는 로컬 디스크(`app.storage.type=local`)이므로 Firebase 키 없이도 실행됩니다.
+> 아래 설정은 `app.storage.type=firebase`로 실행할 때만 필요합니다.
 
 1. Firebase Console에서 서비스 계정 JSON 키를 발급합니다.
 2. 발급받은 JSON 파일을 `src/main/resources/` 폴더에 넣습니다.
