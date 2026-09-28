@@ -109,7 +109,7 @@ flowchart LR
 ### 4. 로그아웃 후에도 살아 있는 access token — `tokenValidAfter`
 - **문제**: 무상태 JWT라 로그아웃·비밀번호 변경 후에도 기존 access token이 만료 시각까지 유효했습니다.
 - **결정**: refresh token은 HttpOnly·SameSite 쿠키로만 전달하고(DB 저장, 로그아웃 시 삭제), `user.token_valid_after` 컬럼(Flyway V9)을 추가해 로그아웃·비밀번호 변경 시 갱신. 인증 필터가 이미 조회하는 사용자 행에서 `iat < tokenValidAfter`이면 거부하므로 Redis 블랙리스트 같은 추가 저장소가 필요 없습니다.
-- **결과**: 폐기 즉시 기존 토큰이 401. 한계: JWT `iat`는 초 단위라 로그아웃 직후 같은 초에 발급된 토큰도 거부될 수 있어 비교 정밀도 보정이 후속 과제입니다.
+- **결과**: 폐기 즉시 기존 토큰이 401. JWT `iat`가 초 단위인 점을 고려해 `tokenValidAfter`를 "폐기 시각 초 내림 + 1초"로 저장하고, 새 토큰은 `iat = max(now, tokenValidAfter)`로 발급합니다. 비교도 epoch 초 단위(`iat < tokenValidAfter` → 거부)라서 **폐기 직전(같은 초 포함) 토큰은 항상 거부, 로그아웃 직후 같은 초의 재로그인 토큰은 항상 허용**으로 결정적으로 동작합니다. 대가로 폐기 직후 발급 토큰의 `iat`/만료가 최대 1초 뒤로 밀립니다.
 - 코드: [`JwtTokenProvider`](src/main/java/com/honeyrest/honeyrest_user/security/JwtTokenProvider.java) · [`RefreshTokenCookieManager`](src/main/java/com/honeyrest/honeyrest_user/util/RefreshTokenCookieManager.java) · [`V9`](src/main/resources/db/migration/V9__add_user_token_valid_after.sql)
 
 ### 5. 숙소 검색 — N+1 회피 조회 구조와 Redis 캐시 키 정합성
@@ -169,7 +169,7 @@ Swagger UI: `http://localhost:8080/swagger-ui.html` · 상세 설정: [SETUP.md]
 ./gradlew build    # CI와 동일
 ```
 
-- **77개 테스트** — 결제 보상(`PaymentOrchestrationServiceTest`), 재고 겹침(`ReserveServiceTest`), 가격 계산(`PriceCalculatorTest`), 토큰 폐기(`JwtTokenProviderTest`), 관리자 쓰기 API 인가(`AdminWriteApiSecurityTest`), 검색 캐시 키, 로컬 파일 저장소 등
+- **85개 테스트** — 결제 보상(`PaymentOrchestrationServiceTest`), 재고 겹침(`ReserveServiceTest`), 가격 계산(`PriceCalculatorTest`), 토큰 폐기(`JwtTokenProviderTest`), 관리자 쓰기 API 인가(`AdminWriteApiSecurityTest`), 검색 캐시 키, 로컬 파일 저장소 등
 - **test 프로필**: H2 인메모리(MySQL 모드) + 더미 시크릿 + `app.storage.type=local` + `spring.cache.type=simple` → 외부 서비스 없이 어디서든 동일하게 동작하고 개발 DB를 건드리지 않습니다.
 - **트레이드오프**: V3·V10 등 일부 마이그레이션이 MySQL 전용 구문(`information_schema` 조회 + `PREPARE`)을 써서 테스트에서는 Flyway를 끄고 엔티티로 스키마를 생성(`create-drop`)합니다. 따라서 **마이그레이션 SQL 자체의 정합성은 테스트로 검증되지 않으며**, Testcontainers(MySQL) 도입이 후속 과제입니다. 동시성 역시 락 호출·겹침 판정을 단위 테스트로 검증했고, 실제 병렬 부하 테스트는 아직 없습니다.
 - **CI**: [GitHub Actions](.github/workflows/ci.yml) — `main` push/PR마다 JDK 17로 `./gradlew build`, 실패 시 테스트 리포트 업로드

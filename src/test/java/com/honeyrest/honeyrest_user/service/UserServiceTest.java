@@ -132,7 +132,7 @@ class UserServiceTest {
 
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("rawPassword", "hashed")).thenReturn(true);
-        when(jwtTokenProvider.createAccessToken(1L, "USER")).thenReturn("access_token");
+        when(jwtTokenProvider.createAccessToken(user)).thenReturn("access_token");
         when(jwtTokenProvider.createRefreshToken()).thenReturn("refresh_token");
         when(refreshTokenCookieManager.create("refresh_token"))
                 .thenReturn(ResponseCookie.from("refreshToken", "refresh_token").build());
@@ -236,6 +236,39 @@ class UserServiceTest {
                 .doesNotThrowAnyException();
 
         verify(userRepository).save(user);
+    }
+
+    @Test
+    @DisplayName("비밀번호 변경 시 해당 사용자의 refresh token(DB)이 모두 삭제되고 access token 폐기 시각이 기록된다")
+    void changePassword_invalidatesRefreshTokens() {
+        User user = User.builder()
+                .userId(1L)
+                .passwordHash("oldHash")
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("currentPass", "oldHash")).thenReturn(true);
+        when(passwordEncoder.matches("newPass", "oldHash")).thenReturn(false);
+        when(passwordEncoder.encode("newPass")).thenReturn("newHash");
+
+        userService.changePassword(1L, "currentPass", "newPass");
+
+        verify(refreshTokenService).invalidateAllByUser(user);
+        assertThat(user.getTokenValidAfter()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("현재 비밀번호가 틀리면 refresh token을 삭제하지 않는다")
+    void changePassword_wrongPassword_keepsRefreshTokens() {
+        User user = User.builder().userId(1L).passwordHash("hash").build();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrong", "hash")).thenReturn(false);
+
+        assertThatThrownBy(() -> userService.changePassword(1L, "wrong", "newPass"))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        verify(refreshTokenService, never()).invalidateAllByUser(any());
+        assertThat(user.getTokenValidAfter()).isNull();
     }
 
     @Test

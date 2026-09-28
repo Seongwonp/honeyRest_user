@@ -12,6 +12,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 
 import java.security.Key;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
@@ -37,12 +39,37 @@ public class JwtTokenProvider {
         this.userRepository = userRepository;
     }
 
-    // Access Token 생성
+    // Access Token 생성 (토큰 폐기 이력이 없는 경우)
     public String createAccessToken(Long userId, String role) {
+        return createAccessToken(userId, role, null);
+    }
+
+    /**
+     * 사용자 엔티티 기준 Access Token 생성.
+     * 로그아웃·비밀번호 변경으로 tokenValidAfter가 설정된 사용자에게 발급할 때는 반드시 이 메서드를 사용해야
+     * 같은 초 안의 재로그인 토큰이 거부되지 않는다.
+     */
+    public String createAccessToken(User user) {
+        return createAccessToken(user.getUserId(), user.getRole(), user.getTokenValidAfter());
+    }
+
+    /**
+     * iat = max(현재 시각, tokenValidAfter) 로 발급한다.
+     * tokenValidAfter는 "폐기 시각(초 단위 내림) + 1초"라서 폐기 직후 같은 초에 발급하는 토큰은 iat가 최대 1초
+     * 미래로 잡힌다. 이렇게 해야 폐기 이전 토큰은 항상 거부되고(iat &lt; tokenValidAfter), 재발급 토큰은 항상 통과한다.
+     * 만료 시각도 iat 기준으로 계산한다(최대 1초 늘어남).
+     */
+    private String createAccessToken(Long userId, String role, LocalDateTime tokenValidAfter) {
         Claims claims = Jwts.claims().setSubject(String.valueOf(userId));
         claims.put("role", role);
 
         Date now = new Date();
+        if (tokenValidAfter != null) {
+            Date validAfter = Date.from(tokenValidAfter.atZone(ZoneId.systemDefault()).toInstant());
+            if (validAfter.after(now)) {
+                now = validAfter;
+            }
+        }
         Date expiry = new Date(now.getTime() + accessTokenExpiration);
 
         String token = Jwts.builder()
@@ -65,7 +92,7 @@ public class JwtTokenProvider {
 
     // AccessToken 재발급 (RefreshToken 검증 후)
     public String reissueAccessToken(User user) {
-        String newToken = createAccessToken(user.getUserId(), user.getRole());
+        String newToken = createAccessToken(user);
         log.info("🔄 AccessToken 재발급 완료: userId={}, role={}", user.getUserId(), user.getRole());
         return newToken;
     }
@@ -132,10 +159,11 @@ public class JwtTokenProvider {
                     return new RuntimeException("User not found");
                 });
 
-        // 로그아웃/비밀번호 변경 이후 발급된 시각(tokenValidAfter)보다 이 토큰이 먼저 발급됐다면
-        // 이미 폐기된 토큰이다(P1-10). 만료 전이라도 인증을 거부한다.
+        // 로그아웃/비밀번호 변경 시각(tokenValidAfter)보다 이 토큰이 먼저 발급됐다면 이미 폐기된 토큰이다(P1-10).
+        // 만료 전이라도 인증을 거부한다. JWT iat는 초 단위이므로 양쪽 모두 epoch 초로 맞춰 비교한다.
+        // (tokenValidAfter = 폐기 시각 초 내림 + 1초, 재발급 iat = max(now, tokenValidAfter) → 결정적으로 동작)
         if (user.getTokenValidAfter() != null && issuedAt != null
-                && issuedAt.toInstant().isBefore(user.getTokenValidAfter().atZone(java.time.ZoneId.systemDefault()).toInstant())) {
+                && isIssuedBefore(issuedAt, user.getTokenValidAfter())) {
             log.warn("❌ 폐기된 토큰: userId={}, issuedAt={}", userId, issuedAt);
             throw new JwtException("폐기된 토큰입니다. 다시 로그인해주세요.");
         }
@@ -152,5 +180,12 @@ public class JwtTokenProvider {
                 null,
                 principal.getAuthorities()
         );
+    }
+
+    /** iat(초 단위)가 tokenValidAfter(초 단위로 내림)보다 이전이면 true. */
+    static boolean isIssuedBefore(Date issuedAt, LocalDateTime tokenValidAfter) {
+        long iatSeconds = issuedAt.toInstant().getEpochSecond();
+        long validAfterSeconds = tokenValidAfter.atZone(ZoneId.systemDefault()).toInstant().getEpochSecond();
+        return iatSeconds < validAfterSeconds;
     }
 }

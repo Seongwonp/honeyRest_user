@@ -83,20 +83,20 @@ JUnit 5 + Mockito 기반 단위 테스트가 중심이며, `./gradlew test` 는 
 | `UserServiceTest` | `UserService` | 회원가입 성공/중복이메일/만14세미만, 로그인 성공/비밀번호불일치/탈퇴계정/미인증, 비밀번호변경, 포인트차감 |
 | `ReserveServiceTest` | `ReserveService` | 비회원 예약 생성/객실없음, 비회원 조회 성공/실패, 예약취소 요청/상태오류 |
 | `ReviewServiceTest` | `ReviewService` | 리뷰 작성/예약없음/중복리뷰, 좋아요 추가/취소, 리뷰 삭제/타인삭제불가 |
-| `JwtTokenProviderTest` | `JwtTokenProvider` | 토큰 생성, 유효/만료/위변조 검증, userId 추출, RefreshToken UUID 형식 |
+| `JwtTokenProviderTest` | `JwtTokenProvider` | 토큰 생성, 유효/만료/위변조 검증, userId 추출, RefreshToken UUID 형식, 토큰 폐기(로그아웃 전 토큰 거부·같은 초 재로그인 허용·비밀번호 변경 무효화·초 단위 비교) |
 | `PaymentDetailServiceTest` | `PaymentDetailService` | 카드결제저장, 가상계좌저장, null결제객체예외, 빈 결제정보 안전처리 |
 
-**총 77개 테스트 (15개 클래스, 전체 통과)** — 아래 표는 주요 클래스만 발췌
+**총 85개 테스트 (15개 클래스, 전체 통과)** — 아래 표는 주요 클래스만 발췌
 
 ```
-✅ UserServiceTest                   (11)
-✅ JwtTokenProviderTest              (10)
+✅ UserServiceTest                   (13)
+✅ JwtTokenProviderTest              (15)
 ✅ ReviewServiceTest                  (9)
 ✅ ReserveServiceTest                 (8)
 ✅ PaymentOrchestrationServiceTest    (7)
 ✅ PriceCalculatorTest                (5)
 ✅ PaymentDetailServiceTest           (4)
-✅ PasswordResetServiceTest           (4)
+✅ PasswordResetServiceTest           (5)
 ✅ FileControllerTest                 (4)
 ✅ LocalFileStorageTest               (4)
 ✅ TossServiceTest                    (3)
@@ -138,6 +138,21 @@ List<Accommodation> findAllByIdWithCategory(@Param("ids") List<Long> ids);
 | `ReserveService` | `findGuestReservation()`, `getReservationDetail()` |
 
 > `readOnly=true`는 Hibernate flush 모드를 MANUAL로 설정해 dirty checking을 생략하므로 조회 성능이 향상됩니다.
+
+### 토큰 폐기 시각 비교 정밀도 (`tokenValidAfter` vs JWT `iat`)
+
+- **문제**: `iat`는 초 단위, `tokenValidAfter`는 나노초까지 저장돼 로그아웃 직후 같은 초에 재로그인한 토큰이
+  거부될 수 있었다(비교 방식에 따라서는 반대로 로그아웃 직전 같은 초에 발급된 토큰이 살아남을 수 있음).
+- **규칙**
+  | 단계 | 동작 |
+  |------|------|
+  | 폐기(로그아웃·비밀번호 변경) | `tokenValidAfter = now.truncatedTo(SECONDS) + 1초` (`User.revokeExistingTokens`) |
+  | 발급(로그인·소셜·OAuth2·재발급) | `iat = max(now, tokenValidAfter)`, 만료도 iat 기준 (`JwtTokenProvider.createAccessToken(User)`) |
+  | 검증 | epoch 초 단위로 `iat < tokenValidAfter` 이면 거부 (`JwtTokenProvider.isIssuedBefore`) |
+- **결과**: 폐기 이전(같은 초 포함) 토큰은 항상 거부, 폐기 직후 같은 초의 재로그인 토큰은 항상 허용.
+  대가로 폐기 직후 1초 안에 발급된 토큰은 `iat`가 최대 1초 미래로 잡히고 만료도 그만큼 늘어난다(허용 오차 ≤ 1초).
+- **주의**: `tokenValidAfter`가 설정될 수 있는 사용자에게는 `createAccessToken(userId, role)`이 아닌
+  `createAccessToken(User)`로 발급해야 한다. 서버 간 시계 차이는 별도로 보정하지 않는다.
 
 ### 보안 감사
 

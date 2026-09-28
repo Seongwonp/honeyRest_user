@@ -104,7 +104,7 @@ public class UserService {
         }
 
 
-        String accessToken = jwtTokenProvider.createAccessToken(user.getUserId(), user.getRole());
+        String accessToken = jwtTokenProvider.createAccessToken(user);
         String refreshToken = jwtTokenProvider.createRefreshToken();
         LocalDateTime expiry = LocalDateTime.now().plusDays(7);
 
@@ -154,7 +154,7 @@ public class UserService {
             throw new IllegalStateException("탈퇴한 계정은 로그인할 수 없습니다.");
         }
 
-        String accessToken = jwtTokenProvider.createAccessToken(user.getUserId(), user.getRole());
+        String accessToken = jwtTokenProvider.createAccessToken(user);
         String refreshToken = jwtTokenProvider.createRefreshToken();
         LocalDateTime expiry = LocalDateTime.now().plusDays(7);
 
@@ -248,6 +248,9 @@ public class UserService {
         // 비밀번호 변경 전에 유출됐을 수 있는 기존 access token을 모두 무효화한다(P1-10).
         user.revokeExistingTokens();
         userRepository.save(user);
+        // 유출됐을 수 있는 refresh token으로 access token을 다시 받지 못하도록 DB 저장분도 전부 삭제한다(로그아웃과 동일).
+        // 쿠키 삭제는 응답을 다루는 컨트롤러(UserController.changePassword)에서 수행한다.
+        refreshTokenService.invalidateAllByUser(user);
 
         log.info("✅ 비밀번호 변경 완료: userId={}", userId);
     }

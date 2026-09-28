@@ -30,6 +30,7 @@ class PasswordResetServiceTest {
     @Mock private PasswordResetTokenRepository tokenRepository;
     @Mock private EmailService emailService;
     @Mock private PasswordEncoder passwordEncoder;
+    @Mock private RefreshTokenService refreshTokenService;
 
     private PasswordResetService passwordResetService;
 
@@ -39,7 +40,8 @@ class PasswordResetServiceTest {
                 userRepository,
                 tokenRepository,
                 emailService,
-                passwordEncoder
+                passwordEncoder,
+                refreshTokenService
         );
     }
 
@@ -91,6 +93,24 @@ class PasswordResetServiceTest {
     }
 
     @Test
+    void resetPassword_revokesAccessAndRefreshTokens() {
+        User user = User.builder().userId(1L).passwordHash("old-hash").build();
+        PasswordResetToken token = PasswordResetToken.create(
+                user,
+                "valid-token",
+                LocalDateTime.now().plusMinutes(10)
+        );
+        when(tokenRepository.findByTokenValue("valid-token")).thenReturn(Optional.of(token));
+        when(passwordEncoder.encode("new-password")).thenReturn("new-hash");
+
+        passwordResetService.resetPassword("valid-token", "new-password");
+
+        // 기존 refresh token(DB 저장분) 삭제 + 기존 access token 폐기 시각 기록
+        verify(refreshTokenService).invalidateAllByUser(user);
+        assertThat(user.getTokenValidAfter()).isNotNull();
+    }
+
+    @Test
     void resetPassword_rejectsExpiredToken() {
         User user = User.builder().userId(1L).build();
         PasswordResetToken token = PasswordResetToken.create(
@@ -106,5 +126,6 @@ class PasswordResetServiceTest {
 
         verify(userRepository, never()).save(any());
         verify(tokenRepository, never()).delete(any());
+        verify(refreshTokenService, never()).invalidateAllByUser(any());
     }
 }

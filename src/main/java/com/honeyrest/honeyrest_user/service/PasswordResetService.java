@@ -23,6 +23,7 @@ public class PasswordResetService {
     private final PasswordResetTokenRepository tokenRepository;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenService refreshTokenService;
 
     @Transactional
     public void requestReset(String email) {
@@ -55,7 +56,10 @@ public class PasswordResetService {
 
 
         user.setPassword(passwordEncoder.encode(newPassword));
+        // 비밀번호 재설정 = 계정 탈취 대응 경로이므로 기존 access/refresh token을 모두 폐기한다(로그아웃과 동일).
+        user.revokeExistingTokens();
         userRepository.save(user);
+        refreshTokenService.invalidateAllByUser(user);
 
         tokenRepository.delete(token); // 사용 후 즉시 삭제
         log.info("🔐 비밀번호 초기화 완료 및 토큰 삭제: userId={}", user.getUserId());

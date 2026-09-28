@@ -19,6 +19,8 @@ import com.honeyrest.honeyrest_user.service.*;
 import com.honeyrest.honeyrest_user.service.coupon.UserCouponService;
 import com.honeyrest.honeyrest_user.service.email.EmailVerificationTokenService;
 import com.honeyrest.honeyrest_user.service.reservation.ReserveService;
+import com.honeyrest.honeyrest_user.util.RefreshTokenCookieManager;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Pageable;
@@ -47,6 +49,7 @@ public class UserController {
     private final UserCouponService userCouponService;
     private final InquiryService inquiryService;
     private final PointHistoryService pointHistoryService;
+    private final RefreshTokenCookieManager refreshTokenCookieManager;
 
 
     @GetMapping("/info")
@@ -175,12 +178,15 @@ public class UserController {
     @PutMapping("/password")
     public ResponseEntity<?> changePassword(
             @AuthenticationPrincipal CustomUserPrincipal principal,
-            @RequestBody PasswordChangeRequestDTO dto
+            @RequestBody PasswordChangeRequestDTO dto,
+            HttpServletResponse response
     ) {
         Long userId = principal.getUserId();
         log.info("🔐 비밀번호 변경 요청: userId={}", userId);
 
         userService.changePassword(userId, dto.getCurrentPassword(), dto.getNewPassword());
+        // DB의 refresh token은 서비스에서 삭제했으므로 브라우저 쿠키도 로그아웃과 같은 방식으로 지운다.
+        response.addHeader("Set-Cookie", refreshTokenCookieManager.clear().toString());
 
         return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
     }
