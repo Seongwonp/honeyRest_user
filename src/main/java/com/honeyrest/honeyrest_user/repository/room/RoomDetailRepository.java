@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.repository.room;
 
+import com.honeyrest.honeyrest_user.entity.ReservationStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.honeyrest.honeyrest_user.dto.review.ReviewDTO;
@@ -61,7 +62,7 @@ public class RoomDetailRepository implements RoomDetailQueryRepository {
                 .from(reservation)
                 .where(
                         reservation.room.roomId.eq(roomId),
-                        reservation.status.eq("CONFIRMED"),
+                        reservation.status.in(ReservationStatus.OCCUPYING),
                         reservation.checkInDate.lt(checkOut),
                         reservation.checkOutDate.gt(checkIn)
                 )

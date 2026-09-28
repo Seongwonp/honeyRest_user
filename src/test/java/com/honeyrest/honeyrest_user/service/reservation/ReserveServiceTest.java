@@ -16,16 +16,22 @@ import com.honeyrest.honeyrest_user.service.coupon.CouponUsageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.honeyrest.honeyrest_user.exception.ApiException;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.Optional;
+import org.springframework.http.HttpStatus;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @DisplayName("ReserveService 테스트")
@@ -64,6 +70,7 @@ class ReserveServiceTest {
                 .price(BigDecimal.valueOf(100000))
                 .maxOccupancy(4)
                 .standardOccupancy(2)
+                .totalRooms(2)
                 .build();
     }
 
@@ -82,7 +89,8 @@ class ReserveServiceTest {
                 .reservationCode("RES-001")
                 .build();
 
-        when(roomRepository.findById(10L)).thenReturn(Optional.of(room));
+        when(roomRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(room));
+        when(reservationRepository.countOverlapping(eq(10L), any(), any(), anyCollection())).thenReturn(1L);
 
         Reservation saved = Reservation.builder()
                 .reservationId(1L)
@@ -113,12 +121,63 @@ class ReserveServiceTest {
                 .reservationCode("RES-002")
                 .build();
 
-        when(roomRepository.findById(999L)).thenReturn(Optional.empty());
+        when(roomRepository.findByIdForUpdate(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
                 reserveService.createReservation(request, BigDecimal.valueOf(100000), BigDecimal.ZERO))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("존재하지 않는 객실");
+    }
+
+    @Test
+    @DisplayName("겹치는 예약 수가 총 객실 수 이상이면 409로 거절하고 저장하지 않는다")
+    void createReservation_rejectsWhenOverlapReachesTotalRooms() {
+        LocalDate checkIn = LocalDate.now().plusDays(1);
+        LocalDate checkOut = LocalDate.now().plusDays(3);
+        ReservationRequestDTO request = ReservationRequestDTO.builder()
+                .roomId(10L)
+                .checkIn(checkIn)
+                .checkOut(checkOut)
+                .guests(2)
+                .guestName("홍길동")
+                .guestPhone("01012345678")
+                .reservationCode("RES-003")
+                .couponId(5L)
+                .userId(1L)
+                .usedPoint(1000)
+                .build();
+
+        when(roomRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(room));
+        when(reservationRepository.countOverlapping(eq(10L), eq(checkIn), eq(checkOut), anyCollection())).thenReturn(2L);
+
+        assertThatThrownBy(() ->
+                reserveService.createReservation(request, BigDecimal.valueOf(200000), BigDecimal.ZERO))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("예약 가능한 객실이 없습니다")
+                .extracting(e -> ((ApiException) e).getStatus())
+                .isEqualTo(HttpStatus.CONFLICT);
+
+        // 락 없는 findById 가 아니라 FOR UPDATE 조회를 사용해야 한다
+        verify(roomRepository, never()).findById(any());
+        verify(reservationRepository, never()).save(any());
+        verifyNoInteractions(couponUsageService, userService, pointHistoryService);
+    }
+
+    @Test
+    @DisplayName("재고 점유 상태 목록에는 CANCELLED 가 없고 CONFIRMED/PENDING/CANCEL_REQUEST 가 포함된다")
+    void assertRoomAvailable_usesOccupyingStatuses() {
+        LocalDate checkIn = LocalDate.now().plusDays(1);
+        LocalDate checkOut = LocalDate.now().plusDays(2);
+        when(reservationRepository.countOverlapping(eq(10L), eq(checkIn), eq(checkOut), anyCollection())).thenReturn(1L);
+
+        assertThatCode(() -> reserveService.assertRoomAvailable(room, checkIn, checkOut)).doesNotThrowAnyException();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Collection<String>> statuses = ArgumentCaptor.forClass(Collection.class);
+        verify(reservationRepository).countOverlapping(eq(10L), eq(checkIn), eq(checkOut), statuses.capture());
+        assertThat(statuses.getValue())
+                .contains("CONFIRMED", "PENDING", "CANCEL_REQUEST")
+                .doesNotContain("CANCELLED", "CANCELED", "REFUNDED");
     }
 
     // ── findGuestReservation ───────────────────────────────

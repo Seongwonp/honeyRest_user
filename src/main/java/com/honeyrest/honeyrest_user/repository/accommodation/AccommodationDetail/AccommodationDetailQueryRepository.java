@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.repository.accommodation.AccommodationDetail;
 
+import com.honeyrest.honeyrest_user.entity.ReservationStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.honeyrest.honeyrest_user.dto.CancellationPolicyDTO;
@@ -204,7 +205,7 @@ public class AccommodationDetailQueryRepository {
                 .where(
                         reservation.checkInDate.lt(checkOut),
                         reservation.checkOutDate.gt(checkIn),
-                        reservation.status.eq("CONFIRMED"),
+                        reservation.status.in(ReservationStatus.OCCUPYING),
                         room.accommodation.accommodationId.eq(id)
                 )
                 .groupBy(room.roomId)

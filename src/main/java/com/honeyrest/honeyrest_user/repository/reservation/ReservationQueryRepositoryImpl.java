@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.repository.reservation;
 
+import com.honeyrest.honeyrest_user.entity.ReservationStatus;
 import com.honeyrest.honeyrest_user.entity.QReservation;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +24,7 @@ public class ReservationQueryRepositoryImpl implements ReservationQueryRepositor
                         reservation.room.roomId.eq(roomId),
                         reservation.checkInDate.lt(checkOut),
                         reservation.checkOutDate.gt(checkIn),
-                        reservation.status.eq("CONFIRMED")
+                        reservation.status.in(ReservationStatus.OCCUPYING)
                 )
                 .fetchFirst() != null;
     }

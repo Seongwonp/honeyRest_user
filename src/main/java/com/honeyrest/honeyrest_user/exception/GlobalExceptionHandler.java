@@ -5,6 +5,8 @@ import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -58,12 +60,30 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(e.getMessage()));
     }
 
+    // 현재 리소스 상태와 요청이 충돌하는 경우(이미 처리됨, 상태 전이 불가 등) → 409
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiResponse<?>> handleIllegalStateException(IllegalStateException e) {
         log.warn("Illegal State: {}", e.getMessage());
         return ResponseEntity
-                .status(HttpStatus.GONE)
+                .status(HttpStatus.CONFLICT)
                 .body(ApiResponse.error(e.getMessage()));
+    }
+
+    // 컨트롤러/서비스에서 던진 인가 실패가 500 으로 떨어지지 않도록 403 으로 매핑
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<?>> handleAccessDeniedException(AccessDeniedException e) {
+        log.warn("Access Denied: {}", e.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error(e.getMessage() != null ? e.getMessage() : "접근 권한이 없습니다."));
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiResponse<?>> handleAuthenticationException(AuthenticationException e) {
+        log.warn("Authentication failed: {}", e.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error("인증이 필요합니다."));
     }
 
     @ExceptionHandler(Exception.class)

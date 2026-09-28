@@ -29,7 +29,9 @@
 | `ConstraintViolationException` | 400 | violation 목록 문자열 반환 |
 | `ApiException` | 커스텀 | 기존 유지 |
 | `IllegalArgumentException` | 400 | 기존 유지 |
-| `IllegalStateException` | 410 | 기존 유지 |
+| `IllegalStateException` | 409 | 상태 충돌 (이미 처리됨 등) |
+| `AccessDeniedException` | 403 | 인가 실패 (이전에는 500으로 떨어짐) |
+| `AuthenticationException` | 401 | 인증 실패 |
 | `Exception` | 500 | 폴백 |
 
 ### HikariCP 커넥션 풀 명시 설정
@@ -148,3 +150,48 @@ spring.flyway.locations=classpath:db/migration
 |-----|-----------|
 | 개발 | `update` (현재) |
 | 운영 | `validate` — Flyway가 스키마 관리, JPA는 검증만 수행 |
+
+---
+
+## 🏨 예약 재고·결제 보상·가격 계산
+
+### 1. 이중 예약 방지
+
+- **재고 점유 상태** (`ReservationStatus.OCCUPYING`): `PENDING`, `CONFIRMED`, `CANCEL_REQUEST`, `COMPLETED`, `NO_SHOW`
+  — 호스트 저장소의 유효 상태 목록과 동일. `CANCELLED`/`CANCELED`/`REFUNDED` 는 재고를 점유하지 않는다.
+  `CANCEL_REQUEST` 는 호스트 승인 전까지 객실을 계속 점유한다.
+- **겹침 기준**: `check_in < 요청 체크아웃 AND check_out > 요청 체크인` (체크아웃 당일은 비점유). 예약 1건 = 객실 1개.
+- **판정**: 겹치는 점유 예약 수 ≥ `room.total_rooms` 이면 `ApiException(409)`.
+- **락**: `ReserveService.createReservation` 이 `RoomRepository.findByIdForUpdate`(`PESSIMISTIC_WRITE`, `SELECT ... FOR UPDATE`)로
+  객실 행을 잠근 뒤 재확인한다. 같은 객실의 동시 예약 트랜잭션은 직렬화되고, 락은 결제 저장 트랜잭션 커밋 시 해제된다.
+- 객실/숙소 상세의 "예약 가능" 표시 쿼리도 같은 상태 목록을 쓰도록 맞췄다.
+- `reservation.version` 컬럼은 Flyway 마이그레이션에 없으므로 사용자 쪽 엔티티에 `@Version` 을 추가하지 않았다.
+
+### 2. 결제 보상 흐름 (`PaymentOrchestrationService.confirmAndSave`)
+
+```
+1) 사전 검증 (과금 전)   중복 paymentKey/예약번호, 주문번호·금액, 서버 금액 재계산, 재고(락 없음) → 실패 시 그대로 거절
+2) 토스 승인            TossService.confirmPayment (실제 과금). 비 2xx 응답은 토스 에러 메시지로 ApiException
+3) 저장 트랜잭션         객실 행 락 + 재고 재확인 → 예약/결제/결제상세 저장
+4) 3) 실패 시 보상      TossService.cancelPayment(paymentKey, 사유) → "결제는 자동으로 취소되었습니다" 안내
+                        (매진이면 409, 그 외 500)
+```
+
+- 같은 `paymentKey` 가 동시 요청으로 이미 저장되어 있으면 **취소하지 않는다** (정상 예약의 결제를 되돌리지 않기 위함).
+- 취소 자체가 실패하면 `[결제 보상 실패] 수동 환불 필요` 로 `orderId`/`paymentKey` 를 ERROR 로그에 남기고
+  고객센터 안내 500 을 반환한다 (개인정보는 로그에 남기지 않음). 실패 건 테이블 적재는 후속 과제.
+- `TossService` 는 `HttpURLConnection` 대신 공용 `RestTemplate` 빈과 스프링 `ObjectMapper` 빈을 사용한다.
+
+### 3. 단일 가격 계산기 (`PriceCalculator`)
+
+| 항목 | 규칙 |
+|------|------|
+| 1박 요금 | `price_calendar`(room_id, date) 행의 `price` → 없으면 `room.price` |
+| 과금 일자 | 체크인일 ~ 체크아웃 전날 |
+| 추가 인원 | `extra_person_fee × max(0, 인원 − standard_occupancy) × 박수` (fee 가 null 이면 0) |
+| 결과 | `PriceBreakdownDTO` (박수, 일자별 요금, 객실 소계, 추가요금, 합계) |
+
+예약 폼(`ReserveInfoService`)과 결제 검증(`PaymentOrchestrationService`)이 모두 이 계산기를 사용하므로
+화면 표시 금액과 결제 검증 금액이 항상 같다. `price_calendar.available_room` 은 재고 판정에 사용하지 않는다
+(호스트 화면이 `total_rooms − 예약 수` 를 저장하는 스냅샷 값이라 중복 차감 위험).
+

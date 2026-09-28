@@ -7,6 +7,7 @@ import com.honeyrest.honeyrest_user.dto.reservation.ReservationRequestDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationSummaryDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.guest.GuestReservationLookupRequestDTO;
 import com.honeyrest.honeyrest_user.entity.*;
+import com.honeyrest.honeyrest_user.exception.ApiException;
 import com.honeyrest.honeyrest_user.mapper.ReservationMapper;
 import com.honeyrest.honeyrest_user.repository.payment.PaymentDetailRepository;
 import com.honeyrest.honeyrest_user.repository.payment.PaymentRepository;
@@ -21,11 +22,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 
@@ -47,8 +50,11 @@ public class ReserveService {
 
     @Transactional
     public Reservation createReservation(ReservationRequestDTO request, BigDecimal amount, BigDecimal discountAmount) {
-        Room room = roomRepository.findById(request.getRoomId())
+        // 객실 행을 FOR UPDATE 로 잠가 같은 객실의 동시 예약을 직렬화한 뒤 재고를 다시 확인한다.
+        // (결제 승인 전 사전 확인은 락 없이 수행되므로 여기서의 재확인이 최종 판정이다.)
+        Room room = roomRepository.findByIdForUpdate(request.getRoomId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 객실입니다"));
+        assertRoomAvailable(room, request.getCheckIn(), request.getCheckOut());
 
         User user = request.getUserId() != null
                 ? userRepository.findById(request.getUserId()).orElse(null)
@@ -68,10 +74,11 @@ public class ReserveService {
                 .specialRequest(request.getSpecialRequest())
                 .user(user)
                 .price(amount)
-                .originalPrice(room.getPrice())
+                // 서버가 PriceCalculator 로 다시 계산해 넣은 숙박 원가. 없으면(구 경로) 기본가로 대체.
+                .originalPrice(request.getOriginalPrice() != null ? request.getOriginalPrice() : room.getPrice())
                 .discountAmount(discountAmount)
                 .reservationNumber(request.getReservationCode())
-                .status("CONFIRMED")
+                .status(ReservationStatus.CONFIRMED)
                 .build();
 
         reservationRepository.save(reservation);
@@ -88,6 +95,25 @@ public class ReserveService {
         }
 
         return reservation;
+    }
+
+    /**
+     * [checkIn, checkOut) 구간에 재고를 점유하는 예약 수가 객실 총 수(totalRooms) 이상이면 409 로 거절한다.
+     * 락 없이 호출하면 사전 확인(빠른 실패) 용도이고, createReservation 안에서는 객실 행 락을 잡은 뒤 호출된다.
+     */
+    @Transactional(readOnly = true)
+    public void assertRoomAvailable(Room room, LocalDate checkIn, LocalDate checkOut) {
+        if (checkIn == null || checkOut == null || !checkIn.isBefore(checkOut)) {
+            throw new IllegalArgumentException("체크인/체크아웃 날짜가 올바르지 않습니다.");
+        }
+        int totalRooms = room.getTotalRooms() != null ? room.getTotalRooms() : 0;
+        long occupied = reservationRepository.countOverlapping(
+                room.getRoomId(), checkIn, checkOut, ReservationStatus.OCCUPYING);
+        if (occupied >= totalRooms) {
+            log.info("재고 부족으로 예약 거절: roomId={}, checkIn={}, checkOut={}, occupied={}, totalRooms={}",
+                    room.getRoomId(), checkIn, checkOut, occupied, totalRooms);
+            throw new ApiException("선택하신 날짜에 예약 가능한 객실이 없습니다.", HttpStatus.CONFLICT);
+        }
     }
 
 
@@ -146,11 +172,11 @@ public class ReserveService {
         Reservation reservation = reservationRepository.findByReservationIdAndUser_UserId(reservationId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("예약 정보를 찾을 수 없습니다."));
 
-        if (!reservation.getStatus().equals("CONFIRMED")) {
+        if (!ReservationStatus.CONFIRMED.equals(reservation.getStatus())) {
             throw new IllegalStateException("확정된 예약만 취소 요청이 가능합니다.");
         }
 
-        reservation.setStatus("CANCEL_REQUEST"); // 상태 변경
+        reservation.setStatus(ReservationStatus.CANCEL_REQUEST); // 상태 변경
         reservation.setCancelReason(reason);     // 사유 저장 (필드 추가 필요)
 
         reservationRepository.save(reservation);

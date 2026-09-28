@@ -2,6 +2,7 @@ package com.honeyrest.honeyrest_user.service.reservation;
 
 import com.honeyrest.honeyrest_user.dto.CancellationPolicyDTO;
 import com.honeyrest.honeyrest_user.dto.coupon.AvailableCouponDTO;
+import com.honeyrest.honeyrest_user.dto.reservation.PriceBreakdownDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationFormInfoDTO;
 import com.honeyrest.honeyrest_user.entity.Accommodation;
 import com.honeyrest.honeyrest_user.entity.Room;
@@ -16,7 +17,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,6 +29,7 @@ public class ReserveInfoService {
     private final UserRepository userRepository;
     private final CancellationPolicyService cancellationPolicyService;
     private final CouponService couponService;
+    private final PriceCalculator priceCalculator;
 
     public ReservationFormInfoDTO getFormInfo(Long roomId, Long userId, LocalDate checkIn, LocalDate checkOut, Integer guests) {
         if (checkIn == null || checkOut == null || !checkIn.isBefore(checkOut)) {
@@ -55,16 +56,9 @@ public class ReserveInfoService {
             userPoint = user.getPoint();
         }
 
-        long nights = ChronoUnit.DAYS.between(checkIn, checkOut);
-        BigDecimal basePrice = room.getPrice().multiply(BigDecimal.valueOf(nights));
-
-        BigDecimal extraFee = BigDecimal.ZERO;
-        if (guests > room.getStandardOccupancy()) {
-            int extraCount = guests - room.getStandardOccupancy();
-            extraFee = room.getExtraPersonFee().multiply(BigDecimal.valueOf(extraCount));
-        }
-
-        BigDecimal originalPrice = basePrice.add(extraFee);
+        PriceBreakdownDTO breakdown = priceCalculator.calculate(room, checkIn, checkOut, guests);
+        long nights = breakdown.nights();
+        BigDecimal originalPrice = breakdown.total();
         BigDecimal discount = BigDecimal.ZERO;
         BigDecimal finalPrice = originalPrice.subtract(discount);
 
