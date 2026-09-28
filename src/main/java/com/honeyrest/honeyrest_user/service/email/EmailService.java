@@ -4,6 +4,7 @@ import com.honeyrest.honeyrest_user.dto.reservation.ReservationCompleteDTO;
 import com.honeyrest.domain.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -11,8 +12,15 @@ import org.springframework.stereotype.Service;
 
 import jakarta.mail.internet.MimeMessage;
 
+/**
+ * 메일 발송 서비스 (Gmail SMTP).
+ * <p>
+ * e2e 프로필에서는 이 빈 대신 메일을 보내지 않는 {@code e2e.E2eNoOpEmailService} 가 등록된다.
+ * (e2e 에서는 인증 토큰을 {@code GET /e2e/verification-token} 으로 조회한다.)
+ */
 @Log4j2
 @Service
+@Profile("!e2e")
 @RequiredArgsConstructor
 public class EmailService {
 

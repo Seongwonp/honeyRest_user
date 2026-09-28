@@ -187,12 +187,32 @@ Swagger UI: `http://localhost:8080/swagger-ui.html` · 상세 설정: [SETUP.md]
 ./gradlew integrationTest    # Docker 필요: 실제 MySQL 8.0 으로 마이그레이션·스키마 검증 (CI 2단계)
 ```
 
-- **124개 테스트** (API 118 + 도메인 모듈 6) — 결제 보상(`PaymentOrchestrationServiceTest`), 재고 겹침(`ReserveServiceTest`), 가격 계산(`PriceCalculatorTest`), 토큰 폐기(`JwtTokenProviderTest`), 관리자 쓰기 API 인가(`AdminWriteApiSecurityTest`), 검색 캐시 키, 로컬 파일 저장소 등
+- **133개 테스트** (API 127 + 도메인 모듈 6) — 결제 보상(`PaymentOrchestrationServiceTest`), 재고 겹침(`ReserveServiceTest`), 가격 계산(`PriceCalculatorTest`), 토큰 폐기(`JwtTokenProviderTest`), 관리자 쓰기 API 인가(`AdminWriteApiSecurityTest`), 검색 캐시 키, 로컬 파일 저장소 등
 - **test 프로필**: H2 인메모리(MySQL 모드) + 더미 시크릿 + `app.storage.type=local` + `spring.cache.type=simple` → 외부 서비스 없이 어디서든 동일하게 동작하고 개발 DB를 건드리지 않습니다.
 - **트레이드오프**: V3·V10 등 일부 마이그레이션이 MySQL 전용 구문(`information_schema` 조회 + `PREPARE`)을 써서 테스트에서는 Flyway를 끄고 엔티티로 스키마를 생성(`create-drop`)합니다. 마이그레이션 SQL 자체는 아래 스키마 통합 테스트가 따로 검증합니다. 동시성 역시 락 호출·겹침 판정을 단위 테스트로 검증했고, 실제 병렬 부하 테스트는 아직 없습니다.
 - **스키마 통합 테스트** (`@Tag("integration")`, 기본 `test`에서는 제외): [`FlywayMigrationMySqlIntegrationTest`](src/test/java/com/honeyrest/honeyrest_user/schema/FlywayMigrationMySqlIntegrationTest.java)가 Testcontainers로 `mysql:8.0`을 띄워 빈 DB에 V1~최신을 적용하고, ① 모든 마이그레이션 성공 ② `reservation.accommodation_name` NOT NULL ③ 사용자 엔티티 `ddl-auto=validate` 통과 ④ V10·V11 재실행 안전성을 확인합니다. 관리자 앱 쪽은 [honeyRest_host](https://github.com/Seongwonp/honeyRest_host)의 `integrationTest`가 서브모듈(`libs/honeyrest-user`)에 들어 있는 이 저장소의 마이그레이션으로 공유 엔티티 + 관리자 전용 엔티티를 교차 검증합니다.
 - **로컬 실행**: Docker(Desktop/Engine)를 켠 뒤 `./gradlew integrationTest`. 첫 실행은 `mysql:8.0` 이미지 pull로 1~2분 걸립니다. Docker가 없으면 실패가 아니라 skip 됩니다.
 - **CI**: [GitHub Actions](.github/workflows/ci.yml) — `main` push/PR마다 JDK 17로 `./gradlew build` → `./gradlew integrationTest`(`INTEGRATION_REQUIRE_DOCKER=true`로 Docker 부재 시 skip 대신 실패), 실패 시 테스트 리포트 업로드
+
+### e2e 프로필 — 프론트엔드 사용자 여정 E2E 용 백엔드
+
+```bash
+./gradlew bootRun --args='--spring.profiles.active=e2e'    # http://localhost:8080, MySQL·Redis·Firebase·시크릿 파일 불필요
+```
+
+프론트엔드 저장소([honeyrest_user_react](https://github.com/Seongwonp/honeyrest_user_react))의 Playwright 스위트(`npm run test:e2e`)가 이 프로필로 API 를 직접 띄운다. 프론트 CI 의 `e2e` 잡은 이 저장소 `main` 을 옆에 체크아웃해 같은 명령으로 실행한다.
+
+| 구성 | e2e 프로필에서의 동작 | 위치 |
+|------|----------------------|------|
+| DB | H2 인메모리(MySQL 모드), `create-drop`, Flyway 끔 — 기동할 때마다 새로 만든 뒤 시드 적재(`spring.sql.init` + `defer-datasource-initialization`) | [`application-e2e.properties`](src/main/resources/application-e2e.properties), [`db/e2e-seed.sql`](src/main/resources/db/e2e-seed.sql) |
+| 시드 | 지역 4, 숙소 2(객실 3 — 그중 `total_rooms=1` 객실 1개), 태그 3, 인증 완료 회원 `e2e.user@honeyrest.test` / `Honey1234!`, 쿠폰 1 | `db/e2e-seed.sql` (BCrypt 해시 재생성 방법은 파일 주석) |
+| Redis | 자동 설정 제외 + 같은 이름의 인메모리 `RedisTemplate` (TTL·값/리스트/집합/정렬 집합/scan) | `e2e/E2eRedisConfig`, `e2e/InMemoryRedisTemplate` |
+| 메일 | `EmailService` 대신 발송하지 않는 `E2eNoOpEmailService` (원래 빈은 `@Profile("!e2e")`) | `e2e/E2eNoOpEmailService` |
+| 토스 결제 | `TossService` 가 쓰는 `TossClient` 인터페이스의 스텁: 어떤 paymentKey/orderId/amount 든 `DONE` 승인, 조회는 `DONE`, 취소는 기록. 금액·재고·중복 검증은 실제와 동일 | `service/payment/TossClient`, `e2e/E2eTossClient` |
+| 테스트 보조 API | `GET /e2e/verification-token?email=` (최근 가입 인증 토큰), `POST /e2e/reservations/{id}/complete` (COMPLETED 전환), `GET /e2e/toss/cancellations` | `e2e/E2eSupportController` |
+
+- **운영 배선은 그대로**: 기본·local·test 프로필은 실제 HTTP 구현 `HttpTossClient`(`@Profile("!e2e")`), 원래 `EmailService`·`RedisConfig` 를 쓴다. H2 는 `developmentOnly`(bootRun 전용)로 추가해 `bootJar` 에는 포함되지 않는다.
+- **`/e2e/**` 는 e2e 프로필에만 존재한다**: 컨트롤러가 `@Profile("e2e")` 라 다른 프로필에서는 빈 자체가 없어 경로가 매핑되지 않는다. [`E2eProfileIsolationTest`](src/test/java/com/honeyrest/honeyrest_user/e2e/E2eProfileIsolationTest.java)가 test 프로필에서 e2e 전용 빈이 하나도 없는지와 운영 배선을 검증한다. 운영 DB·비밀값과 함께 e2e 프로필을 켜지 말 것.
 
 ---
 

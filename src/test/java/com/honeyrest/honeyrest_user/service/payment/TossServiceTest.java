@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 
@@ -26,7 +25,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-@DisplayName("TossService 테스트")
+@DisplayName("TossService + HttpTossClient 테스트")
 class TossServiceTest {
 
     private MockRestServiceServer server;
@@ -37,8 +36,8 @@ class TossServiceTest {
         RestTemplate restTemplate = new RestTemplate();
         // 승인 → 조회 → 취소 순서를 검증하기 위해 순서 보장 모드(기본)를 사용한다.
         server = MockRestServiceServer.bindTo(restTemplate).build();
-        tossService = new TossService(restTemplate, new ObjectMapper());
-        ReflectionTestUtils.setField(tossService, "tossSecretKey", "test_sk");
+        // 실제 HTTP 구현(HttpTossClient)을 MockRestServiceServer 에 묶어 토스 API 호출 규약까지 검증한다.
+        tossService = new TossService(new HttpTossClient(restTemplate, new ObjectMapper(), "test_sk"));
     }
 
     private TossConfirmRequest confirmRequest() {

@@ -1,7 +1,5 @@
 package com.honeyrest.honeyrest_user.service.payment;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.honeyrest.honeyrest_user.dto.payment.toss.TossConfirmRequest;
 import com.honeyrest.honeyrest_user.dto.payment.toss.TossPaymentRequestDTO;
 import com.honeyrest.honeyrest_user.dto.payment.toss.TossPaymentResult;
@@ -11,25 +9,10 @@ import com.honeyrest.honeyrest_user.exception.ApiException;
 import com.honeyrest.honeyrest_user.exception.PaymentConfirmTimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -39,14 +22,11 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class TossService {
 
-    @Value("${com.tjfgusdh.toss.widgetSecretKey}")
-    private String tossSecretKey;
-
-    private static final String TOSS_PAYMENTS_API = "https://api.tosspayments.com/v1/payments";
-    private static final ParameterizedTypeReference<Map<String, Object>> MAP_TYPE = new ParameterizedTypeReference<>() {};
-
-    private final RestTemplate restTemplate;
-    private final ObjectMapper objectMapper;
+    /**
+     * 토스 API 호출 경계. 기본 프로필은 실제 API 를 호출하는 {@link HttpTossClient},
+     * e2e 프로필은 항상 승인하는 스텁이 주입된다 (운영 배선은 그대로).
+     */
+    private final TossClient tossClient;
 
     /**
      * 토스 결제 승인 (POST /v1/payments/confirm). 이 호출이 성공하면 실제 과금이 일어난다.
@@ -62,7 +42,7 @@ public class TossService {
 
         Map<String, Object> responseMap;
         try {
-            responseMap = post(TOSS_PAYMENTS_API + "/confirm", body, "결제 승인");
+            responseMap = tossClient.confirm(body);
         } catch (ApiException e) {
             if (e.getStatus() == HttpStatus.GATEWAY_TIMEOUT) {
                 // 요청은 토스에 도달해 승인됐는데 응답만 못 받았을 수 있다. 결제 상태를 조회해 정리한다.
@@ -113,11 +93,7 @@ public class TossService {
         if (paymentKey == null || paymentKey.isBlank()) {
             throw new IllegalArgumentException("취소할 paymentKey 가 없습니다.");
         }
-        String url = UriComponentsBuilder.fromUriString(TOSS_PAYMENTS_API)
-                .pathSegment(paymentKey, "cancel")
-                .encode()
-                .toUriString();
-        Map<String, Object> responseMap = post(url, Map.of("cancelReason", cancelReason), "결제 취소");
+        Map<String, Object> responseMap = tossClient.cancel(paymentKey, cancelReason);
         log.info("토스 결제 취소 완료: orderId={}, status={}", responseMap.get("orderId"), responseMap.get("status"));
     }
 
@@ -165,60 +141,10 @@ public class TossService {
 
     /** 주문번호로 결제 조회 (GET /v1/payments/orders/{orderId}). 결제가 없으면(404) empty. */
     Optional<Map<String, Object>> findPaymentByOrderId(String orderId) {
-        String url = UriComponentsBuilder.fromUriString(TOSS_PAYMENTS_API)
-                .pathSegment("orders", orderId)
-                .encode()
-                .toUriString();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(tossSecretKey, "", StandardCharsets.UTF_8);
-        try {
-            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    URI.create(url), HttpMethod.GET, new HttpEntity<>(headers), MAP_TYPE);
-            return Optional.ofNullable(response.getBody());
-        } catch (HttpClientErrorException.NotFound e) {
-            return Optional.empty();
-        }
-    }
-
-    /** 토스 API 공통 POST. 2xx 가 아니면 토스 에러 코드/메시지로 ApiException 을 던진다. */
-    private Map<String, Object> post(String url, Object body, String action) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(tossSecretKey, "", StandardCharsets.UTF_8);
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-        try {
-            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    URI.create(url), HttpMethod.POST, new HttpEntity<>(body, headers), MAP_TYPE);
-            Map<String, Object> responseBody = response.getBody();
-            if (responseBody == null) {
-                throw new ApiException("토스 " + action + " 응답이 비어 있습니다.", HttpStatus.BAD_GATEWAY);
-            }
-            return responseBody;
-        } catch (HttpStatusCodeException e) {
-            String code = null;
-            String message = null;
-            try {
-                Map<String, Object> error = objectMapper.readValue(e.getResponseBodyAsString(), new TypeReference<>() {});
-                code = error.get("code") != null ? error.get("code").toString() : null;
-                message = error.get("message") != null ? error.get("message").toString() : null;
-            } catch (Exception parseError) {
-                log.debug("토스 에러 응답 파싱 실패", parseError);
-            }
-            log.warn("토스 {} 실패: httpStatus={}, code={}, message={}", action, e.getStatusCode().value(), code, message);
-            HttpStatus status = e.getStatusCode().is4xxClientError() ? HttpStatus.BAD_REQUEST : HttpStatus.BAD_GATEWAY;
-            throw new ApiException("토스 " + action + " 실패: " + (message != null ? message : "알 수 없는 오류"), status);
-        } catch (ResourceAccessException e) {
-            log.error("토스 {} 통신 오류: {}", action, e.getMessage());
-            throw new ApiException("토스 결제 서버와 통신하지 못했습니다. 잠시 후 다시 시도해 주세요.", HttpStatus.GATEWAY_TIMEOUT);
-        }
+        return tossClient.findByOrderId(orderId);
     }
 
     public TossPaymentUrlDTO requestPayment(TossPaymentRequestDTO request) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBasicAuth(tossSecretKey, "");
-        headers.setContentType(MediaType.APPLICATION_JSON);
-
-
         Map<String, Object> body = Map.of(
                 "amount", request.getAmount(),
                 "orderId", request.getOrderId(),
@@ -232,30 +158,13 @@ public class TossService {
         // body에는 고객 실명·전화번호가 포함되어 있어 통째로 로깅하지 않는다.
         log.info("Toss 결제 요청: orderId={}, amount={}", request.getOrderId(), request.getAmount());
 
-        try {
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-            ResponseEntity<Map> response = restTemplate.postForEntity(
-                    "https://api.tosspayments.com/v1/payments", entity, Map.class
-            );
+        Map<String, Object> result = tossClient.createPayment(body);
+        String paymentUrl = result != null ? (String) result.get("paymentUrl") : null;
+        log.info("토스페이먼트 주소: {}", paymentUrl);
 
-            // 응답 바디에도 결제/구매자 정보가 포함될 수 있어 상태 코드만 남긴다.
-            log.info("토스 응답 상태 코드: {}", response.getStatusCode());
-
-            Map<String, Object> result = response.getBody();
-            String paymentUrl = (String) result.get("paymentUrl");
-
-            log.info("토스페이먼트 주소: {}", paymentUrl);
-
-            return TossPaymentUrlDTO.builder()
-                    .paymentUrl(paymentUrl)
-                    .build();
-
-        } catch (HttpServerErrorException e) {
-            log.error("❌ 토스 API 서버 오류 발생");
-            log.error("상태 코드: {}", e.getStatusCode());
-            log.error("응답 바디: {}", e.getResponseBodyAsString());
-            throw new IllegalStateException("토스 결제 요청 실패: " + e.getMessage());
-        }
+        return TossPaymentUrlDTO.builder()
+                .paymentUrl(paymentUrl)
+                .build();
     }
 
 }

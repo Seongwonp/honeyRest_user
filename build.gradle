@@ -87,6 +87,9 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     // 테스트 전용 인메모리 DB (MySQL 호환 모드) - 외부 MySQL 없이 @SpringBootTest 실행
     testRuntimeOnly 'com.h2database:h2'
+    // e2e 프로필(bootRun --spring.profiles.active=e2e)도 H2 로 기동한다.
+    // developmentOnly 는 bootRun 클래스패스에만 들어가고 bootJar(운영 산출물)에는 포함되지 않는다.
+    developmentOnly 'com.h2database:h2'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
     // 스키마 통합 테스트 (integrationTest 태스크 전용): Docker 로 실제 MySQL 8.0 을 띄워
