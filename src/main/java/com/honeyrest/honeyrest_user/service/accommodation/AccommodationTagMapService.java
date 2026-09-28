@@ -1,5 +1,7 @@
 package com.honeyrest.honeyrest_user.service.accommodation;
 
+import com.honeyrest.honeyrest_user.service.redis.AccommodationCacheKeys;
+import com.honeyrest.honeyrest_user.service.redis.SearchCacheVersionService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationTagMapDTO;
@@ -28,9 +30,10 @@ public class AccommodationTagMapService {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
+    private final SearchCacheVersionService searchCacheVersionService;
 
     public List<AccommodationTagMapDTO> getTagsByAccommodation(Long accommodationId) {
-        String key = "accommodation:tags:" + accommodationId;
+        String key = AccommodationCacheKeys.tagMap(accommodationId);
 
         Object raw = redisTemplate.opsForValue().get(key);
         List<AccommodationTagMapDTO> cached = raw != null
@@ -70,9 +73,19 @@ public class AccommodationTagMapService {
                 .build();
 
         tagMapRepository.save(map);
+        evictTagCaches(accommodationId);
     }
 
     public void removeTagsFromAccommodation(Long accommodationId) {
         tagMapRepository.deleteByAccommodation_AccommodationId(accommodationId);
+        evictTagCaches(accommodationId);
+    }
+
+    /** 태그 매핑이 바뀌면 숙소 상세/태그 캐시를 지우고, 태그 필터·표시가 들어간 검색 캐시 세대를 올린다. */
+    private void evictTagCaches(Long accommodationId) {
+        redisTemplate.delete(List.of(
+                AccommodationCacheKeys.tagMap(accommodationId),
+                AccommodationCacheKeys.tags(accommodationId)));
+        searchCacheVersionService.bumpAfterCommit();
     }
 }

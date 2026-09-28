@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.service.reservation;
 
+import com.honeyrest.honeyrest_user.service.redis.SearchCacheVersionService;
 import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationCompleteDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationDetailDTO;
@@ -47,6 +48,7 @@ public class ReserveService {
     private final UserService userService;
     private final CouponUsageService couponUsageService;
     private final PointHistoryService pointHistoryService;
+    private final SearchCacheVersionService searchCacheVersionService;
 
     @Transactional
     public Reservation createReservation(ReservationRequestDTO request, BigDecimal amount, BigDecimal discountAmount) {
@@ -83,6 +85,8 @@ public class ReserveService {
                 .build();
 
         reservationRepository.save(reservation);
+        // 재고가 줄었으므로 검색 결과(예약 가능 여부) 캐시 세대를 커밋 후 올린다.
+        searchCacheVersionService.bumpAfterCommit();
 
         // 쿠폰 사용 처리
         if (request.getCouponId() != null) {

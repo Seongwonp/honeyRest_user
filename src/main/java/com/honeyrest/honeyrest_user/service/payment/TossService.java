@@ -8,6 +8,7 @@ import com.honeyrest.honeyrest_user.dto.payment.toss.TossPaymentResult;
 import com.honeyrest.honeyrest_user.dto.payment.toss.TossPaymentUrlDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationRequestDTO;
 import com.honeyrest.honeyrest_user.exception.ApiException;
+import com.honeyrest.honeyrest_user.exception.PaymentConfirmTimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
@@ -30,6 +32,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Log4j2
 @Service
@@ -48,6 +51,8 @@ public class TossService {
     /**
      * 토스 결제 승인 (POST /v1/payments/confirm). 이 호출이 성공하면 실제 과금이 일어난다.
      * 토스가 2xx 가 아닌 응답을 주면 토스 에러 메시지를 담은 ApiException 을 던진다.
+     * 응답을 받지 못하면(타임아웃) 결제 상태를 조회해 승인된 결제는 취소하고
+     * {@link PaymentConfirmTimeoutException} 을 던진다 ({@link #reconcileTimedOutConfirm}).
      */
     public TossPaymentResult confirmPayment(TossConfirmRequest request) {
         Map<String, Object> body = new HashMap<>();
@@ -55,7 +60,16 @@ public class TossService {
         body.put("amount", request.getAmount());
         body.put("paymentKey", request.getPaymentKey());
 
-        Map<String, Object> responseMap = post(TOSS_PAYMENTS_API + "/confirm", body, "결제 승인");
+        Map<String, Object> responseMap;
+        try {
+            responseMap = post(TOSS_PAYMENTS_API + "/confirm", body, "결제 승인");
+        } catch (ApiException e) {
+            if (e.getStatus() == HttpStatus.GATEWAY_TIMEOUT) {
+                // 요청은 토스에 도달해 승인됐는데 응답만 못 받았을 수 있다. 결제 상태를 조회해 정리한다.
+                throw reconcileTimedOutConfirm(request.getOrderId());
+            }
+            throw e;
+        }
 
         log.info("토스 결제 승인 응답 수신: orderId={}, status={}",
                 responseMap.get("orderId"), responseMap.get("status"));
@@ -105,6 +119,65 @@ public class TossService {
                 .toUriString();
         Map<String, Object> responseMap = post(url, Map.of("cancelReason", cancelReason), "결제 취소");
         log.info("토스 결제 취소 완료: orderId={}, status={}", responseMap.get("orderId"), responseMap.get("status"));
+    }
+
+    /**
+     * 승인 호출 타임아웃 보상.
+     * {@code GET /v1/payments/orders/{orderId}} 로 실제 결제 상태를 확인해
+     * <ul>
+     *     <li>DONE(승인 완료) → 예약을 만들지 않았으므로 즉시 전액 취소하고 reversed=true 로 알린다.</li>
+     *     <li>조회 결과 없음(404)·ABORTED·EXPIRED 등 → 과금되지 않았으므로 실패로만 알린다.</li>
+     *     <li>조회/취소 자체가 실패 → 과금 여부를 확정할 수 없으므로 수동 확인 로그를 남긴다.</li>
+     * </ul>
+     */
+    PaymentConfirmTimeoutException reconcileTimedOutConfirm(String orderId) {
+        Optional<Map<String, Object>> payment;
+        try {
+            payment = findPaymentByOrderId(orderId);
+        } catch (RuntimeException e) {
+            log.error("[결제 상태 확인 실패] 승인 타임아웃 후 조회 실패, 수동 확인 필요: orderId={}, cause={}", orderId, e.toString());
+            return new PaymentConfirmTimeoutException(
+                    "결제 승인 결과를 확인하지 못했습니다. 결제 내역을 확인하시거나 고객센터로 문의해 주세요. (주문번호: " + orderId + ")",
+                    false);
+        }
+
+        String status = payment.map(p -> (String) p.get("status")).orElse(null);
+        if (!"DONE".equals(status)) {
+            log.warn("승인 타임아웃 후 결제 상태 확인: 승인되지 않음 orderId={}, status={}", orderId, status);
+            return new PaymentConfirmTimeoutException(
+                    "결제 승인 응답이 지연되어 결제가 완료되지 않았습니다. 잠시 후 다시 시도해 주세요.", false);
+        }
+
+        String paymentKey = (String) payment.get().get("paymentKey");
+        try {
+            cancelPayment(paymentKey, "결제 승인 응답 시간 초과로 인한 자동 취소");
+        } catch (RuntimeException cancelError) {
+            log.error("[결제 보상 실패] 승인 타임아웃 후 자동 취소 실패, 수동 환불 필요: orderId={}, paymentKey={}, cause={}",
+                    orderId, paymentKey, cancelError.toString());
+            return new PaymentConfirmTimeoutException(
+                    "결제 처리 중 오류가 발생했고 결제 자동 취소에도 실패했습니다. 고객센터로 문의해 주세요. (주문번호: " + orderId + ")",
+                    false, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        log.info("승인 타임아웃 결제 자동 취소 완료: orderId={}", orderId);
+        return new PaymentConfirmTimeoutException(
+                "결제 승인 응답이 지연되어 결제를 자동으로 취소했습니다. 다시 시도해 주세요.", true);
+    }
+
+    /** 주문번호로 결제 조회 (GET /v1/payments/orders/{orderId}). 결제가 없으면(404) empty. */
+    Optional<Map<String, Object>> findPaymentByOrderId(String orderId) {
+        String url = UriComponentsBuilder.fromUriString(TOSS_PAYMENTS_API)
+                .pathSegment("orders", orderId)
+                .encode()
+                .toUriString();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBasicAuth(tossSecretKey, "", StandardCharsets.UTF_8);
+        try {
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    URI.create(url), HttpMethod.GET, new HttpEntity<>(headers), MAP_TYPE);
+            return Optional.ofNullable(response.getBody());
+        } catch (HttpClientErrorException.NotFound e) {
+            return Optional.empty();
+        }
     }
 
     /** 토스 API 공통 POST. 2xx 가 아니면 토스 에러 코드/메시지로 ApiException 을 던진다. */

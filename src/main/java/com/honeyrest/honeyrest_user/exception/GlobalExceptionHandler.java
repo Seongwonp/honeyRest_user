@@ -11,6 +11,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -84,6 +85,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error("인증이 필요합니다."));
+    }
+
+    // multipart 한도(spring.servlet.multipart.max-file-size)를 넘은 업로드 → 500 이 아니라 413
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<?>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException e) {
+        log.warn("Upload too large: {}", e.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body(ApiResponse.error("업로드 파일이 너무 큽니다."));
     }
 
     @ExceptionHandler(Exception.class)

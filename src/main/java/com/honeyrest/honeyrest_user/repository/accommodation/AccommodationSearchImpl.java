@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.repository.accommodation;
 
+import com.honeyrest.honeyrest_user.service.redis.SearchCacheVersionService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.honeyrest.honeyrest_user.dto.accommodation.AccommodationSearchDTO;
@@ -34,12 +35,37 @@ public class AccommodationSearchImpl implements AccommodationSearch {
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
     private final RegionService regionService;
+    private final SearchCacheVersionService searchCacheVersionService;
 
     private JPAQueryFactory queryFactory() {
         return new JPAQueryFactory(em);
     }
 
+    /** 세대 0 기준 키 (테스트/하위 호환용). */
     static String buildCacheKey(
+            String location,
+            Double lat,
+            Double lng,
+            LocalDate checkIn,
+            LocalDate checkOut,
+            int guests,
+            Long userId,
+            String sort,
+            List<String> selectedCategories,
+            List<String> selectedTags,
+            BigDecimal maxPrice,
+            Pageable pageable
+    ) {
+        return buildCacheKey(0L, location, lat, lng, checkIn, checkOut, guests, userId, sort,
+                selectedCategories, selectedTags, maxPrice, pageable);
+    }
+
+    /**
+     * 검색 결과 캐시 키. {@code version} 은 {@link SearchCacheVersionService} 의 세대 번호로,
+     * 예약 생성·리뷰 변경·태그 매핑 변경 시 증가해 이전 세대 키를 한꺼번에 무효화한다.
+     */
+    static String buildCacheKey(
+            long version,
             String location,
             Double lat,
             Double lng,
@@ -64,7 +90,8 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                 : selectedTags.stream().sorted().collect(Collectors.joining(","));
 
         return String.join(":",
-                "search", "recommend", "v2",
+                "search", "recommend", "v3",
+                "ver=" + version,
                 "location=" + normalizedLocation,
                 "lat=" + (lat == null ? "any" : String.format(Locale.ROOT, "%.6f", lat)),
                 "lng=" + (lng == null ? "any" : String.format(Locale.ROOT, "%.6f", lng)),
@@ -155,6 +182,7 @@ public class AccommodationSearchImpl implements AccommodationSearch {
         };
 
         String cacheKey = buildCacheKey(
+                searchCacheVersionService.current(),
                 location, lat, lng, checkIn, checkOut, guests, userId, sort,
                 selectedCategories, selectedTags, maxPrice, pageable
         );
@@ -218,6 +246,8 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                 .from(res)
                 .join(res.room, r)
                 .where(
+                        // 취소(CANCELLED 등) 예약은 재고를 점유하지 않는다 (ReserveService.assertRoomAvailable 과 동일 기준).
+                        res.status.in(ReservationStatus.OCCUPYING),
                         res.checkInDate.lt(checkOut),
                         res.checkOutDate.gt(checkIn),
                         r.accommodation.accommodationId.in(accommodationIds)

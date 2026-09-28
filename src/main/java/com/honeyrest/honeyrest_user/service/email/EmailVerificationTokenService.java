@@ -28,13 +28,22 @@ public class EmailVerificationTokenService {
     private final EmailVerificationTokenRepository tokenRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final EmailRateLimiter emailRateLimiter;
 
     @Value("${app.base-url}")
     private String baseUrl;
 
+    @Transactional
     public void sendVerificationEmail(EmailRequestDTO requestDto) {
+        emailRateLimiter.checkAndRecord(EmailRateLimiter.Purpose.VERIFY, requestDto.getEmail());
         User user = userRepository.findByEmail(requestDto.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("해당 이메일의 사용자가 존재하지 않습니다."));
+        if (Boolean.TRUE.equals(user.getIsVerified())) {
+            throw new IllegalStateException("이미 인증된 사용자입니다.");
+        }
+
+        // 이전 가입 인증 링크는 무효화한다 (가장 최근 메일의 링크만 유효).
+        tokenRepository.deleteAllByUserAndTokenType(user, "SIGNUP");
 
         String token = UUID.randomUUID().toString();
 
@@ -59,13 +68,21 @@ public class EmailVerificationTokenService {
         if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
             throw new IllegalStateException("토큰이 만료되었습니다.");
         }
+        // EMAIL_CHANGE 토큰으로 가입 인증을 처리하지 않는다. (tokenType 이 없는 과거 행은 SIGNUP 으로 간주)
+        if (token.getTokenType() != null && !"SIGNUP".equals(token.getTokenType())) {
+            throw new IllegalArgumentException("가입 인증용 토큰이 아닙니다.");
+        }
+        // 원자적 소비(1회용): 동시에 같은 링크를 두 번 열어도 한쪽만 성공한다.
+        if (tokenRepository.consumeByTokenValue(tokenValue) == 0) {
+            throw new IllegalStateException("이미 사용된 토큰입니다.");
+        }
 
         token.getUser().verify(); // User 엔티티에 isVerified = true 처리
-        tokenRepository.delete(token); // 인증 후 토큰 삭제
 
         return true;
     }
 
+    @Transactional
     public void resendVerificationEmail(ResendEmailRequestDTO dto) {
         User user = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("사용자 없음"));
@@ -75,12 +92,8 @@ public class EmailVerificationTokenService {
             throw new IllegalStateException("이미 인증된 사용자입니다.");
         }
 
-        // 기존 토큰 삭제
-        tokenRepository.findAll().stream()
-                .filter(t -> t.getUser().equals(user))
-                .forEach(tokenRepository::delete);
-
-        // 새 토큰 발송
+        // 새 토큰 발송 (이전 SIGNUP 토큰 무효화와 발송 한도 검사는 sendVerificationEmail 이 처리한다.
+        // 과거에는 findAll() 로 전체 토큰 테이블을 읽어 걸렀다.)
         sendVerificationEmail(new EmailRequestDTO(dto.getEmail()));
     }
 
@@ -98,14 +111,18 @@ public class EmailVerificationTokenService {
     }
 
 
+    @Transactional
     public void sendEmailChangeToken(Long userId, String newEmail, boolean isPasswordVerified) {
         if (!isPasswordVerified) throw new SecurityException("비밀번호 인증 필요");
+        emailRateLimiter.checkAndRecord(EmailRateLimiter.Purpose.EMAIL_CHANGE, newEmail);
         if (userRepository.existsByEmail(newEmail)) throw new IllegalArgumentException("이미 사용 중인 이메일");
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        // 기존 로직 유지
+        // 이전 이메일 변경 링크는 무효화한다.
+        tokenRepository.deleteAllByUserAndTokenType(user, "EMAIL_CHANGE");
+
         String token = UUID.randomUUID().toString();
         EmailVerificationToken tokenEntity = EmailVerificationToken.builder()
                 .user(user)
@@ -147,9 +164,12 @@ public class EmailVerificationTokenService {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
 
+        if (tokenRepository.consumeByTokenValue(tokenValue) == 0) {
+            throw new IllegalStateException("이미 사용된 토큰입니다.");
+        }
+
         User user = token.getUser();
         user.updateEmail(newEmail); // User 엔티티에 메서드 추가
-        tokenRepository.delete(token);
 
         userRepository.save(user);
         log.info("✅ 이메일 변경 완료: userId={}", user.getUserId());

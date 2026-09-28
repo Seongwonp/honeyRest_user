@@ -6,6 +6,7 @@ import com.honeyrest.honeyrest_user.dto.review.MyReviewDTO;
 import com.honeyrest.honeyrest_user.dto.review.ReviewDTO;
 import com.honeyrest.honeyrest_user.dto.review.ReviewRequestDTO;
 import com.honeyrest.honeyrest_user.entity.Reservation;
+import com.honeyrest.honeyrest_user.entity.ReservationStatus;
 import com.honeyrest.honeyrest_user.entity.Review;
 import com.honeyrest.honeyrest_user.entity.ReviewImage;
 import com.honeyrest.honeyrest_user.entity.User;
@@ -15,6 +16,7 @@ import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;
 import com.honeyrest.honeyrest_user.repository.reservation.ReservationRepository;
 import com.honeyrest.honeyrest_user.service.accommodation.AccommodationService;
 import com.honeyrest.honeyrest_user.service.redis.RatingCacheService;
+import com.honeyrest.honeyrest_user.service.redis.SearchCacheVersionService;
 import com.honeyrest.honeyrest_user.storage.FileStorage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -46,10 +48,13 @@ public class ReviewService {
     private final UserService userService;
     private final FileStorage fileStorage;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final SearchCacheVersionService searchCacheVersionService;
 
     @Transactional
     public void createReview(Long userId, ReviewRequestDTO request) {
-        Reservation reservation = reservationRepository.findById(request.getReservationId())
+        // 예약 행을 잠가 같은 예약에 대한 동시 작성 요청을 직렬화한다. 그래야 아래 existsByReservation 검사가
+        // 경쟁 상태(더블 클릭 등)에서도 "예약당 리뷰 1건"과 포인트 1회 적립을 보장한다.
+        Reservation reservation = reservationRepository.findByIdForUpdate(request.getReservationId())
                 .orElseThrow(() -> new IllegalArgumentException("예약 정보를 찾을 수 없습니다"));
 
         // 호출자가 이 예약의 소유자인지, 체크아웃이 끝난 예약인지 확인하지 않으면 아무 reservationId나
@@ -57,7 +62,7 @@ public class ReviewService {
         if (reservation.getUser() == null || !reservation.getUser().getUserId().equals(userId)) {
             throw new IllegalArgumentException("본인의 예약에만 리뷰를 작성할 수 있습니다.");
         }
-        if (!"COMPLETED".equals(reservation.getStatus())) {
+        if (!ReservationStatus.COMPLETED.equals(reservation.getStatus())) {
             throw new IllegalStateException("이용이 완료된 예약만 리뷰를 작성할 수 있습니다.");
         }
 
@@ -118,22 +123,39 @@ public class ReviewService {
 
     }
 
+    /**
+     * 좋아요 설정/해제 (사용자별 멱등).
+     * <p>
+     * 과거에는 클라이언트가 보낸 isLiked 값대로 카운터만 INCR/DECR 해서, 같은 사용자가 반복 호출하면
+     * 좋아요 수를 무한히 올릴 수 있었다. 이제 Redis 집합(review:like:users:{id})에 userId 를 넣고/빼서
+     * 실제로 상태가 바뀐 경우에만 카운터를 움직인다.
+     *
+     * @param isLiked 클라이언트가 알고 있는 현재 상태. true 면 좋아요 해제, false 면 좋아요 요청.
+     * @return 반영 후 좋아요 수
+     */
     @Transactional
-    public int toggleLike(Long reviewId, boolean isLiked) {
-        if (isLiked) {
-            reviewRedisLikeRepository.decreaseLikeCount(reviewId);
-        } else {
-            reviewRedisLikeRepository.increaseLikeCount(reviewId);
-        }
-
-        int redisCount = reviewRedisLikeRepository.getLikeCount(reviewId);
-
+    public int toggleLike(Long userId, Long reviewId, boolean isLiked) {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new IllegalArgumentException("리뷰가 존재하지 않습니다"));
-        review.setLikeCount(redisCount);
-        reviewRepository.save(review);
+        int dbCount = review.getLikeCount() != null ? review.getLikeCount() : 0;
 
-        return redisCount;
+        // 카운터 캐시가 없으면 DB 값에서 시작해야 INCR 이 DB 값을 1 로 덮어쓰지 않는다.
+        reviewRedisLikeRepository.initLikeCountIfAbsent(reviewId, dbCount);
+
+        if (isLiked) {
+            if (reviewRedisLikeRepository.removeLiker(reviewId, userId)) {
+                reviewRedisLikeRepository.decreaseLikeCount(reviewId);
+            }
+        } else {
+            if (reviewRedisLikeRepository.addLiker(reviewId, userId)) {
+                reviewRedisLikeRepository.increaseLikeCount(reviewId);
+            }
+        }
+
+        Integer redisCount = reviewRedisLikeRepository.getLikeCount(reviewId);
+        int count = redisCount != null ? redisCount : dbCount;
+        review.setLikeCount(count); // 관리 엔티티이므로 dirty checking 으로 반영된다.
+        return count;
     }
 
 
@@ -189,23 +211,16 @@ public class ReviewService {
             throw new IllegalArgumentException("본인의 리뷰만 수정할 수 있습니다");
         }
 
-        // 2. 리뷰 필드 수정
-        Review review = Review.builder()
-                .reviewId(existing.getReviewId())
-                .reservation(existing.getReservation())
-                .user(existing.getUser())
-                .accommodationId(existing.getAccommodationId())
-                .roomId(existing.getRoomId())
-                .rating(dto.getRating())
-                .cleanlinessRating(dto.getCleanlinessRating())
-                .serviceRating(dto.getServiceRating())
-                .facilitiesRating(dto.getFacilitiesRating())
-                .locationRating(dto.getLocationRating())
-                .content(dto.getContent())
-                .status(existing.getStatus())
-                .build();
-
-        reviewRepository.save(review);
+        // 2. 리뷰 필드 수정 — 관리 엔티티를 직접 변경해 createdAt/likeCount/reply/status 를 보존한다.
+        //    (과거에는 빌더로 새 객체를 만들어 save 해 likeCount·reply 가 null 로 덮어써졌다.)
+        existing.updateContent(
+                dto.getRating(),
+                dto.getCleanlinessRating(),
+                dto.getServiceRating(),
+                dto.getFacilitiesRating(),
+                dto.getLocationRating(),
+                dto.getContent());
+        Review review = existing;
 
         // 3. 기존 이미지 삭제 후 재등록
         imageRepository.deleteByReview(review); // 기존 이미지 삭제
@@ -260,6 +275,8 @@ public class ReviewService {
     private void invalidateAccommodationCache(Long accommodationId) {
         //숙소 관련 모든 캐시 삭제
         ratingCacheService.evictAllAccommodationCache(accommodationId);
+        // 검색 결과에도 평점·리뷰 수가 들어가므로 검색 캐시 세대를 올린다.
+        searchCacheVersionService.bumpAfterCommit();
         log.info("🗑️ 숙소 관련 모든 캐시 삭제 완료: accommodationId={}", accommodationId);
     }
 

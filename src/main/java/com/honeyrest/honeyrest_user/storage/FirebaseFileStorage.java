@@ -33,6 +33,12 @@ public class FirebaseFileStorage implements FileStorage {
 
     private Storage storage;
 
+    private final FileValidator fileValidator;
+
+    public FirebaseFileStorage(FileValidator fileValidator) {
+        this.fileValidator = fileValidator;
+    }
+
     @Value("${fire.base.secretKey}")
     private String firebaseSecretKey;
 
@@ -59,15 +65,17 @@ public class FirebaseFileStorage implements FileStorage {
 
     @Override
     public String upload(MultipartFile file, String folder) throws Exception {
-        FileStorage.requireSafeFolder(folder);
+        FileValidator.requireSafeFolder(folder);
+        String ext = fileValidator.validate(file);
 
-        // 파일명에 UUID 붙여서 중복 방지
-        String filename = UUID.randomUUID() + "_" + file.getOriginalFilename();
+        // 원본 파일명에는 '/', '..' 등이 들어올 수 있으므로 blob 이름에 쓰지 않고 UUID + 검증된 확장자만 쓴다.
+        String filename = UUID.randomUUID() + "." + ext;
         String blobName = folder + "/" + filename;
 
         // BlobInfo 생성: 파일 메타데이터 포함
         BlobInfo blobInfo = BlobInfo.newBuilder(bucket, blobName)
-                .setContentType(file.getContentType())
+                // 클라이언트가 보낸 Content-Type 대신 검증된 확장자로 결정한다.
+                .setContentType("image/" + ("jpg".equals(ext) ? "jpeg" : ext))
                 .build();
 
         // 파일 업로드

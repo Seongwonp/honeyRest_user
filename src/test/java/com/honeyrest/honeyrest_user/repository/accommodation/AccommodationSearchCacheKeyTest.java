@@ -48,4 +48,16 @@ class AccommodationSearchCacheKeyTest {
                 List.of(), List.of(), maxPrice, PageRequest.of(0, 20)
         );
     }
+
+    @Test
+    void cacheKeyChangesWhenVersionIsBumped() {
+        LocalDate checkIn = LocalDate.of(2026, 8, 10);
+        String v1 = AccommodationSearchImpl.buildCacheKey(1L, "", null, null, checkIn, checkIn.plusDays(1),
+                2, null, "priceAsc", List.of(), List.of(), null, PageRequest.of(0, 20));
+        String v2 = AccommodationSearchImpl.buildCacheKey(2L, "", null, null, checkIn, checkIn.plusDays(1),
+                2, null, "priceAsc", List.of(), List.of(), null, PageRequest.of(0, 20));
+
+        // 예약 생성 등으로 세대가 오르면 같은 조건이라도 새 키를 쓰므로 이전 세대 결과가 재사용되지 않는다.
+        assertThat(v2).isNotEqualTo(v1).startsWith("search:recommend:v3:ver=2:");
+    }
 }

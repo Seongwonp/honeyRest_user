@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
  *     <li>{@code local} (기본값) — {@link LocalFileStorage}: 로컬 디스크에 저장하고 {@code /uploads/**} 로 서빙</li>
  *     <li>{@code firebase} — {@link FirebaseFileStorage}: Firebase(Google Cloud) Storage 버킷에 저장</li>
  * </ul>
+ * 두 구현체 모두 업로드 전에 {@link FileValidator} 로 크기·확장자·매직 바이트·폴더명을 검증한다.
  */
 public interface FileStorage {
 
@@ -33,11 +34,9 @@ public interface FileStorage {
 
     /**
      * 폴더명 검증: 경로 조작(../ 등)을 막기 위해 영문/숫자/-/_ 만 허용한다.
+     * 실제 규칙은 {@link FileValidator#requireSafeFolder} 한 곳에 둔다.
      */
     static String requireSafeFolder(String folder) {
-        if (folder == null || !folder.matches("[A-Za-z0-9_-]+")) {
-            throw new IllegalArgumentException("허용되지 않은 폴더명입니다: " + folder);
-        }
-        return folder;
+        return FileValidator.requireSafeFolder(folder);
     }
 }

@@ -13,6 +13,7 @@ import com.honeyrest.honeyrest_user.repository.room.RoomRepository;
 import com.honeyrest.honeyrest_user.service.PointHistoryService;
 import com.honeyrest.honeyrest_user.service.UserService;
 import com.honeyrest.honeyrest_user.service.coupon.CouponUsageService;
+import com.honeyrest.honeyrest_user.service.redis.SearchCacheVersionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,7 @@ class ReserveServiceTest {
     @Mock private UserService userService;
     @Mock private CouponUsageService couponUsageService;
     @Mock private PointHistoryService pointHistoryService;
+    @Mock private SearchCacheVersionService searchCacheVersionService;
 
     @InjectMocks
     private ReserveService reserveService;
@@ -108,6 +110,8 @@ class ReserveServiceTest {
         assertThat(result.getStatus()).isEqualTo("CONFIRMED");
         // 숙소명 스냅샷(accommodation_name, NOT NULL)이 객실의 숙소명으로 채워져야 호스트 화면/검증과 맞는다.
         assertThat(result.getAccommodationName()).isEqualTo("테스트 숙소");
+        // 재고가 바뀌었으므로 검색 결과 캐시 세대를 올려야 한다.
+        verify(searchCacheVersionService).bumpAfterCommit();
     }
 
     @Test

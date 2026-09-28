@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.repository.accommodation.AccommodationDetail;
 
+import com.honeyrest.honeyrest_user.service.redis.AccommodationCacheKeys;
 import com.honeyrest.honeyrest_user.entity.ReservationStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -56,12 +57,13 @@ public class AccommodationDetailQueryRepository {
         QCancellationPolicy qCancellationPolicy = QCancellationPolicy.cancellationPolicy;
 
         // Redis 키 정의
-        String detailKey = "accommodation:detail:" + id;
-        String imagesKey = "accommodation:images:" + id;
-        String tagsKey = "accommodation:tags:" + id;
-        String reviewCountKey = "reviewCount:accommodation:" + id;
-        String reviewListKey = "reviewList:accommodation:" + id;
-        String cancellationKey = "cancellationPolicy:accommodation:" + id;
+        // 키 문자열은 무효화 쪽(RatingCacheService)과 공유하기 위해 AccommodationCacheKeys 에서만 만든다.
+        String detailKey = AccommodationCacheKeys.detail(id);
+        String imagesKey = AccommodationCacheKeys.images(id);
+        String tagsKey = AccommodationCacheKeys.tags(id);
+        String reviewCountKey = AccommodationCacheKeys.reviewCount(id);
+        String reviewListKey = AccommodationCacheKeys.reviewList(id);
+        String cancellationKey = AccommodationCacheKeys.cancellationPolicy(id);
 
         // 숙소 기본 정보 캐싱
         log.info("Redis 캐시 조회 - 숙소 상세(detailKey): {}", detailKey);

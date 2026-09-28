@@ -4,7 +4,6 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -13,8 +12,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Locale;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -30,15 +27,15 @@ import java.util.UUID;
 @ConditionalOnProperty(name = "app.storage.type", havingValue = "local", matchIfMissing = true)
 public class LocalFileStorage implements FileStorage {
 
-    /** 업로드 허용 확장자 (이미지 전용) */
-    private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "webp");
-
     private final Path baseDir;
     private final String publicUrlPrefix;
+    private final FileValidator fileValidator;
 
     public LocalFileStorage(
             @Value("${app.storage.local.dir:./uploads}") String dir,
-            @Value("${app.storage.local.public-url-prefix:/uploads}") String publicUrlPrefix) {
+            @Value("${app.storage.local.public-url-prefix:/uploads}") String publicUrlPrefix,
+            FileValidator fileValidator) {
+        this.fileValidator = fileValidator;
         this.baseDir = Paths.get(dir).toAbsolutePath().normalize();
         this.publicUrlPrefix = publicUrlPrefix.endsWith("/")
                 ? publicUrlPrefix.substring(0, publicUrlPrefix.length() - 1)
@@ -47,15 +44,11 @@ public class LocalFileStorage implements FileStorage {
 
     @Override
     public String upload(MultipartFile file, String folder) throws IOException {
-        FileStorage.requireSafeFolder(folder);
+        FileValidator.requireSafeFolder(folder);
 
         // 원본 파일명은 경로 조작 위험이 있으므로 확장자만 사용한다.
-        // 업로드 파일은 /uploads/** 로 공개 서빙되므로 SVG/HTML 등 스크립트 실행이 가능한 형식은 막는다.
-        String ext = StringUtils.getFilenameExtension(file.getOriginalFilename());
-        String lowerExt = ext == null ? "" : ext.toLowerCase(Locale.ROOT);
-        if (!ALLOWED_EXTENSIONS.contains(lowerExt)) {
-            throw new IllegalArgumentException("허용되지 않은 파일 형식입니다: " + ext);
-        }
+        // 업로드 파일은 /uploads/** 로 공개 서빙되므로 크기·확장자·매직 바이트를 FileValidator 로 검증한다.
+        String lowerExt = fileValidator.validate(file);
         String filename = UUID.randomUUID() + "." + lowerExt;
 
         Path dir = baseDir.resolve(folder);

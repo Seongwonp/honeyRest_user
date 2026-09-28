@@ -6,8 +6,9 @@ import com.honeyrest.honeyrest_user.dto.email.TokenStatusResponseDTO;
 import com.honeyrest.honeyrest_user.security.CustomUserPrincipal;
 import com.honeyrest.honeyrest_user.service.email.EmailVerificationTokenService;
 import lombok.RequiredArgsConstructor;
+import com.honeyrest.honeyrest_user.exception.ApiException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -54,7 +55,8 @@ public class EmailController {
             @RequestParam("newEmail") String newEmail
     ) {
         if (principal == null) {
-            throw new AccessDeniedException("로그인이 필요합니다.");
+            // 미인증은 403(AccessDenied)이 아니라 401 이어야 프론트가 토큰 재발급/로그인 흐름을 탄다.
+            throw new ApiException("로그인이 필요합니다.", HttpStatus.UNAUTHORIZED);
         }
         emailService.confirmEmailChange(principal.getUserId(), token, newEmail);
         return ResponseEntity.ok("이메일 변경이 완료되었습니다.");

@@ -14,6 +14,8 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 
@@ -44,7 +46,7 @@ public class AccommodationService {
         if (category == null || category.isBlank() || "전체".equals(category)) {
             log.info("전체 인기 숙소를 조회합니다. 모든 카테고리 ZSet에서 상위 6개씩 가져옵니다.");
             // Redis에서 모든 인기 카테고리 키 조회
-            Set<String> keys = redisTemplate.keys(POPULAR_KEY_PREFIX + "*");
+            Set<String> keys = scanKeys(POPULAR_KEY_PREFIX + "*");
             if (keys == null || keys.isEmpty()) {
                 log.info("Redis에서 인기 숙소 카테고리 키를 찾지 못했습니다.");
                 return Collections.emptyList();
@@ -125,6 +127,18 @@ public class AccommodationService {
             log.info("카테고리 '{}'의 인기 숙소 {}개를 반환합니다.", category, result.size());
             return result;
         }
+    }
+
+    /**
+     * 패턴에 맞는 키를 SCAN 으로 모은다. KEYS 는 O(N) 단일 명령이라 키가 많으면 Redis 전체를 블로킹하므로 쓰지 않는다.
+     */
+    Set<String> scanKeys(String pattern) {
+        Set<String> keys = new LinkedHashSet<>();
+        ScanOptions options = ScanOptions.scanOptions().match(pattern).count(100).build();
+        try (Cursor<String> cursor = redisTemplate.scan(options)) {
+            cursor.forEachRemaining(keys::add);
+        }
+        return keys;
     }
 
     /** 인기 숙소 조회수 증가 (ZSet score 증가) */

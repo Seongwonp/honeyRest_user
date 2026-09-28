@@ -83,6 +83,8 @@ public class PaymentOrchestrationService {
         reservationInfo.setUsedPoint(normalized.usedPoint());
 
         // 2. 토스 승인 — 2xx 가 아니면 TossService 가 ApiException 을 던진다 (과금 없음).
+        //    타임아웃이면 TossService 가 주문번호로 결제를 조회해 승인된 결제를 취소한 뒤
+        //    PaymentConfirmTimeoutException(504) 을 던진다. 아직 예약을 만들기 전이므로 여기서 더 할 일은 없다.
         TossPaymentResult result = tossService.confirmPayment(request);
         if ("FAILED".equals(result.getStatus())) {
             throw new ApiException("결제 승인 실패", HttpStatus.BAD_REQUEST);

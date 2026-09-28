@@ -74,8 +74,9 @@ JUnit 5 + Mockito 기반 단위 테스트가 중심이며, `./gradlew test` 는 
   실행할 수 없으므로, 테스트 스키마는 마이그레이션이 아닌 JPA 엔티티로 생성됩니다. 따라서
   (1) 마이그레이션 SQL 자체의 오류, (2) 엔티티 ↔ 실제 MySQL 스키마 불일치(`ddl-auto=validate` 실패),
   (3) MySQL 고유 동작(JSON 함수, 콜레이션, 락) 은 이 테스트로 검출되지 않습니다.
-  후속 과제: CI(ubuntu-latest, Docker 사용 가능)에 Testcontainers MySQL 기반 통합 테스트 프로필을 추가해
-  Flyway V1~V10 적용 + `validate` 를 검증.
+  → (1)·(2) 는 `integrationTest` 태스크(Testcontainers MySQL 8.0, `schema/FlywayMigrationMySqlIntegrationTest`)가
+  Flyway V1~최신 적용 + `validate` 로 검증하며 CI 에서 실행됩니다. 관리자 앱 엔티티와의 교차 검증은
+  honeyRest_host 의 `integrationTest` 가 담당합니다. (3) 은 여전히 범위 밖입니다.
 - `ReviewRedisLikeRepositoryImplTest` 는 `RedisTemplate` 을 Mockito 로 대체한 단위 테스트라 실제 Redis 가 필요 없습니다.
 
 | 테스트 클래스 | 대상 | 주요 테스트 케이스 |
@@ -86,23 +87,29 @@ JUnit 5 + Mockito 기반 단위 테스트가 중심이며, `./gradlew test` 는 
 | `JwtTokenProviderTest` | `JwtTokenProvider` | 토큰 생성, 유효/만료/위변조 검증, userId 추출, RefreshToken UUID 형식, 토큰 폐기(로그아웃 전 토큰 거부·같은 초 재로그인 허용·비밀번호 변경 무효화·초 단위 비교) |
 | `PaymentDetailServiceTest` | `PaymentDetailService` | 카드결제저장, 가상계좌저장, null결제객체예외, 빈 결제정보 안전처리 |
 
-**총 85개 테스트 (15개 클래스, 전체 통과)** — 아래 표는 주요 클래스만 발췌
+**총 118개 테스트 (21개 클래스, 전체 통과)** — `./gradlew test` 기준 (Testcontainers `integrationTest` 제외)
 
 ```
-✅ UserServiceTest                   (13)
 ✅ JwtTokenProviderTest              (15)
-✅ ReviewServiceTest                  (9)
+✅ UserServiceTest                   (13)
+✅ ReviewServiceTest                 (12)
 ✅ ReserveServiceTest                 (8)
+✅ PasswordResetServiceTest           (8)
 ✅ PaymentOrchestrationServiceTest    (7)
+✅ TossServiceTest                    (6)
 ✅ PriceCalculatorTest                (5)
+✅ EmailVerificationTokenServiceTest  (5)
+✅ FileValidatorTest                  (5)
+✅ LocalFileStorageTest               (5)
+✅ ReviewRedisLikeRepositoryImplTest  (5)
 ✅ PaymentDetailServiceTest           (4)
-✅ PasswordResetServiceTest           (5)
 ✅ FileControllerTest                 (4)
-✅ LocalFileStorageTest               (4)
-✅ TossServiceTest                    (3)
+✅ AccommodationSearchCacheKeyTest    (3)
+✅ SearchCacheVersionServiceTest      (3)
+✅ UnauthenticatedPrincipalTest       (3)
 ✅ AdminWriteApiSecurityTest          (3)  ← @SpringBootTest (H2)
-✅ AccommodationSearchCacheKeyTest    (2)
-✅ ReviewRedisLikeRepositoryImplTest  (2)
+✅ EmailRateLimiterTest               (2)
+✅ RatingCacheServiceTest             (1)
 ✅ HoneyRestUserApplicationTests      (1)  ← @SpringBootTest (H2)
 ```
 
@@ -239,4 +246,48 @@ spring.flyway.locations=classpath:db/migration
 예약 폼(`ReserveInfoService`)과 결제 검증(`PaymentOrchestrationService`)이 모두 이 계산기를 사용하므로
 화면 표시 금액과 결제 검증 금액이 항상 같다. `price_calendar.available_room` 은 재고 판정에 사용하지 않는다
 (호스트 화면이 `total_rooms − 예약 수` 를 저장하는 스냅샷 값이라 중복 차감 위험).
+
+---
+
+## 🔒 P1 — 권한·무결성·남용 방지
+
+### 1. 리뷰 권한/무결성 (`ReviewService`, `ReviewController`)
+- 작성: 예약 소유자 + `ReservationStatus.COMPLETED` 만 허용. 예약 행을 `findByIdForUpdate`(FOR UPDATE)로 잠가
+  동시 작성에서도 "예약당 리뷰 1건·포인트 1회"를 보장한다 (DB 유니크 제약/마이그레이션은 추가하지 않음).
+- 수정: 빌더로 새 `Review` 를 만들어 `save`(merge) 하던 방식이 `likeCount`·`reply` 를 null 로 덮어쓰고
+  `createdAt` 을 잃었다 → 관리 엔티티의 `updateContent(...)` 로 평점·본문만 변경.
+- 좋아요: `review:like:users:{reviewId}` Redis Set 에 userId 를 넣고/빼서 **실제로 상태가 바뀐 경우에만** 카운터를 움직인다
+  (사용자별 멱등). 카운터 캐시가 없으면 DB `like_count` 로 먼저 초기화한다. 엔드포인트는 로그인 사용자 기준.
+  - 한계: Set 도입 이전에 누른 좋아요는 Set 에 없으므로 그 사용자의 취소 요청은 카운터를 줄이지 않는다.
+    `review_like` 테이블이 없어 Redis 가 유실되면 사용자별 상태도 유실된다(영속화는 후속 과제).
+
+### 2. 파일 업로드 검증 (`storage/FileValidator`)
+- Local/Firebase 저장소가 모두 업로드 전에 호출: 폴더명(영문/숫자/-/_), 크기(`app.storage.max-file-size`, 기본 5MB → 413),
+  확장자(jpg/jpeg/png/gif/webp), **매직 바이트 스니핑**(확장자와 실제 형식 일치).
+- Firebase blob 이름에서 원본 파일명을 제거(UUID + 검증된 확장자), Content-Type 도 확장자로 결정.
+- multipart 한도 초과(`MaxUploadSizeExceededException`)는 500 대신 413.
+- 삭제 권한(폴더 화이트리스트 + DB 소유권 확인)은 기존 `FileController` 로직 유지.
+
+### 3. 캐시 무효화 정합 — 표는 `docs/ARCHITECTURE.md` "캐시 키 & 무효화" 참고
+- Redis `KEYS` 제거: 숙소 캐시 무효화는 `AccommodationCacheKeys.allFor(id)` 명시 목록 DEL, 인기 숙소 키 수집은 `SCAN`.
+- 기존 패턴(`accommodation:*:{id}`)이 놓치던 `reviewCount/reviewList/cancellationPolicy` 키도 이제 삭제된다.
+- `accommodation:tags:{id}` 를 상세 조회와 `AccommodationTagMapService` 가 서로 다른 DTO 로 공유하던 충돌 → 태그맵은 `accommodation:tagmap:{id}`.
+- 검색 결과 캐시는 키에 세대 번호(`search:recommend:version`)를 넣고, 예약 생성·리뷰 변경·태그 매핑 변경 시 **커밋 후** INCR.
+- 검색의 예약 수 집계가 취소 예약까지 세던 문제 → `ReservationStatus.OCCUPYING` 만 집계.
+
+### 4. 예외 매핑
+- `PaymentController`, `EmailController` 의 미인증 `AccessDeniedException`(403) → `ApiException(401)`.
+  `ReviewController` 도 principal 이 없으면 401. `UserController` 는 이미 401 반환.
+
+### 5. 이메일 남용 방지 (`service/email/EmailRateLimiter`)
+- 가입 인증/재전송, 비밀번호 재설정, 이메일 변경 메일: 용도·이메일별 10분 3회(`app.email.rate-limit.*`) 초과 시 429.
+  Redis INCR+EXPIRE, Redis 불가 시 인스턴스 메모리 카운터로 대체. 비밀번호 재설정은 사용자 조회 전에 검사(계정 노출 방지).
+- 토큰 1회용: `consumeByTokenValue`(원자적 DELETE, 영향 행 0 이면 거부) — 동시 요청 중 한쪽만 성공.
+- 새 토큰 발급 시 같은 용도의 이전 토큰 무효화, 가입 인증에 EMAIL_CHANGE 토큰 사용 금지. 만료는 기존대로(인증 24h, 재설정 30분).
+
+### 6. Toss 승인 타임아웃 보상 (`TossService.reconcileTimedOutConfirm`)
+- 승인 호출이 타임아웃(504 경로)이면 `GET /v1/payments/orders/{orderId}` 로 상태 조회:
+  `DONE` → 즉시 전액 취소 후 `PaymentConfirmTimeoutException(reversed=true, 504)`,
+  404/ABORTED 등 → `reversed=false` 실패 안내. 조회·취소 실패는 `[결제 상태 확인 실패]`/`[결제 보상 실패]` ERROR 로그로 수동 확인.
+- 토스 5xx 응답(502 경로)은 여기서 재조회하지 않는다 — 필요 시 같은 보상을 확장.
 

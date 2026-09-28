@@ -69,4 +69,24 @@ public class Review extends BaseEntity {
     @Column(name = "status", length = 20, nullable = false)
     private String status; // 상태(PUBLISHED, HIDDEN)
 
+    /**
+     * 사용자가 수정할 수 있는 필드(평점·본문)만 바꾼다.
+     * 과거에는 빌더로 새 Review 를 만들어 save(merge) 했기 때문에 빌더에 넣지 않은
+     * likeCount·reply 가 null 로 덮어써지고, 영속성 컨텍스트의 createdAt 도 null 이 됐다.
+     * 관리 중인 엔티티를 직접 변경하면 createdAt/likeCount/reply/status 가 그대로 보존된다.
+     */
+    public void updateContent(BigDecimal rating,
+                              BigDecimal cleanlinessRating,
+                              BigDecimal serviceRating,
+                              BigDecimal facilitiesRating,
+                              BigDecimal locationRating,
+                              String content) {
+        this.rating = rating;
+        this.cleanlinessRating = cleanlinessRating;
+        this.serviceRating = serviceRating;
+        this.facilitiesRating = facilitiesRating;
+        this.locationRating = locationRating;
+        this.content = content;
+    }
+
 }

@@ -8,6 +8,7 @@ import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;
 import com.honeyrest.honeyrest_user.repository.reservation.ReservationRepository;
 import com.honeyrest.honeyrest_user.service.accommodation.AccommodationService;
 import com.honeyrest.honeyrest_user.service.redis.RatingCacheService;
+import com.honeyrest.honeyrest_user.service.redis.SearchCacheVersionService;
 import com.honeyrest.honeyrest_user.storage.FileStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,8 +17,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -37,6 +41,7 @@ class ReviewServiceTest {
     @Mock private UserService userService;
     @Mock private FileStorage fileStorage;
     @Mock private RedisTemplate<String, Object> redisTemplate;
+    @Mock private SearchCacheVersionService searchCacheVersionService;
 
     @InjectMocks
     private ReviewService reviewService;
@@ -93,7 +98,7 @@ class ReviewServiceTest {
                 .content("깨끗하고 좋았습니다. 다음에 또 오고 싶어요.")
                 .build();
 
-        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(reservation));
         when(reviewRepository.existsByReservation(reservation)).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(Review.builder().reviewId(1L).build());
         doNothing().when(ratingCacheService).evictAllAccommodationCache(any());
@@ -114,7 +119,7 @@ class ReviewServiceTest {
                 .content("테스트 리뷰입니다. 잘 지냈어요.")
                 .build();
 
-        when(reservationRepository.findById(999L)).thenReturn(Optional.empty());
+        when(reservationRepository.findByIdForUpdate(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> reviewService.createReview(1L, request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -130,7 +135,7 @@ class ReviewServiceTest {
                 .content("두 번째 리뷰 시도")
                 .build();
 
-        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(reservation));
         when(reviewRepository.existsByReservation(reservation)).thenReturn(true);
 
         assertThatThrownBy(() -> reviewService.createReview(1L, request))
@@ -147,7 +152,7 @@ class ReviewServiceTest {
                 .content("남의 예약에 리뷰를 써보려는 시도입니다.")
                 .build();
 
-        when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+        when(reservationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(reservation));
 
         assertThatThrownBy(() -> reviewService.createReview(99L, request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -173,7 +178,7 @@ class ReviewServiceTest {
                 .content("체크인 전인데 리뷰를 써보려는 시도입니다.")
                 .build();
 
-        when(reservationRepository.findById(1L)).thenReturn(Optional.of(confirmedOnly));
+        when(reservationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(confirmedOnly));
 
         assertThatThrownBy(() -> reviewService.createReview(1L, request))
                 .isInstanceOf(IllegalStateException.class)
@@ -183,7 +188,7 @@ class ReviewServiceTest {
     // ── toggleLike ─────────────────────────────────────────
 
     @Test
-    @DisplayName("좋아요 추가 성공")
+    @DisplayName("좋아요 추가 성공: 처음 누른 사용자면 카운터가 증가한다")
     void toggleLike_increase() {
         Review review = Review.builder()
                 .reviewId(1L)
@@ -191,18 +196,39 @@ class ReviewServiceTest {
                 .status("PUBLISHED")
                 .build();
 
-        when(reviewRedisLikeRepository.getLikeCount(1L)).thenReturn(6);
         when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));
-        when(reviewRepository.save(review)).thenReturn(review);
+        when(reviewRedisLikeRepository.addLiker(1L, 7L)).thenReturn(true);
+        when(reviewRedisLikeRepository.getLikeCount(1L)).thenReturn(6);
 
-        int count = reviewService.toggleLike(1L, false);
+        int count = reviewService.toggleLike(7L, 1L, false);
 
         assertThat(count).isEqualTo(6);
+        assertThat(review.getLikeCount()).isEqualTo(6);
+        verify(reviewRedisLikeRepository).initLikeCountIfAbsent(1L, 5);
         verify(reviewRedisLikeRepository).increaseLikeCount(1L);
     }
 
     @Test
-    @DisplayName("좋아요 취소 성공")
+    @DisplayName("좋아요 멱등: 이미 좋아요한 사용자가 다시 요청하면 카운터가 변하지 않는다")
+    void toggleLike_idempotentPerUser() {
+        Review review = Review.builder()
+                .reviewId(1L)
+                .likeCount(6)
+                .status("PUBLISHED")
+                .build();
+
+        when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));
+        when(reviewRedisLikeRepository.addLiker(1L, 7L)).thenReturn(false);
+        when(reviewRedisLikeRepository.getLikeCount(1L)).thenReturn(6);
+
+        int count = reviewService.toggleLike(7L, 1L, false);
+
+        assertThat(count).isEqualTo(6);
+        verify(reviewRedisLikeRepository, never()).increaseLikeCount(any());
+    }
+
+    @Test
+    @DisplayName("좋아요 취소 성공: 좋아요한 적 있는 사용자만 카운터를 감소시킨다")
     void toggleLike_decrease() {
         Review review = Review.builder()
                 .reviewId(1L)
@@ -210,14 +236,73 @@ class ReviewServiceTest {
                 .status("PUBLISHED")
                 .build();
 
-        when(reviewRedisLikeRepository.getLikeCount(1L)).thenReturn(4);
         when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));
-        when(reviewRepository.save(review)).thenReturn(review);
+        when(reviewRedisLikeRepository.removeLiker(1L, 7L)).thenReturn(true);
+        when(reviewRedisLikeRepository.getLikeCount(1L)).thenReturn(4);
 
-        int count = reviewService.toggleLike(1L, true);
+        int count = reviewService.toggleLike(7L, 1L, true);
 
         assertThat(count).isEqualTo(4);
         verify(reviewRedisLikeRepository).decreaseLikeCount(1L);
+    }
+
+    @Test
+    @DisplayName("좋아요한 적 없는 사용자의 취소 요청은 카운터를 감소시키지 않는다")
+    void toggleLike_unlikeWithoutLikeIsNoop() {
+        Review review = Review.builder()
+                .reviewId(1L)
+                .likeCount(5)
+                .status("PUBLISHED")
+                .build();
+
+        when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));
+        when(reviewRedisLikeRepository.removeLiker(1L, 8L)).thenReturn(false);
+        when(reviewRedisLikeRepository.getLikeCount(1L)).thenReturn(5);
+
+        assertThat(reviewService.toggleLike(8L, 1L, true)).isEqualTo(5);
+        verify(reviewRedisLikeRepository, never()).decreaseLikeCount(any());
+    }
+
+    // ── updateReviewWithImages ─────────────────────────────
+
+    @Test
+    @DisplayName("리뷰 수정은 평점·본문만 바꾸고 createdAt·likeCount·reply·status 를 보존한다")
+    void updateReview_preservesCreatedAtAndLikeCount() throws Exception {
+        LocalDateTime createdAt = LocalDateTime.of(2026, 1, 1, 10, 0);
+        Review existing = Review.builder()
+                .reviewId(1L)
+                .reservation(reservation)
+                .user(user)
+                .accommodationId(1L)
+                .roomId(1L)
+                .rating(BigDecimal.valueOf(3))
+                .content("원래 내용입니다.")
+                .reply("사장님 답글")
+                .likeCount(12)
+                .status("PUBLISHED")
+                .build();
+        ReflectionTestUtils.setField(existing, "createdAt", createdAt);
+
+        when(reviewRepository.findById(1L)).thenReturn(Optional.of(existing));
+
+        ReviewRequestDTO dto = ReviewRequestDTO.builder()
+                .reservationId(1L)
+                .rating(BigDecimal.valueOf(5))
+                .content("수정한 내용입니다. 정말 좋았어요.")
+                .imageUrls(List.of())
+                .build();
+
+        reviewService.updateReviewWithImages(1L, 1L, dto, null);
+
+        assertThat(existing.getRating()).isEqualByComparingTo("5");
+        assertThat(existing.getContent()).isEqualTo("수정한 내용입니다. 정말 좋았어요.");
+        assertThat(existing.getCreatedAt()).isEqualTo(createdAt);
+        assertThat(existing.getLikeCount()).isEqualTo(12);
+        assertThat(existing.getReply()).isEqualTo("사장님 답글");
+        assertThat(existing.getStatus()).isEqualTo("PUBLISHED");
+        // 새 Review 객체를 save(merge) 하지 않는다.
+        verify(reviewRepository, never()).save(any(Review.class));
+        verify(searchCacheVersionService).bumpAfterCommit();
     }
 
     // ── deleteReview ────────────────────────────────────────

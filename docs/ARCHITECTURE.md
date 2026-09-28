@@ -80,7 +80,34 @@ HoneyRest의 데이터베이스는 사용자, 숙소, 예약, 리뷰, 관리자 
 ### 성능
 - Redis ZSet: 카테고리별 인기 숙소 조회수 관리 (`popular:accommodation:{category}`)
 - `@Cacheable("banners")`: 배너 목록 캐싱으로 반복 쿼리 제거
+- 캐시 키·TTL·무효화 트리거는 아래 "캐시 키 & 무효화" 표 참고
 - JOIN FETCH: `accommodation` + `category` N+1 해결
+
+### 캐시 키 & 무효화
+
+Redis `KEYS` 명령은 사용하지 않는다(운영 Redis 블로킹). 숙소 단위 키는 `service/redis/AccommodationCacheKeys` 에서만 만든다.
+
+| 캐시 | 키 | TTL | 무효화 트리거 |
+|------|----|-----|--------------|
+| 숙소 상세 | `accommodation:detail:{id}` | 없음 | 리뷰 작성/수정/삭제 → `RatingCacheService.evictAllAccommodationCache` |
+| 숙소 이미지 | `accommodation:images:{id}` (List) | 없음 | 〃 |
+| 숙소 태그(상세용) | `accommodation:tags:{id}` | 없음 | 〃, 태그 매핑 추가/삭제 |
+| 숙소 태그맵 | `accommodation:tagmap:{id}` | 6h | 〃, 태그 매핑 추가/삭제 (`AccommodationTagMapService`) |
+| 평점 | `accommodation:rating:{id}` | 없음 | 리뷰 작성/수정/삭제 |
+| 리뷰 수 | `reviewCount:accommodation:{id}` | 3m | 리뷰 작성/수정/삭제 |
+| 리뷰 목록 | `reviewList:accommodation:{id}` | 5m | 리뷰 작성/수정/삭제 (좋아요 수는 TTL 동안 지연 반영) |
+| 취소 정책 | `cancellationPolicy:accommodation:{id}` | 없음 | 리뷰 변경 시 함께 삭제 (정책 변경은 호스트 저장소 몫) |
+| 검색 결과 | `search:recommend:v3:ver={N}:…조건…` (+`:total`) | 6h | `search:recommend:version` INCR (커밋 후): 예약 생성, 리뷰 작성/수정/삭제, 태그 매핑 변경 |
+| 리뷰 좋아요 수 | `review:like:{reviewId}` | 없음 | 좋아요 설정/해제 시 증감, DB `like_count` 에도 반영 |
+| 리뷰 좋아요 사용자 | `review:like:users:{reviewId}` (Set) | 없음 | 좋아요 설정/해제 |
+| 인기 숙소 | `popular:accommodation:{category}` (ZSet) | 없음 | 조회 시 점수 증가, 전체 조회는 `SCAN` |
+| 지역/태그/카테고리 목록 | `RegionService`·`accommodation:tags:all`·`category:accommodation` | 12h/12h/없음 | 없음 (정적 데이터) |
+| 배너 | `@Cacheable("banners")` | `spring.cache.redis.time-to-live` | `@CacheEvict("banners", allEntries)` — `saveBanner` |
+| 메일 발송 한도 | `rate:email:{용도}:{이메일}` | 10m | 윈도 만료 |
+
+- 검색 결과 캐시는 체크인·인원·필터·페이지 조합이라 예약 1건이 영향을 주는 키를 특정할 수 없으므로 **세대 번호(key versioning)** 로 한꺼번에 무효화한다. 이전 세대 키는 TTL 로 소멸한다.
+- 사용자 측 취소 요청(`CANCEL_REQUEST`)은 재고를 계속 점유하므로 세대를 올리지 않는다. **호스트 저장소에서 예약을 `CANCELLED` 로 바꿀 때 `search:recommend:version` 을 INCR 해야** 검색 재고가 즉시 반영된다 (그 전까지는 최대 6h 지연).
+- 검색 결과의 찜 여부(user 별 키)는 찜 토글 시 무효화하지 않는다 (최대 6h 지연, 알려진 한계).
 
 ### 보안
 - JWT Access/Refresh 토큰 분리, RefreshToken DB 저장
