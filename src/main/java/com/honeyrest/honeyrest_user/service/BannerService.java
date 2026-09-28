@@ -3,7 +3,7 @@ package com.honeyrest.honeyrest_user.service;
 import com.honeyrest.honeyrest_user.dto.banner.BannerDTO;
 import com.honeyrest.honeyrest_user.entity.Banner;
 import com.honeyrest.honeyrest_user.repository.BannerRepository;
-import com.honeyrest.honeyrest_user.util.FileUploadUtil;
+import com.honeyrest.honeyrest_user.storage.FileStorage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.modelmapper.ModelMapper;
@@ -24,13 +24,13 @@ import java.util.List;
 public class BannerService {
     private final BannerRepository bannerRepository;
     private final ModelMapper modelMapper;
-    private final FileUploadUtil fileUploadUtil;
+    private final FileStorage fileStorage;
 
     @CacheEvict(value = "banners", allEntries = true)
     public void saveBanner(MultipartFile image, BannerDTO dto) throws IOException {
         String imageUrl = "";
         try {
-            imageUrl = fileUploadUtil.upload(image, "banner");
+            imageUrl = fileStorage.upload(image, "banner");
             dto.setImageUrl(imageUrl);
         } catch (Exception e) {
             log.error("이미지 업로드 실패", e);

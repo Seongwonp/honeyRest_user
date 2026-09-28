@@ -16,9 +16,10 @@ HoneyRest/
 │   │       ├── entity/         # JPA 엔티티
 │   │       ├── dto/            # 요청/응답 DTO
 │   │       ├── exception/      # GlobalExceptionHandler, ApiException
-│   │       └── batch/          # Spring Batch Job
+│   │       └── storage/        # 파일 저장소 추상화 (FileStorage: local / firebase)
 │   ├── src/main/resources/
 │   │   ├── application.properties
+│   │   ├── application-local.properties     # 로컬 개발 프로필 (SQL 로그 등)
 │   │   ├── application_security.properties  (gitignore)
 │   │   └── db/migration/
 │   │       └── V1__baseline.sql             # Flyway 스키마

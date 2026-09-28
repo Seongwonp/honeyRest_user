@@ -6,7 +6,7 @@ import com.honeyrest.honeyrest_user.entity.User;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.security.JwtTokenProvider;
 import com.honeyrest.honeyrest_user.service.email.EmailVerificationTokenService;
-import com.honeyrest.honeyrest_user.util.FileUploadUtil;
+import com.honeyrest.honeyrest_user.storage.FileStorage;
 import com.honeyrest.honeyrest_user.util.RefreshTokenCookieManager;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,7 @@ public class UserService {
     private final RefreshTokenService refreshTokenService;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
-    private final FileUploadUtil fileUploadUtil;
+    private final FileStorage fileStorage;
     private final RefreshTokenCookieManager refreshTokenCookieManager;
 
     // 회원가입
@@ -40,7 +40,7 @@ public class UserService {
         }
         String imgUrl = "";
         if(dto.getProfileImage() != null){
-            imgUrl = fileUploadUtil.upload(dto.getProfileImage(),"profile");
+            imgUrl = fileStorage.upload(dto.getProfileImage(),"profile");
         }
         // 생년월일 검증 (만 14세 미만 가입 불가)
         if (dto.getBirthDate() != null) {
@@ -222,9 +222,9 @@ public class UserService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
-        fileUploadUtil.delete("profile", user.getProfileImage());
+        fileStorage.delete("profile", user.getProfileImage());
 
-        String imgUrl = fileUploadUtil.upload(file,"profile");
+        String imgUrl = fileStorage.upload(file,"profile");
         user.updateProfileImage(imgUrl);
         userRepository.save(user);
         return imgUrl;

@@ -51,7 +51,10 @@ Toss 결제 승인 후 이메일 전송은 `TransactionTemplate.execute()` 블�
 
 ## 🧪 Phase 2 — 테스트
 
-JUnit 5 + Mockito 기반 단위 테스트. 외부 의존성(DB, Redis) 없이 순수 단위 테스트로 실행됩니다.
+JUnit 5 + Mockito 기반 단위 테스트가 중심이며, 이 단위 테스트들은 외부 의존성(DB, Redis) 없이 실행됩니다.
+단, `@SpringBootTest` 기반 테스트(`HoneyRestUserApplicationTests`, `AdminWriteApiSecurityTest`)는
+전체 컨텍스트를 띄우므로 `test` 프로필 기준 로컬 MySQL(`honeyrest_user_test` 스키마)·Redis와
+`application_security.properties`가 필요합니다. 해당 환경이 없으면 이 테스트들은 실패합니다.
 
 | 테스트 클래스 | 대상 | 주요 테스트 케이스 |
 |------------|------|----------------|

@@ -4,7 +4,6 @@ import com.honeyrest.honeyrest_user.dto.banner.BannerDTO;
 import com.honeyrest.honeyrest_user.entity.BannerPosition;
 import com.honeyrest.honeyrest_user.response.ApiResponse;
 import com.honeyrest.honeyrest_user.service.BannerService;
-import com.honeyrest.honeyrest_user.util.FileUploadUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -40,7 +39,7 @@ public class BannerController {
                 .startDate(LocalDateTime.now())
                 .endDate(LocalDateTime.now().plusDays(3600))
                 .isActive(isActive)
-                .imageUrl(null) // 나중에 S3에서 받아서 세팅
+                .imageUrl(null) // BannerService에서 FileStorage 업로드 후 세팅
                 .build();
 
         bannerService.saveBanner(image, dto);

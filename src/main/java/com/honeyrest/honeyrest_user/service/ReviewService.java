@@ -15,7 +15,7 @@ import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;
 import com.honeyrest.honeyrest_user.repository.reservation.ReservationRepository;
 import com.honeyrest.honeyrest_user.service.accommodation.AccommodationService;
 import com.honeyrest.honeyrest_user.service.redis.RatingCacheService;
-import com.honeyrest.honeyrest_user.util.FileUploadUtil;
+import com.honeyrest.honeyrest_user.storage.FileStorage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
@@ -44,7 +44,7 @@ public class ReviewService {
     private final AccommodationService accommodationService;
     private final PointHistoryService pointHistoryService;
     private final UserService userService;
-    private final FileUploadUtil  fileUploadUtil;
+    private final FileStorage fileStorage;
     private final RedisTemplate<String, Object> redisTemplate;
 
     @Transactional
@@ -223,7 +223,7 @@ public class ReviewService {
         // 4. 새 이미지 업로드 후 저장
         if (newImages != null && !newImages.isEmpty()) {
             for (MultipartFile file : newImages) {
-                String uploadedUrl = fileUploadUtil.upload(file, "reviews");
+                String uploadedUrl = fileStorage.upload(file, "reviews");
                 ReviewImage image = ReviewImage.builder()
                         .review(review)
                         .imageUrl(uploadedUrl)

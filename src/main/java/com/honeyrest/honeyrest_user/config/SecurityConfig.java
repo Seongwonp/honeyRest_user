@@ -61,7 +61,9 @@ public class SecurityConfig {
                                 "/api/reserve/form-info",
                                 "/api/reserve/guest-lookup",
                                 "/swagger-resources/**",
-                                "/webjars/**"
+                                "/webjars/**",
+                                // 로컬 파일 저장소(app.storage.type=local)의 업로드 이미지는 공개 조회 가능해야 한다.
+                                "/uploads/**"
                         ).permitAll()
                         // 배너/이벤트 등록과 숙소 태그 매핑 변경(POST/PUT/DELETE)은 관리자 전용이다.
                         // 과거에는 이 경로 전체가 permitAll이라 인증 없이 누구나 배너·이벤트를 생성하거나
