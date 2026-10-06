@@ -135,10 +135,11 @@ public class JwtTokenProvider {
         String bearerToken = request.getHeader("Authorization");
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
             String token = bearerToken.substring(7);
-            log.info("📦 Authorization 헤더에서 AccessToken 추출 완료");
+            log.debug("📦 Authorization 헤더에서 AccessToken 추출 완료");
             return token;
         }
-        log.warn("❌ Authorization 헤더 없음 또는 형식 오류");
+        // 비로그인 요청(공개 API, 헬스 체크)마다 발생하는 정상 상황이라 DEBUG 로 남긴다 (운영 로그 소음 방지)
+        log.debug("❌ Authorization 헤더 없음 또는 형식 오류");
         return null;
     }
 

@@ -5,6 +5,7 @@ import com.honeyrest.honeyrest_user.security.JwtTokenProvider;
 import com.honeyrest.honeyrest_user.filter.JwtAuthenticationFilter;
 import com.honeyrest.honeyrest_user.security.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -23,6 +24,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -105,13 +107,18 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * CORS 허용 Origin 목록 (쉼표 구분). 운영(prod)에서는 APP_CORS_ORIGINS 환경변수로 정한다.
+     * 단일 서버 배포는 SPA 와 API 가 같은 Origin(Caddy 뒤)이라 CORS 가 사실상 쓰이지 않지만,
+     * 프론트를 다른 Origin 에 둘 때를 대비해 코드 수정 없이 바꿀 수 있게 한다.
+     */
+    @Value("${app.cors.allowed-origins:http://localhost:5173,https://honeyrest-user-react.vercel.app}")
+    private String corsAllowedOrigins;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "https://honeyrest-user-react.vercel.app"
-        ));
+        config.setAllowedOrigins(parseOrigins(corsAllowedOrigins));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -119,6 +126,19 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
+    }
+
+    /** "a, b,,c/" → [a, b, c] (공백·빈 값 제거, 끝의 / 제거 — Origin 헤더에는 경로가 붙지 않는다) */
+    static List<String> parseOrigins(String raw) {
+        if (raw == null) {
+            return List.of();
+        }
+        return Arrays.stream(raw.split(","))
+                .map(String::trim)
+                .map(origin -> origin.replaceAll("/+$", ""))
+                .filter(origin -> !origin.isEmpty())
+                .distinct()
+                .toList();
     }
 
 

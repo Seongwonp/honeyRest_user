@@ -1,0 +1,87 @@
+# =============================================================================
+# HoneyRest 단일 서버 리버스 프록시 (Caddy 2)
+#
+#   https://{$SITE_DOMAIN}         → 사용자 SPA(/srv, 이미지에 포함) + /api 등은 user-api:8080
+#   https://admin.{$SITE_DOMAIN}   → host-admin:8081 (Thymeleaf 관리자 화면)
+#
+# SITE_DOMAIN 은 docker-compose 가 .env 에서 넘겨준다.
+#   도메인이 없을 때: 공인 IP 기반 sslip.io 이름 (예: 152-70-1-2.sslip.io → 152.70.1.2 로 해석됨)
+#   도메인을 산 뒤: .env 의 SITE_DOMAIN 만 바꾸고 `docker compose up -d` (DNS A 레코드 두 개: @, admin)
+#
+# HTTPS 인증서: Caddy 가 Let's Encrypt 로 자동 발급·갱신한다 (80/443 이 외부에서 열려 있어야 함).
+# 인증서는 caddy-data 볼륨에 저장되므로 컨테이너를 다시 만들어도 재발급하지 않는다 (발급 한도 보호).
+# 설정만 바꿨다면: docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+# =============================================================================
+{
+	# 인증서 만료 안내 메일을 받으려면 아래 주석을 풀고 실제 주소를 넣는다 (선택).
+	# email you@example.com
+
+	servers {
+		# OCI 보안 목록은 TCP 80/443 만 연다 → HTTP/3(UDP) 는 쓰지 않는다
+		protocols h1 h2
+	}
+}
+
+(common_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
+
+# ---------------------------------------------------------------------------
+# 사용자 사이트: SPA + 같은 Origin 의 API
+# ---------------------------------------------------------------------------
+{$SITE_DOMAIN} {
+	import common_headers
+	encode zstd gzip
+
+	# 백엔드(사용자 API)로 보내는 경로
+	#   /api/*            REST API (인증 /api/auth/**, 토큰 재발급 /api/auth/refresh 포함)
+	#   /uploads/*        로컬 저장소 이미지 (호스트 관리자와 공유하는 uploads 볼륨)
+	#   /oauth2/*, /login/oauth2/*   Spring Security oauth2Login 엔드포인트
+	#                     (현재 SPA 는 /login/google/callback, /login/kakao/callback 을 SPA 라우트로 받고
+	#                      code 를 /api/auth/** 로 넘기므로 실제로는 거의 쓰이지 않지만 경로는 열어 둔다)
+	# 주의: /login, /login/google/callback 같은 SPA 라우트는 프록시하지 않는다.
+	# Swagger 를 공개하려면 .env 에 SPRINGDOC_ENABLED=true 로 두고 아래 줄 끝에 /swagger-ui* /api-docs* 를 추가한다.
+	@backend path /api/* /uploads/* /oauth2/* /login/oauth2/*
+	handle @backend {
+		reverse_proxy user-api:8080
+	}
+
+	# 그 외는 SPA 정적 파일. 없는 경로(/reserve, /user/mypage/... 등 클라이언트 라우트)는 index.html 로 대체
+	handle {
+		root * /srv
+
+		# 해시가 붙은 빌드 산출물은 1년 캐시, 나머지(index.html 등)는 매번 재검증
+		@hashed path /assets/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		@not_hashed not path /assets/*
+		header @not_hashed Cache-Control "no-cache"
+
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
+
+# ---------------------------------------------------------------------------
+# 관리자 사이트 (업체 관리자 / 총관리자)
+# ---------------------------------------------------------------------------
+admin.{$SITE_DOMAIN} {
+	import common_headers
+	encode zstd gzip
+
+	reverse_proxy host-admin:8081
+
+	log {
+		output stdout
+		format console
+	}
+}

@@ -142,6 +142,16 @@ flowchart LR
 
 ---
 
+## 배포
+
+- **라이브**: 사용자 `https://<IP>.sslip.io` · 관리자 `https://admin.<IP>.sslip.io` _(배포 후 실제 주소로 교체)_
+- **구성**: Oracle Cloud Always Free ARM VM 한 대에 Docker Compose — Caddy(자동 HTTPS + SPA 정적 파일) · 사용자 API · 관리자 앱 · MySQL 8.0 · Redis 7. SPA 와 API 가 같은 Origin 이라 CORS 없이 동작합니다.
+- **설치**: SSH 접속 후 `deploy/setup.sh` 한 번 (Docker 설치·스왑·방화벽·`.env` 비밀값 생성·빌드·시드) → 업데이트 `deploy/update.sh` · 롤백 `deploy/rollback.sh` · 백업 `deploy/backup.sh`
+- **운영 프로필**: [`application-prod.properties`](src/main/resources/application-prod.properties) — 비밀값은 전부 환경변수, 메일·결제·소셜 로그인 키가 없어도 기동 (메일은 no-op 발송기로 대체). [`ProdProfileStartupTest`](src/test/java/com/honeyrest/honeyrest_user/config/ProdProfileStartupTest.java)가 필수 환경변수만으로 컨텍스트가 뜨는지 검증합니다.
+- 상세 절차·문제 해결: [docs/DEPLOY.md](docs/DEPLOY.md)
+
+---
+
 ## 실행 방법
 
 **필요 환경**: JDK 17, MySQL 8, Redis (기본 포트 6379)
@@ -187,7 +197,7 @@ Swagger UI: `http://localhost:8080/swagger-ui.html` · 상세 설정: [SETUP.md]
 ./gradlew integrationTest    # Docker 필요: 실제 MySQL 8.0 으로 마이그레이션·스키마 검증 (CI 2단계)
 ```
 
-- **133개 테스트** (API 127 + 도메인 모듈 6) — 결제 보상(`PaymentOrchestrationServiceTest`), 재고 겹침(`ReserveServiceTest`), 가격 계산(`PriceCalculatorTest`), 토큰 폐기(`JwtTokenProviderTest`), 관리자 쓰기 API 인가(`AdminWriteApiSecurityTest`), 검색 캐시 키, 로컬 파일 저장소 등
+- **143개 테스트** (API 137 + 도메인 모듈 6) — 결제 보상(`PaymentOrchestrationServiceTest`), 재고 겹침(`ReserveServiceTest`), 가격 계산(`PriceCalculatorTest`), 토큰 폐기(`JwtTokenProviderTest`), 관리자 쓰기 API 인가(`AdminWriteApiSecurityTest`), 검색 캐시 키, 로컬 파일 저장소, 운영(prod) 프로필 기동(`ProdProfileStartupTest`) 등
 - **test 프로필**: H2 인메모리(MySQL 모드) + 더미 시크릿 + `app.storage.type=local` + `spring.cache.type=simple` → 외부 서비스 없이 어디서든 동일하게 동작하고 개발 DB를 건드리지 않습니다.
 - **트레이드오프**: V3·V10 등 일부 마이그레이션이 MySQL 전용 구문(`information_schema` 조회 + `PREPARE`)을 써서 테스트에서는 Flyway를 끄고 엔티티로 스키마를 생성(`create-drop`)합니다. 마이그레이션 SQL 자체는 아래 스키마 통합 테스트가 따로 검증합니다. 동시성 역시 락 호출·겹침 판정을 단위 테스트로 검증했고, 실제 병렬 부하 테스트는 아직 없습니다.
 - **스키마 통합 테스트** (`@Tag("integration")`, 기본 `test`에서는 제외): [`FlywayMigrationMySqlIntegrationTest`](src/test/java/com/honeyrest/honeyrest_user/schema/FlywayMigrationMySqlIntegrationTest.java)가 Testcontainers로 `mysql:8.0`을 띄워 빈 DB에 V1~최신을 적용하고, ① 모든 마이그레이션 성공 ② `reservation.accommodation_name` NOT NULL ③ 사용자 엔티티 `ddl-auto=validate` 통과 ④ V10·V11 재실행 안전성을 확인합니다. 관리자 앱 쪽은 [honeyRest_host](https://github.com/Seongwonp/honeyRest_host)의 `integrationTest`가 서브모듈(`libs/honeyrest-user`)에 들어 있는 이 저장소의 마이그레이션으로 공유 엔티티 + 관리자 전용 엔티티를 교차 검증합니다.

@@ -4,6 +4,8 @@ import com.honeyrest.honeyrest_user.dto.reservation.ReservationCompleteDTO;
 import com.honeyrest.domain.entity.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -17,14 +19,20 @@ import jakarta.mail.internet.MimeMessage;
  * <p>
  * e2e 프로필에서는 이 빈 대신 메일을 보내지 않는 {@code e2e.E2eNoOpEmailService} 가 등록된다.
  * (e2e 에서는 인증 토큰을 {@code GET /e2e/verification-token} 으로 조회한다.)
+ * 메일 설정이 없으면({@link MailEnabledCondition}) 이 빈 대신 발송하지 않는 {@link NoOpEmailService} 가 등록된다.
  */
 @Log4j2
 @Service
 @Profile("!e2e")
+@Conditional(MailEnabledCondition.class)
 @RequiredArgsConstructor
 public class EmailService {
 
     private final JavaMailSender mailSender;
+
+    /** 메일 본문 링크의 기준 URL (프론트엔드 주소). 운영에서는 APP_BASE_URL 로 정한다. */
+    @Value("${app.base-url:http://localhost:5173}")
+    private String baseUrl;
 
     @Async
     public void sendReservationConfirmation(String email, ReservationCompleteDTO dto) {
@@ -104,7 +112,7 @@ public class EmailService {
     @Async
     public void sendPasswordReset(String email, String tokenValue) {
         try {
-            String resetLink = "http://localhost:5173/reset-password/change?token=" + tokenValue;
+            String resetLink = baseUrl + "/reset-password/change?token=" + tokenValue;
 
             String html = """
             <html>

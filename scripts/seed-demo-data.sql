@@ -61,7 +61,7 @@ INSERT INTO reservation (
     created_at, updated_at, user_id, room_id, accommodation_id, room_name,
     reservation_number, check_in_date, check_out_date, guest_count,
     guest_name, guest_phone, price, original_price, discount_amount,
-    status, special_requests, accommodation_name, version
+    status, special_requests, accommodation_name
 )
 SELECT
     DATE_SUB(NOW(6), INTERVAL f.days_ago DAY), DATE_SUB(NOW(6), INTERVAL f.days_ago DAY),
@@ -70,7 +70,7 @@ SELECT
     DATE_SUB(CURDATE(), INTERVAL f.days_ago DAY),
     DATE_ADD(DATE_SUB(CURDATE(), INTERVAL f.days_ago DAY), INTERVAL 1 DAY),
     2, u.name, u.phone, 74000.00, 74000.00, 0.00,
-    'COMPLETED', '로컬 데모 데이터', @demo_accommodation_name, 0
+    'COMPLETED', '로컬 데모 데이터', @demo_accommodation_name
 FROM demo_review_fixture f
 JOIN `user` u ON u.email = f.email
 WHERE @demo_accommodation_id IS NOT NULL AND @demo_room_id IS NOT NULL

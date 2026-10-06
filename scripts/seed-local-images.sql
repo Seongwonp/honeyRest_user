@@ -26,17 +26,17 @@ WHERE thumbnail LIKE '%firebasestorage%';
 
 -- 숙소 상세 이미지 (stay-1 ~ stay-4 순환)
 UPDATE accommodation_image
-SET image_url = CONCAT('/uploads/placeholder/stay-', MOD(accommodation_image_id, 4) + 1, '.svg')
+SET image_url = CONCAT('/uploads/placeholder/stay-', MOD(image_id, 4) + 1, '.svg')
 WHERE image_url LIKE '%firebasestorage%';
 
 -- 객실 이미지 (room-1 ~ room-2 순환)
 UPDATE room_image
-SET image_url = CONCAT('/uploads/placeholder/room-', MOD(room_image_id, 2) + 1, '.svg')
+SET image_url = CONCAT('/uploads/placeholder/room-', MOD(image_id, 2) + 1, '.svg')
 WHERE image_url LIKE '%firebasestorage%';
 
 -- 리뷰 이미지 (review-1 ~ review-2 순환)
 UPDATE review_image
-SET image_url = CONCAT('/uploads/placeholder/review-', MOD(review_image_id, 2) + 1, '.svg')
+SET image_url = CONCAT('/uploads/placeholder/review-', MOD(image_id, 2) + 1, '.svg')
 WHERE image_url LIKE '%firebasestorage%';
 
 -- 배너 이미지 (banner-1 ~ banner-2 순환)

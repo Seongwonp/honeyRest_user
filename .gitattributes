@@ -1,3 +1,8 @@
 /gradlew text eol=lf
 *.bat text eol=crlf
 *.jar binary
+# 배포 스크립트·설정은 Linux 서버에서 실행되므로 항상 LF
+*.sh text eol=lf
+deploy/Caddyfile text eol=lf
+deploy/.env.example text eol=lf
+Dockerfile text eol=lf

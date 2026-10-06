@@ -1,0 +1,35 @@
+# 사용자 API 이미지 빌드 컨텍스트에서 제외할 파일 (빌드 속도·이미지 크기·비밀값 유출 방지)
+
+# Git / IDE / OS
+.git
+.github
+.idea
+.vscode
+**/.DS_Store
+*.iml
+
+# Gradle 산출물 (이미지 안에서 새로 빌드한다)
+.gradle
+**/.gradle
+build
+**/build
+out
+bin
+
+# 비밀값: 로컬 개발용 시크릿 파일·Firebase 키는 절대 이미지에 넣지 않는다 (prod 는 환경변수 사용)
+**/application_security.properties
+**/*firebase-adminsdk*.json
+**/honeyrest-7fb60-*.json
+.env
+.env.*
+deploy/.env
+deploy/.env.*
+
+# 배포 번들·문서·대용량 미디어 (런타임에 불필요)
+deploy
+docs
+scripts
+*.md
+*.mp4
+*.gif
+uploads

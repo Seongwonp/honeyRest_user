@@ -1,0 +1,216 @@
+# =============================================================================
+# HoneyRest 단일 서버 배포 (Oracle Cloud Always Free ARM VM 기준: 1 OCPU / 6GB RAM)
+#
+# 디렉터리 구조 (setup.sh 가 이렇게 클론한다)
+#   /opt/honeyrest/
+#     honeyRest_user/          ← 이 저장소. deploy/ 에서 compose 를 실행한다
+#     honeyRest_host/          ← 관리자 앱 (서브모듈 libs/honeyrest-user 포함)
+#     honeyrest_user_react/    ← 사용자 SPA
+#
+# 사용법 (deploy/ 디렉터리에서)
+#   cp .env.example .env  # setup.sh 가 비밀값을 생성해 자동으로 만든다
+#   docker compose build user-api && docker compose build host-admin && docker compose build caddy
+#   docker compose up -d
+#
+# 기동 순서: mysql·redis(healthy) → user-api(Flyway 마이그레이션 후 healthy) → host-admin(validate) → caddy
+#
+# 메모리 예산 (6GB 기준, 각 컨테이너 mem_limit 은 .env 로 조정)
+#   mysql 768m + redis 160m + user-api 1g + host-admin 900m + caddy 192m ≈ 3.0GB
+#   → 나머지는 OS·페이지 캐시·이미지 빌드(Gradle/Node)용. setup.sh 가 스왑 파일도 만든다.
+# =============================================================================
+
+name: honeyrest
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  # ---------------------------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD 가 .env 에 없습니다}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-honeyrest_db}
+      MYSQL_USER: ${MYSQL_USER:-honeyrest}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD 가 .env 에 없습니다}
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+09:00
+      - --innodb-buffer-pool-size=${MYSQL_INNODB_BUFFER_POOL_SIZE:-256M}
+      - --innodb-log-buffer-size=8M
+      - --max-connections=60
+      - --performance-schema=OFF
+      - --skip-name-resolve
+      - --table-open-cache=400
+    volumes:
+      - mysql-data:/var/lib/mysql
+    # 초기화 중(임시 서버, 네트워크 비활성)에는 TCP ping 이 실패하므로 실제 서버가 뜬 뒤에만 healthy 가 된다
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_ROOT_PASSWORD\" mysqladmin ping -h 127.0.0.1 -uroot --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    mem_limit: ${MYSQL_MEM_LIMIT:-768m}
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # 영속화 없음(캐시·토큰·발송 한도 용도). 재시작하면 로그인 세션(리프레시 토큰)이 초기화될 수 있다.
+    command:
+      - redis-server
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+      - --maxmemory
+      - ${REDIS_MAXMEMORY:-128mb}
+      - --maxmemory-policy
+      - allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    mem_limit: ${REDIS_MEM_LIMIT:-160m}
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  user-api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: honeyrest/user-api:latest
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      TZ: Asia/Seoul
+      JAVA_OPTS: ${USER_API_JAVA_OPTS:--XX:MaxRAMPercentage=70 -XX:+ExitOnOutOfMemoryError}
+      # 필수
+      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-honeyrest_db}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
+      DB_USERNAME: ${MYSQL_USER:-honeyrest}
+      DB_PASSWORD: ${MYSQL_PASSWORD:?}
+      JWT_SECRET: ${USER_JWT_SECRET:?USER_JWT_SECRET 가 .env 에 없습니다}
+      APP_BASE_URL: https://${SITE_DOMAIN:?SITE_DOMAIN 이 .env 에 없습니다}
+      APP_CORS_ORIGINS: ${APP_CORS_ORIGINS:-https://${SITE_DOMAIN}}
+      REDIS_HOST: redis
+      APP_STORAGE_LOCAL_DIR: /app/uploads
+      # 선택 (비어 있어도 기동 성공, 해당 기능만 실패)
+      TOSS_CLIENT_KEY: ${TOSS_CLIENT_KEY:-}
+      TOSS_SECRET_KEY: ${TOSS_SECRET_KEY:-}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      WEATHER_API_KEY: ${WEATHER_API_KEY:-}
+      # 빈 문자열이면 Spring OAuth2 Client 가 기동에 실패하므로 미설정 시 더미 값
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-not-configured}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-not-configured}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-not-configured}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-not-configured}
+      SPRINGDOC_ENABLED: ${SPRINGDOC_ENABLED:-false}
+    volumes:
+      - uploads:/app/uploads
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/actuator/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      # 1 OCPU 에서 첫 기동(Flyway 마이그레이션 + JPA 초기화)은 1~3분 걸릴 수 있다
+      start_period: 240s
+    mem_limit: ${USER_API_MEM_LIMIT:-1g}
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  host-admin:
+    build:
+      context: ${HOST_REPO_DIR:-../../honeyRest_host}
+      dockerfile: Dockerfile
+    image: honeyrest/host-admin:latest
+    restart: unless-stopped
+    depends_on:
+      # ddl-auto=validate 이므로 사용자 API 의 Flyway 가 스키마를 만든 뒤에 떠야 한다
+      user-api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # 데모 계정이 필요 없으면 .env 에서 HOST_SPRING_PROFILES=prod 로 바꾼다
+      SPRING_PROFILES_ACTIVE: ${HOST_SPRING_PROFILES:-prod}
+      TZ: Asia/Seoul
+      JAVA_OPTS: ${HOST_ADMIN_JAVA_OPTS:--XX:MaxRAMPercentage=70 -XX:+ExitOnOutOfMemoryError}
+      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-honeyrest_db}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
+      DB_USERNAME: ${MYSQL_USER:-honeyrest}
+      DB_PASSWORD: ${MYSQL_PASSWORD:?}
+      JWT_SECRET: ${HOST_JWT_SECRET:?HOST_JWT_SECRET 가 .env 에 없습니다}
+      REDIS_HOST: redis
+      APP_CACHE_REDIS_ENABLED: "true"
+      APP_STORAGE_LOCAL_DIR: /app/uploads
+      DEMO_COMPANY_PASSWORD: ${DEMO_COMPANY_PASSWORD:-}
+      DEMO_ADMIN_PASSWORD: ${DEMO_ADMIN_PASSWORD:-}
+    volumes:
+      - uploads:/app/uploads
+    expose:
+      - "8081"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8081/actuator/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 240s
+    mem_limit: ${HOST_ADMIN_MEM_LIMIT:-900m}
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  caddy:
+    build:
+      context: ./caddy
+      dockerfile: Dockerfile
+      additional_contexts:
+        spa: ${REACT_REPO_DIR:-../../honeyrest_user_react}
+      args:
+        VITE_ADMIN_URL: https://admin.${SITE_DOMAIN:?}
+        VITE_OAUTH_REDIRECT_URI: https://${SITE_DOMAIN:?}
+        VITE_TOSS_WIDGET_CLIENT_KEY: ${TOSS_CLIENT_KEY:-}
+        VITE_KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-}
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+        VITE_APP_GOOGLE_MAPS_KEY: ${GOOGLE_MAPS_API_KEY:-}
+        VITE_GOOGLE_MAP_ID: ${GOOGLE_MAP_ID:-}
+        VITE_HOLIDAY_API_KEY: ${HOLIDAY_API_KEY:-}
+    image: honeyrest/caddy:latest
+    restart: unless-stopped
+    depends_on:
+      user-api:
+        condition: service_healthy
+      host-admin:
+        condition: service_started
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    mem_limit: ${CADDY_MEM_LIMIT:-192m}
+    logging: *default-logging
+
+volumes:
+  mysql-data:
+  uploads:
+  caddy-data:
+  caddy-config:
