@@ -33,3 +33,5 @@ scripts
 *.mp4
 *.gif
 uploads
+# 예외: 데모 이미지(Dockerfile.render)는 플레이스홀더 이미지를 넣는다 (운영 Dockerfile 은 이 디렉터리를 쓰지 않음)
+!uploads/placeholder

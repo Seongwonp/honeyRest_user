@@ -12,11 +12,11 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 /**
- * Redis 템플릿 설정. e2e 프로필에서는 Redis 서버 없이 동작하는 인메모리 템플릿
+ * Redis 템플릿 설정. e2e·demo 프로필에서는 Redis 서버 없이 동작하는 인메모리 템플릿
  * ({@code e2e.E2eRedisConfig}) 이 같은 이름의 빈으로 대신 등록된다.
  */
 @Configuration
-@Profile("!e2e")
+@Profile("!e2e & !demo")
 public class RedisConfig {
 
     @Bean

@@ -1,5 +1,7 @@
 package com.honeyrest.honeyrest_user.e2e;
 
+import com.honeyrest.honeyrest_user.demo.DemoPopularityWarmup;
+import com.honeyrest.honeyrest_user.demo.DemoSpaFallbackController;
 import com.honeyrest.honeyrest_user.service.email.EmailService;
 import com.honeyrest.honeyrest_user.service.email.SmtpEmailService;
 import com.honeyrest.honeyrest_user.service.payment.HttpTossClient;
@@ -16,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * e2e 전용 빈(테스트 보조 엔드포인트, 토스 스텁, 메일 no-op, 인메모리 Redis)이
- * e2e 가 아닌 프로필에는 절대 등록되지 않는지 확인한다. 운영 배선이 그대로인지도 함께 본다.
+ * e2e(·demo) 가 아닌 프로필에는 절대 등록되지 않는지 확인한다. 운영 배선이 그대로인지도 함께 본다.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -34,6 +36,13 @@ class E2eProfileIsolationTest {
         assertThat(context.getBeanNamesForType(E2eNoOpEmailService.class)).isEmpty();
         assertThat(context.getBeanNamesForType(E2eRedisConfig.class)).isEmpty();
         assertThat(context.getBeanNamesForType(InMemoryRedisTemplate.class)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("demo 전용 빈(SPA 폴백, 인기 점수 초기화)도 없다")
+    void demoBeansAbsent() {
+        assertThat(context.getBeanNamesForType(DemoSpaFallbackController.class)).isEmpty();
+        assertThat(context.getBeanNamesForType(DemoPopularityWarmup.class)).isEmpty();
     }
 
     @Test

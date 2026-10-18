@@ -18,6 +18,21 @@
 
 ---
 
+## 라이브 데모
+
+> Render 무료 플랜의 **보여주기용 데모**입니다. 15분 동안 접속이 없으면 잠들어 **첫 접속에 1~3분** 걸리고(콜드 스타트), 깨어날 때마다 데이터가 초기화됩니다.
+> 결제는 **"테스트 결제(데모)"** 로 진행되어 실제로 청구되지 않습니다. 주소에 접미사가 붙었다면 아래 링크를 실제 주소로 바꿔 주세요.
+
+| 사이트 | 주소 | 데모 계정 (공개용) |
+|--------|------|-------------------|
+| 사용자 | https://honeyrest.onrender.com | `demo@honeyrest.app` / `Demo1234!` — 로그인 화면의 "데모 계정으로 로그인" |
+| 관리자 | https://honeyrest-admin.onrender.com | 업체 관리자 `contact@honeyrest.com` / `Demo1234!` · 최고 관리자 `admin@honeyrest.com` / `Demo1234!` |
+
+- 두 사이트는 데모에서 **DB 가 분리**되어 있어(각자 H2 인메모리) 관리자에서 바꾼 내용이 사용자 사이트에 보이지 않습니다.
+- 구성·배포 절차: [docs/DEPLOY_RENDER.md](docs/DEPLOY_RENDER.md)
+
+---
+
 ## 역할
 
 **팀 프로젝트 (2025.08.04 ~ 2025.09.04, 4주, 3명)**
@@ -149,6 +164,7 @@ flowchart LR
 - **설치**: SSH 접속 후 `deploy/setup.sh` 한 번 (Docker 설치·스왑·방화벽·`.env` 비밀값 생성·빌드·시드) → 업데이트 `deploy/update.sh` · 롤백 `deploy/rollback.sh` · 백업 `deploy/backup.sh`
 - **운영 프로필**: [`application-prod.properties`](src/main/resources/application-prod.properties) — 비밀값은 전부 환경변수, 메일·결제·소셜 로그인 키가 없어도 기동 (메일은 no-op 발송기로 대체). [`ProdProfileStartupTest`](src/test/java/com/honeyrest/honeyrest_user/config/ProdProfileStartupTest.java)가 필수 환경변수만으로 컨텍스트가 뜨는지 검증합니다.
 - 상세 절차·문제 해결: [docs/DEPLOY.md](docs/DEPLOY.md)
+- **무료 데모(Render)**: [`render.yaml`](render.yaml) Blueprint 로 사용자(SPA+API 한 컨테이너, [`Dockerfile.render`](Dockerfile.render))·관리자 두 서비스를 띄운다. `demo` 프로필([`application-demo.properties`](src/main/resources/application-demo.properties)) = H2 인메모리 + [`db/demo-seed.sql`](src/main/resources/db/demo-seed.sql) + e2e 와 같은 스텁(토스·메일·인메모리 Redis), `/e2e/**` 는 없음 → [docs/DEPLOY_RENDER.md](docs/DEPLOY_RENDER.md)
 
 ---
 
@@ -217,11 +233,12 @@ Swagger UI: `http://localhost:8080/swagger-ui.html` · 상세 설정: [SETUP.md]
 | DB | H2 인메모리(MySQL 모드), `create-drop`, Flyway 끔 — 기동할 때마다 새로 만든 뒤 시드 적재(`spring.sql.init` + `defer-datasource-initialization`) | [`application-e2e.properties`](src/main/resources/application-e2e.properties), [`db/e2e-seed.sql`](src/main/resources/db/e2e-seed.sql) |
 | 시드 | 지역 4, 숙소 2(객실 3 — 그중 `total_rooms=1` 객실 1개), 태그 3, 인증 완료 회원 `e2e.user@honeyrest.test` / `Honey1234!`, 쿠폰 1 | `db/e2e-seed.sql` (BCrypt 해시 재생성 방법은 파일 주석) |
 | Redis | 자동 설정 제외 + 같은 이름의 인메모리 `RedisTemplate` (TTL·값/리스트/집합/정렬 집합/scan) | `e2e/E2eRedisConfig`, `e2e/InMemoryRedisTemplate` |
-| 메일 | `EmailService` 포트의 구현으로 SMTP(`SmtpEmailService`, `@Profile("!e2e")`) 대신 발송하지 않는 `E2eNoOpEmailService` | `e2e/E2eNoOpEmailService` |
+| 메일 | `EmailService` 포트의 구현으로 SMTP(`SmtpEmailService`, `@Profile("!e2e & !demo")`) 대신 발송하지 않는 `E2eNoOpEmailService` | `e2e/E2eNoOpEmailService` |
 | 토스 결제 | `TossService` 가 쓰는 `TossClient` 인터페이스의 스텁: 어떤 paymentKey/orderId/amount 든 `DONE` 승인, 조회는 `DONE`, 취소는 기록. 금액·재고·중복 검증은 실제와 동일 | `service/payment/TossClient`, `e2e/E2eTossClient` |
 | 테스트 보조 API | `GET /e2e/verification-token?email=` (최근 가입 인증 토큰), `POST /e2e/reservations/{id}/complete` (COMPLETED 전환), `GET /e2e/toss/cancellations` | `e2e/E2eSupportController` |
 
-- **운영 배선은 그대로**: 기본·local·test 프로필은 실제 HTTP 구현 `HttpTossClient`(`@Profile("!e2e")`), 메일은 `SmtpEmailService`(메일 설정이 없으면 `NoOpEmailService`), Redis 는 `RedisConfig` 를 쓴다. H2 는 `developmentOnly`(bootRun 전용)로 추가해 `bootJar` 에는 포함되지 않는다.
+- **운영 배선은 그대로**: 기본·local·test 프로필은 실제 HTTP 구현 `HttpTossClient`(`@Profile("!e2e & !demo")`), 메일은 `SmtpEmailService`(메일 설정이 없으면 `NoOpEmailService`), Redis 는 `RedisConfig` 를 쓴다. H2 는 `developmentOnly`(bootRun 전용)로 추가해 `bootJar` 에는 포함되지 않는다(데모 이미지만 `bootJar -Pdemo` 로 넣는다).
+- **demo 프로필과 공유**: 토스 스텁·메일 no-op·인메모리 Redis 빈은 `@Profile({"e2e", "demo"})` 로 Render 무료 데모(`demo`)와 함께 쓰고, `/e2e/**` 컨트롤러만 `@Profile("e2e")` 로 남겨 데모에는 노출하지 않는다.
 - **`/e2e/**` 는 e2e 프로필에만 존재한다**: 컨트롤러가 `@Profile("e2e")` 라 다른 프로필에서는 빈 자체가 없어 경로가 매핑되지 않는다. [`E2eProfileIsolationTest`](src/test/java/com/honeyrest/honeyrest_user/e2e/E2eProfileIsolationTest.java)가 test 프로필에서 e2e 전용 빈이 하나도 없는지와 운영 배선을 검증한다. 운영 DB·비밀값과 함께 e2e 프로필을 켜지 말 것.
 
 ---

@@ -118,6 +118,14 @@ dependencies {
 
 }
 
+// Render 무료 데모 이미지(Dockerfile.render)는 ./gradlew bootJar -Pdemo 로 빌드해 H2 드라이버를 실행 jar 에 넣는다.
+// (demo 프로필 = H2 인메모리 DB). 속성을 주지 않는 일반/운영 bootJar 에는 H2 가 들어가지 않는다.
+if (providers.gradleProperty('demo').isPresent()) {
+    dependencies {
+        runtimeOnly 'com.h2database:h2'
+    }
+}
+
 def querydslDir = file("$buildDir/generated/sources/annotationProcessor/java/main")
 
 sourceSets {

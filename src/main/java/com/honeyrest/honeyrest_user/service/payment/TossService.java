@@ -24,7 +24,7 @@ public class TossService {
 
     /**
      * 토스 API 호출 경계. 기본 프로필은 실제 API 를 호출하는 {@link HttpTossClient},
-     * e2e 프로필은 항상 승인하는 스텁이 주입된다 (운영 배선은 그대로).
+     * e2e·demo 프로필은 항상 승인하는 스텁이 주입된다 (운영 배선은 그대로).
      */
     private final TossClient tossClient;
 

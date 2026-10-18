@@ -1,0 +1,104 @@
+# syntax=docker/dockerfile:1
+# =============================================================================
+# Render 무료 데모 이미지 — 사용자 사이트 "honeyrest" (render.yaml 의 honeyrest 서비스)
+#   하나의 컨테이너가 React SPA(정적 파일)와 사용자 API 를 같은 Origin 에서 함께 서빙한다.
+#   (운영 배포는 deploy/ 의 Caddy + docker-compose 구성을 쓴다. 이 파일은 데모 전용이며 운영 이미지와 무관하다.)
+#
+#   1단계(spa)    : 프론트엔드 저장소를 git clone(alpine/git) 해 VITE_DEMO=true 로 빌드 (VITE_BACKEND_URL 은 비움 → 상대 경로 /api)
+#   2단계(build)  : Gradle bootJar -Pdemo (H2 드라이버 포함)
+#   3단계(runtime): JRE 17 + jar(풀어서 실행) + SPA(dist → /app/static) + 플레이스홀더 이미지(/app/uploads/placeholder)
+#
+# 로컬 확인:
+#   docker build -f Dockerfile.render -t honeyrest-demo .
+#   docker run --rm -p 8080:8080 --memory=512m --cpus=0.1 honeyrest-demo
+#
+# 빌드 인자: Render 는 서비스 환경변수를 같은 이름의 빌드 인자로도 넘긴다(render.yaml envVars → ARG).
+#   FRONTEND_REF   : 프론트엔드 브랜치/태그 (기본 master)
+#   VITE_ADMIN_URL : 데모 배너의 "관리자 데모 열기" 링크 (예: https://honeyrest-admin.onrender.com)
+# 주의: 프론트엔드만 바뀌고 이 저장소가 그대로면 Render 의 레이어 캐시 때문에 clone 단계가 재사용될 수 있다.
+#       그럴 때는 Render 대시보드에서 "Manual Deploy → Clear build cache & deploy" (docs/DEPLOY_RENDER.md).
+# =============================================================================
+
+# 프론트엔드 소스 가져오기 (git 이 들어 있는 작은 이미지 — 패키지 설치 없이 clone 만 한다)
+FROM alpine/git:2.49.1 AS frontend-src
+ARG FRONTEND_REPO=https://github.com/Seongwonp/honeyrest_user_react
+ARG FRONTEND_REF=master
+RUN git clone --depth 1 --branch "${FRONTEND_REF}" "${FRONTEND_REPO}" /spa \
+ && git -C /spa log -1 --format='frontend commit: %h %s' \
+ && rm -rf /spa/.git
+
+# -----------------------------------------------------------------------------
+FROM node:20-alpine AS spa
+WORKDIR /spa
+COPY --from=frontend-src /spa/ ./
+RUN npm ci --no-audit --no-fund
+
+# 기본값은 render.yaml 이 예상하는 관리자 주소. Render 가 환경변수를 빌드 인자로 넘기면 그 값이 우선한다.
+ARG VITE_ADMIN_URL="https://honeyrest-admin.onrender.com"
+# - 저장소에 .env 가 섞여 있어도 무시한다 (값은 아래 빌드 인자로만 받는다)
+# - VITE_E2E 는 절대 켜지 않는다. VITE_DEMO=true 로 데모 배너·데모 로그인·"테스트 결제(데모)" 버튼을 켠다
+# - 데모 코드가 실제로 들어갔는지(data-testid="demo-login") 확인해, 데모 기능이 없는 프론트 커밋이면 빌드를 실패시킨다
+RUN rm -f .env .env.local .env.production .env.production.local \
+ && env -u VITE_E2E VITE_DEMO=true VITE_BACKEND_URL="" VITE_ADMIN_URL="${VITE_ADMIN_URL}" \
+        NODE_OPTIONS="--max-old-space-size=1536" npm run build \
+ && test -f dist/index.html \
+ && { grep -rq "demo-login" dist || { echo "프론트엔드에 VITE_DEMO 기능이 없습니다 (FRONTEND_REF 확인)" >&2; exit 1; }; }
+
+# -----------------------------------------------------------------------------
+FROM eclipse-temurin:17-jdk AS build
+WORKDIR /workspace
+ENV GRADLE_OPTS="-Xmx512m -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx1g -Dorg.gradle.workers.max=2 -Dorg.gradle.welcome=never"
+
+# 의존성 해석에 필요한 빌드 스크립트만 먼저 복사 → 소스만 바뀌면 Gradle 배포판/의존성 레이어를 재사용
+COPY gradlew settings.gradle build.gradle ./
+COPY gradle gradle
+COPY honeyrest-domain/build.gradle honeyrest-domain/build.gradle
+RUN chmod +x gradlew && sed -i 's/\r$//' gradlew \
+ && ./gradlew --no-daemon -Pdemo dependencies --configuration runtimeClasspath > /dev/null
+
+COPY honeyrest-domain honeyrest-domain
+COPY src src
+
+# -Pdemo: H2 드라이버를 실행 jar 에 포함 (build.gradle). 테스트는 CI 에서 실행하므로 생략.
+# jarmode=tools extract: 중첩 jar 대신 풀어 둔 클래스패스로 실행 → 0.1 CPU 에서 기동이 조금 빠르다.
+RUN ./gradlew --no-daemon -Pdemo bootJar -x test \
+ && find build/libs -name '*.jar' ! -name '*-plain.jar' -exec cp {} /workspace/app.jar \; \
+ && test -s /workspace/app.jar \
+ && java -Djarmode=tools -jar /workspace/app.jar extract --destination /workspace/extracted
+
+# -----------------------------------------------------------------------------
+FROM eclipse-temurin:17-jre AS runtime
+
+ARG APP_UID=10001
+RUN groupadd --system --gid ${APP_UID} honeyrest \
+ && useradd --system --uid ${APP_UID} --gid honeyrest --home-dir /app --shell /usr/sbin/nologin honeyrest \
+ && mkdir -p /app/uploads /app/static \
+ && chown -R honeyrest:honeyrest /app
+
+WORKDIR /app
+COPY --from=build --chown=honeyrest:honeyrest /workspace/extracted/ /app/
+COPY --from=spa --chown=honeyrest:honeyrest /spa/dist/ /app/static/
+COPY --chown=honeyrest:honeyrest uploads/placeholder /app/uploads/placeholder
+
+# JAVA_TOOL_OPTIONS: 512MB / 0.1 CPU 용 JVM 옵션 (render.yaml 에서 덮어쓸 수 있다, docs/DEPLOY_RENDER.md 참고)
+#   실측(--memory=512m --cpus=0.1): 힙 사용 ~70MB, 메타스페이스 ~105MB, 컨테이너 메모리 ~240~270MB
+#   → 힙 상한은 50%(256MB)면 충분하고, 나머지를 메타스페이스·CDS·스레드 스택에 남긴다.
+ENV TZ=Asia/Seoul \
+    SPRING_PROFILES_ACTIVE=demo \
+    APP_STATIC_DIR=/app/static \
+    APP_STORAGE_LOCAL_DIR=/app/uploads \
+    JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=50 -XX:+UseSerialGC -Xss512k -XX:MaxMetaspaceSize=160m -XX:TieredStopAtLevel=1 -XX:+ExitOnOutOfMemoryError"
+
+# CDS(클래스 데이터 공유) 아카이브: 빌드 중에 한 번 컨텍스트를 띄웠다가(onRefresh 에서 종료) 로딩한 클래스를 저장해 두면
+# 실제 기동 때 클래스 로딩/검증 시간이 크게 줄어든다 (0.1 CPU 에서 체감이 큼). H2 인메모리라 외부 연결 없이 끝난다.
+# 아카이브가 없거나 JVM 이 맞지 않으면 JVM 이 무시하고 평소처럼 기동하므로, 실패해도 이미지 빌드는 계속한다.
+RUN java -XX:ArchiveClassesAtExit=/app/app.jsa -Dspring.context.exit=onRefresh -jar /app/app.jar > /tmp/cds-training.log 2>&1 \
+ ; if [ -s /app/app.jsa ]; then chown honeyrest:honeyrest /app/app.jsa && echo "CDS archive: $(du -h /app/app.jsa | cut -f1)"; \
+   else echo "CDS 아카이브 생성 실패 (기동은 가능, 느릴 뿐)" >&2; tail -20 /tmp/cds-training.log >&2; fi \
+ ; rm -f /tmp/cds-training.log
+
+USER honeyrest
+EXPOSE 8080
+
+# Render 는 PORT 를 넘겨 준다 (application-demo.properties: server.port=${PORT:8080})
+ENTRYPOINT ["java", "-XX:SharedArchiveFile=/app/app.jsa", "-Xlog:cds=off", "-Xlog:cds+dynamic=off", "-jar", "/app/app.jar"]

@@ -13,6 +13,7 @@
 # 빌드 인자(VITE_*)는 빌드 시점에 번들에 상수로 박힌다 → 값을 바꾸면 이미지를 다시 빌드해야 한다.
 #   VITE_BACKEND_URL 은 빈 값으로 고정: SPA 와 API 가 같은 Origin 이므로 axios 가 상대 경로(/api/...)로 요청한다.
 #   VITE_E2E 는 절대 설정하지 않는다: 설정되면 토스 위젯 대신 "테스트 결제" 버튼이 번들에 들어간다.
+#   VITE_DEMO 도 설정하지 않는다: Render 무료 데모(Dockerfile.render) 전용 — 데모 배너·데모 로그인·테스트 결제(데모)가 들어간다.
 # =============================================================================
 
 FROM node:20-alpine AS spa-build
@@ -35,11 +36,11 @@ ARG VITE_GOOGLE_MAP_ID=""
 ARG VITE_HOLIDAY_API_KEY=""
 
 # - 로컬 .env 파일이 섞여 들어와도 무시되도록 지운다 (값은 위 ARG 로만 받는다)
-# - VITE_E2E 를 환경에서 제거한 채 빌드하고, E2E 전용 버튼 코드가 번들에 남았으면 빌드를 실패시킨다
+# - VITE_E2E·VITE_DEMO 를 환경에서 제거한 채 빌드하고, E2E/데모 전용 코드(data-testid 흔적)가 번들에 남았으면 빌드를 실패시킨다
 RUN rm -f .env .env.local .env.production .env.production.local \
- && env -u VITE_E2E VITE_BACKEND_URL="" NODE_OPTIONS="--max-old-space-size=1536" npm run build \
+ && env -u VITE_E2E -u VITE_DEMO VITE_BACKEND_URL="" NODE_OPTIONS="--max-old-space-size=1536" npm run build \
  && test -f dist/index.html \
- && if grep -rq "e2e-test-payment" dist; then echo "VITE_E2E 코드가 운영 번들에 포함되었습니다" >&2; exit 1; fi
+ && if grep -rqE "e2e-test-payment|demo-login|demo-banner" dist; then echo "VITE_E2E/VITE_DEMO 코드가 운영 번들에 포함되었습니다" >&2; exit 1; fi
 
 # -----------------------------------------------------------------------------
 FROM caddy:2-alpine

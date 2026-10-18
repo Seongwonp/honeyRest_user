@@ -6,13 +6,13 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.core.RedisTemplate;
 
 /**
- * e2e 프로필 전용 Redis 대체 설정.
+ * e2e·demo 프로필 전용 Redis 대체 설정.
  * <p>
- * {@code config.RedisConfig}(e2e 가 아닐 때만 등록)와 같은 빈 이름·제네릭 타입으로 인메모리 템플릿을 등록한다.
- * e2e 프로필은 Redis 자동 설정 자체를 제외하므로(application-e2e.properties) Redis 서버 연결 시도가 전혀 없다.
+ * {@code config.RedisConfig}(e2e·demo 가 아닐 때만 등록)와 같은 빈 이름·제네릭 타입으로 인메모리 템플릿을 등록한다.
+ * 두 프로필 모두 Redis 자동 설정 자체를 제외하므로(application-e2e/-demo.properties) Redis 서버 연결 시도가 전혀 없다.
  */
 @Configuration
-@Profile("e2e")
+@Profile({"e2e", "demo"})
 public class E2eRedisConfig {
 
     @Bean

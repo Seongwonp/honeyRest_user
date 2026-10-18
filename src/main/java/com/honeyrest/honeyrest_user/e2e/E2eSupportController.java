@@ -30,6 +30,7 @@ import java.util.Map;
  * {@code /e2e/**} 경로 자체가 없다(404). 경로가 {@code /api/**} 밖이라 SecurityConfig 의 {@code anyRequest().permitAll()}
  * 규칙을 타지만, 빈이 없는 프로필에서는 매핑될 핸들러가 없으므로 노출되지 않는다.
  * e2e 프로필은 H2 인메모리 DB·스텁 결제·메일 미발송 전용이므로 실제 사용자 데이터에 닿을 수 없다.
+ * 같은 스텁을 쓰는 demo 프로필(공개 데모)에도 이 컨트롤러는 등록되지 않는다 — 스텁/인메모리 빈만 {@code e2e | demo} 로 공유한다.
  * <ul>
  *     <li>{@code GET /e2e/verification-token?email=} — 가장 최근 가입 인증(SIGNUP) 토큰. 메일 대신 테스트가 사용.</li>
  *     <li>{@code POST /e2e/reservations/{id}/complete} — 예약을 COMPLETED(이용 완료)로 전환. 원래는 호스트 앱/체크아웃이 담당.</li>

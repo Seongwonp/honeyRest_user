@@ -7,9 +7,9 @@ import com.honeyrest.honeyrest_user.dto.reservation.ReservationCompleteDTO;
  * <p>
  * 구현은 프로필/조건에 따라 정확히 하나만 빈으로 등록된다.
  * <ul>
- *   <li>{@link SmtpEmailService}: e2e 가 아니고 메일 설정이 있을 때 ({@link MailEnabledCondition})</li>
- *   <li>{@link NoOpEmailService}: e2e 가 아니고 메일 설정이 없을 때 ({@link MailEnabledCondition.Disabled})</li>
- *   <li>{@code e2e.E2eNoOpEmailService}: e2e 프로필</li>
+ *   <li>{@link SmtpEmailService}: e2e·demo 가 아니고 메일 설정이 있을 때 ({@link MailEnabledCondition})</li>
+ *   <li>{@link NoOpEmailService}: e2e·demo 가 아니고 메일 설정이 없을 때 ({@link MailEnabledCondition.Disabled})</li>
+ *   <li>{@code e2e.E2eNoOpEmailService}: e2e·demo 프로필</li>
  * </ul>
  * 과거에는 no-op 구현이 SMTP 구현 클래스를 상속하고 {@code super(null)} 로 JavaMailSender 를 비워 두었다.
  * 재정의를 빠뜨리면 null 로 발송을 시도하는 구조(LSP 위반)여서 인터페이스로 분리했다.
