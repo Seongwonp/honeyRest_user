@@ -34,12 +34,12 @@ public class AuthController {
 
     @PostMapping("/login")
     public LoginResponseDTO login(@Valid @RequestBody UserLoginRequestDTO request, HttpServletResponse response) {
-        return userService.login(request, response);
+        return withRefreshCookie(userService.login(request), response);
     }
 
     @PostMapping("/social-login")
     public LoginResponseDTO socialLogin(@RequestBody SocialLoginRequestDTO request, HttpServletResponse response) {
-        return userService.socialLogin(request, response);
+        return withRefreshCookie(userService.socialLogin(request), response);
     }
 
     @PostMapping("/logout")
@@ -73,8 +73,7 @@ public class AuthController {
                 .profileImage(userInfo.getProfileImage())
                 .build();
 
-        LoginResponseDTO loginResponse = userService.socialLogin(dto,response);
-        return ResponseEntity.ok(loginResponse);
+        return ResponseEntity.ok(withRefreshCookie(userService.socialLogin(dto), response));
     }
 
     @GetMapping("/google/callback")
@@ -90,8 +89,7 @@ public class AuthController {
                 .profileImage(userInfo.getProfileImage())
                 .build();
 
-        LoginResponseDTO loginResponse = userService.socialLogin(dto,response);
-        return ResponseEntity.ok(loginResponse);
+        return ResponseEntity.ok(withRefreshCookie(userService.socialLogin(dto), response));
     }
 
     @PostMapping("/verify-password")
@@ -128,5 +126,11 @@ public class AuthController {
             log.warn("❌ Refresh 실패: {}", e.getMessage());
             return ResponseEntity.status(401).body("토큰이 유효하지 않거나 만료되었습니다.");
         }
+    }
+
+    /** 로그인 결과의 refresh token 을 HttpOnly 쿠키로 내리고, 본문(사용자 + access token)만 돌려준다. */
+    private LoginResponseDTO withRefreshCookie(LoginResult result, HttpServletResponse response) {
+        response.addHeader("Set-Cookie", refreshTokenCookieManager.create(result.refreshToken()).toString());
+        return result.response();
     }
 }

@@ -10,8 +10,8 @@ import com.honeyrest.honeyrest_user.repository.payment.PaymentRepository;
 import com.honeyrest.honeyrest_user.repository.reservation.ReservationRepository;
 import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;
 import com.honeyrest.honeyrest_user.repository.room.RoomRepository;
-import com.honeyrest.honeyrest_user.service.PointHistoryService;
-import com.honeyrest.honeyrest_user.service.UserService;
+import com.honeyrest.honeyrest_user.exception.NotFoundException;
+import com.honeyrest.honeyrest_user.service.PointService;
 import com.honeyrest.honeyrest_user.service.coupon.CouponUsageService;
 import com.honeyrest.honeyrest_user.service.redis.SearchCacheVersionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,9 +45,8 @@ class ReserveServiceTest {
     @Mock private PaymentDetailRepository paymentDetailRepository;
     @Mock private ReservationMapper reservationMapper;
     @Mock private ReviewRepository reviewRepository;
-    @Mock private UserService userService;
     @Mock private CouponUsageService couponUsageService;
-    @Mock private PointHistoryService pointHistoryService;
+    @Mock private PointService pointService;
     @Mock private SearchCacheVersionService searchCacheVersionService;
 
     @InjectMocks
@@ -115,6 +114,55 @@ class ReserveServiceTest {
     }
 
     @Test
+    @DisplayName("회원 포인트 사용 시 PointService.use 로 잔액 차감과 이력 기록을 한 번에 처리한다")
+    void createReservation_usesPointThroughPointService() {
+        User user = User.builder().userId(1L).point(5000).build();
+        ReservationRequestDTO request = ReservationRequestDTO.builder()
+                .roomId(10L)
+                .checkIn(LocalDate.now().plusDays(1))
+                .checkOut(LocalDate.now().plusDays(2))
+                .guests(2)
+                .guestName("홍길동")
+                .guestPhone("01012345678")
+                .reservationCode("RES-PT")
+                .userId(1L)
+                .usedPoint(3000)
+                .build();
+
+        when(roomRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(room));
+        when(reservationRepository.countOverlapping(eq(10L), any(), any(), anyCollection())).thenReturn(0L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        Reservation result = reserveService.createReservation(request, BigDecimal.valueOf(97000), BigDecimal.ZERO);
+
+        verify(pointService).use(user, 3000, "예약 시 포인트 사용", result.getReservationId());
+    }
+
+    @Test
+    @DisplayName("포인트를 쓰는데 사용자가 없으면 404 이고 포인트를 건드리지 않는다")
+    void createReservation_pointWithoutUser() {
+        ReservationRequestDTO request = ReservationRequestDTO.builder()
+                .roomId(10L)
+                .checkIn(LocalDate.now().plusDays(1))
+                .checkOut(LocalDate.now().plusDays(2))
+                .guests(2)
+                .guestName("홍길동")
+                .guestPhone("01012345678")
+                .reservationCode("RES-PT2")
+                .userId(77L)
+                .usedPoint(1000)
+                .build();
+
+        when(roomRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(room));
+        when(reservationRepository.countOverlapping(eq(10L), any(), any(), anyCollection())).thenReturn(0L);
+        when(userRepository.findById(77L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> reserveService.createReservation(request, BigDecimal.valueOf(1000), BigDecimal.ZERO))
+                .isInstanceOf(NotFoundException.class);
+        verifyNoInteractions(pointService);
+    }
+
+    @Test
     @DisplayName("존재하지 않는 객실 예약 시 예외 발생")
     void createReservation_roomNotFound() {
         ReservationRequestDTO request = ReservationRequestDTO.builder()
@@ -166,7 +214,7 @@ class ReserveServiceTest {
         // 락 없는 findById 가 아니라 FOR UPDATE 조회를 사용해야 한다
         verify(roomRepository, never()).findById(any());
         verify(reservationRepository, never()).save(any());
-        verifyNoInteractions(couponUsageService, userService, pointHistoryService);
+        verifyNoInteractions(couponUsageService, pointService);
     }
 
     @Test
@@ -241,8 +289,10 @@ class ReserveServiceTest {
                 .thenReturn(null);
 
         assertThatThrownBy(() -> reserveService.findGuestReservation(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("예약 정보를 찾을 수 없습니다");
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("예약 정보를 찾을 수 없습니다")
+                .extracting(e -> ((NotFoundException) e).getStatus())
+                .isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     // ── requestReservationCancel ───────────────────────────
@@ -266,6 +316,16 @@ class ReserveServiceTest {
                 .doesNotThrowAnyException();
 
         assertThat(reservation.getStatus()).isEqualTo("CANCEL_REQUEST");
+        assertThat(reservation.getCancelReason()).isEqualTo("여행 일정 변경");
+    }
+
+    @Test
+    @DisplayName("남의 예약/없는 예약 취소 요청은 404")
+    void requestReservationCancel_notFound() {
+        when(reservationRepository.findByReservationIdAndUser_UserId(1L, 2L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> reserveService.requestReservationCancel(2L, 1L, "사유"))
+                .isInstanceOf(NotFoundException.class);
     }
 
     @Test

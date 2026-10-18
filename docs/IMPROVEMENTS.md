@@ -277,7 +277,7 @@ spring.flyway.locations=classpath:db/migration
 
 ### 4. 예외 매핑
 - `PaymentController`, `EmailController` 의 미인증 `AccessDeniedException`(403) → `ApiException(401)`.
-  `ReviewController` 도 principal 이 없으면 401. `UserController` 는 이미 401 반환.
+  `ReviewController` 도 principal 이 없으면 401. `UserController` 는 `/api/user/**` 가 인증 필수라 컨트롤러 전에 401 (아래 SOLID 리팩터링 5 참고).
 
 ### 5. 이메일 남용 방지 (`service/email/EmailRateLimiter`)
 - 가입 인증/재전송, 비밀번호 재설정, 이메일 변경 메일: 용도·이메일별 10분 3회(`app.email.rate-limit.*`) 초과 시 429.
@@ -290,4 +290,62 @@ spring.flyway.locations=classpath:db/migration
   `DONE` → 즉시 전액 취소 후 `PaymentConfirmTimeoutException(reversed=true, 504)`,
   404/ABORTED 등 → `reversed=false` 실패 안내. 조회·취소 실패는 `[결제 상태 확인 실패]`/`[결제 보상 실패]` ERROR 로그로 수동 확인.
 - 토스 5xx 응답(502 경로)은 여기서 재조회하지 않는다 — 필요 시 같은 보상을 확장.
+
+## 🧱 SOLID 리팩터링
+
+동작은 그대로 두고 책임·의존 방향을 정리했다. 의도된 동작 변화는 **[변경]** 으로 표시.
+
+### 1. 메일 발송 포트 분리 (LSP) — `service/email/EmailService`
+- 문제: `NoOpEmailService`·`E2eNoOpEmailService` 가 SMTP 구현 클래스를 상속하고 `super(null)` 로 `JavaMailSender` 를 비워 뒀다.
+  메서드 하나만 재정의를 빠뜨려도 null 로 발송을 시도하는 구조라 하위 타입이 상위 타입을 안전하게 대체하지 못했다.
+- 변경: `EmailService` 를 4개 발송 메서드 인터페이스(포트)로 바꾸고 구현 3개가 각각 구현한다.
+  `SmtpEmailService`(`!e2e` + `MailEnabledCondition`), `NoOpEmailService`(`!e2e` + `MailEnabledCondition.Disabled`), `E2eNoOpEmailService`(`e2e`).
+  프로필/조건마다 빈은 정확히 하나. 호출자(결제·비밀번호 재설정·이메일 인증)는 인터페이스에만 의존한다.
+- 쓰이지 않던 중복 `util/EmailSender`(같은 MIME 발송 코드) 삭제.
+- 참고: SMTP 구현은 `@Async` 때문에 인터페이스 기반 프록시로 감싸진다. 구현 클래스 타입으로 주입받지 말 것.
+- 테스트: `EmailServiceWiringTest`(조건/프로필별 단일 빈, no-op 은 JavaMailSender 미사용), `E2eProfileIsolationTest`.
+
+### 2. 포인트 잔액 + 이력 원자화 (SRP) — `service/PointService`
+- 문제: 잔액 변경(`UserService.usePoint/addPoint`)과 이력 기록(`PointHistoryService.recordUsage/addHistory`)을 호출자가 따로 불러
+  한쪽 누락·순서 차이로 잔액과 `point_history.balance` 가 어긋날 수 있었다(예약 `ReserveService`, 리뷰 적립 `ReviewService`).
+- 변경: `PointService.earn/use/refund(user, amount, reason, relatedId)` 가 같은 트랜잭션에서 잔액 변경 + 이력 저장(변동 후 잔액)을 함께 한다.
+  변동량은 0 초과, 결과 잔액은 0 이상만 허용(부족하면 잔액·이력 모두 그대로). 적립 유효기간 1년은 서비스 상수.
+  `UserService` 의 포인트 메서드, `PointHistoryService` 의 쓰기 메서드, `PointHistoryRequestDTO` 삭제 — `PointHistoryService` 는 조회 전용.
+- 결제 사전 검증(`PaymentOrchestrationService.normalizeUsedPoint`)은 잔액만 읽으므로 그대로.
+- 테스트: `PointServiceTest`, `ReserveServiceTest`, `ReviewServiceTest`.
+
+### 3. 로그인 서비스의 웹 결합 제거 (SRP/DIP) — `UserService.login/socialLogin`
+- 문제: 서비스가 `HttpServletResponse` 를 받아 refresh token 쿠키를 직접 썼고, 토큰 발급·응답 DTO 조립이 두 메서드에 중복됐다.
+- 변경: 서비스는 `LoginResult(response, refreshToken)` 만 돌려주고, `AuthController` 가 `RefreshTokenCookieManager` 로 쿠키를 만든다
+  (`changePassword` 의 쿠키 삭제와 같은 방식). 토큰 발급은 `issueTokens`, DTO 변환은 `toUserResponse` 로 합쳤다.
+  `LoginResult.toString()` 은 토큰을 출력하지 않는다.
+
+### 4. 예약 상태 캡슐화 — `honeyrest-domain` `Reservation`, `ReservationStatus`
+- 문제: `status`·`cancelReason` 에 public setter 가 있어 어떤 상태로든 바꿀 수 있었고, 전이 규칙이 서비스마다 흩어져 있었다.
+- 변경: setter 제거. 의도를 드러내는 도메인 메서드로만 바꾼다.
+  - `requestCancel(reason)`: CONFIRMED → CANCEL_REQUEST (사용자 취소 요청, `ReserveService`)
+  - `complete()`: CONFIRMED → COMPLETED (e2e 이용 완료 보조 API, 호스트 체크아웃 완료)
+  - `cancel(reason)`: 취소 외 모든 상태 → CANCELLED (기존 동작 유지, 이제 전이표로 검증)
+  - 호스트 이전용: `approveCancelRequest(reason)`(CANCEL_REQUEST→CANCELLED), `rejectCancelRequest(reason)`(CANCEL_REQUEST→CONFIRMED, 사유 `[REJECT] ` 접두어),
+    `markNoShow()`(PENDING/CONFIRMED→NO_SHOW) — 호스트 JPQL 일괄 UPDATE 와 같은 출발 상태 조건
+  - `changeStatus(to)`: 범용 전이(호스트 관리자 화면용). 정규화 후 전이표 검증, 같은 상태면 no-op.
+- `ReservationStatus.canTransition(from, to)` / `allowedTransitions(from)` 전이표 — 두 앱의 현재 사용처에서 도출:
+  PENDING→{CONFIRMED, NO_SHOW, CANCELLED}, CONFIRMED→{CANCEL_REQUEST, COMPLETED, NO_SHOW, CANCELLED},
+  CANCEL_REQUEST→{CANCELLED, CONFIRMED}, COMPLETED→{CANCELLED}, NO_SHOW→{CANCELLED}, CANCELLED→{CONFIRMED}(관리자 복구).
+- **[변경]** `cancel()` 은 전이표에 없는 상태(예: 오타 `CANCELED`, 모르는 값)에서 이제 IllegalStateException.
+- 호스트는 엔티티 setter 를 쓰지 않아 그대로 컴파일된다. 다만 JPQL 일괄 UPDATE(취소 승인/거부, 완료, 노쇼)와
+  `update(ReservationChanges)`·빌더 재저장 경로는 전이표를 거치지 않으므로 호스트에서 도메인 메서드로 옮기는 것을 권장한다.
+- 테스트: 도메인 모듈 `ReservationStatusTest`(전이표), `ReservationTest`(도메인 메서드, setter 부재).
+
+### 5. 그 밖의 정리
+- 쿠폰 할인 계산을 `Coupon.calculateDiscount(amount)` 로 이동(`PaymentOrchestrationService` 는 사용 가능 여부만 검사).
+  유형은 `CouponDiscountType` 이 별칭으로 해석: 정률 RATE/PERCENT/PERCENTAGE, 정액 FIXED/AMOUNT.
+  **[변경]** 모르는 유형은 정액으로 조용히 처리하지 않고 IllegalStateException(결제 승인 전이라 과금 없음).
+  **[변경]** 호스트 쿠폰 등록 화면이 저장하는 `PERCENTAGE` 가 이제 정률로 계산된다(과거에는 정액으로 계산되던 버그).
+- `UserController` 의 `if (principal == null) return 401` 8곳 제거: `/api/user/**` 는 `SecurityConfig` 에서 authenticated 이고
+  (permitAll 인 `/api/user/email/**` 는 `EmailController` 소관) 익명 요청은 컨트롤러 전에 401 이 된다. 근거 테스트 `UserApiAuthenticationTest`.
+- `ReviewService`: 쓰지 않던 `RedisTemplate` 필드와 중복 주입된 `ReviewImageRepository`(두 필드) 정리, 포인트는 `PointService` 사용.
+- **[변경]** "찾을 수 없음" → 404: `NotFoundException`(`ApiException` 하위) 도입. 사용자·예약·결제·리뷰·문의·이벤트·찜 대상·예약 폼 객실 조회에 적용
+  (과거 IllegalArgumentException→400, RuntimeException→500). `deleteAccount` 의 RuntimeException(500)도 404.
+  로그인 실패(이메일/비밀번호 불일치)와 결제 요청 본문의 객실·쿠폰 검증은 기존 400 유지.
 

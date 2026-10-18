@@ -7,8 +7,7 @@ import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.security.JwtTokenProvider;
 import com.honeyrest.honeyrest_user.service.email.EmailVerificationTokenService;
 import com.honeyrest.honeyrest_user.storage.FileStorage;
-import com.honeyrest.honeyrest_user.util.RefreshTokenCookieManager;
-import jakarta.servlet.http.HttpServletResponse;
+import com.honeyrest.honeyrest_user.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -30,7 +29,9 @@ public class UserService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final FileStorage fileStorage;
-    private final RefreshTokenCookieManager refreshTokenCookieManager;
+
+    /** refresh token 유효 기간(일). 쿠키 max-age 기본값(7일)과 맞춘다. */
+    private static final int REFRESH_TOKEN_VALID_DAYS = 7;
 
     // 회원가입
     @Transactional
@@ -73,20 +74,12 @@ public class UserService {
         // 이메일 인증 메일 전송
         emailService.sendVerificationEmail(new EmailRequestDTO(savedUser.getEmail()));
 
-        return UserResponseDTO.builder()
-                .userId(savedUser.getUserId())
-                .email(savedUser.getEmail())
-                .name(savedUser.getName())
-                .phone(savedUser.getPhone())
-                .profileImage(savedUser.getProfileImage())
-                .role(savedUser.getRole())
-                .isVerified(savedUser.getIsVerified())
-                .build();
+        return toUserResponse(savedUser);
     }
 
     // 로그인 작업
     @Transactional
-    public LoginResponseDTO login(UserLoginRequestDTO dto, HttpServletResponse response) {
+    public LoginResult login(UserLoginRequestDTO dto) {
         User user = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다."));
 
@@ -103,37 +96,17 @@ public class UserService {
             throw new IllegalStateException("이메일 인증이 완료되지 않았습니다.");
         }
 
-
-        String accessToken = jwtTokenProvider.createAccessToken(user);
-        String refreshToken = jwtTokenProvider.createRefreshToken();
-        LocalDateTime expiry = LocalDateTime.now().plusDays(7);
-
-        refreshTokenService.invalidateAllByUser(user);
-        refreshTokenService.saveRefreshToken(user, refreshToken, expiry);
-
-        // RefreshToken을 HttpOnly 쿠키로 설정
-        response.addHeader("Set-Cookie", refreshTokenCookieManager.create(refreshToken).toString());
+        LoginResult result = issueTokens(user);
 
         user.updateLastLogin(LocalDateTime.now());
         userRepository.save(user);
 
-        return LoginResponseDTO.builder()
-                .user(UserResponseDTO.builder()
-                        .userId(user.getUserId())
-                        .email(user.getEmail())
-                        .name(user.getName())
-                        .phone(user.getPhone())
-                        .profileImage(user.getProfileImage())
-                        .role(user.getRole())
-                        .isVerified(user.getIsVerified())
-                        .build())
-                .accessToken(accessToken)
-                .build();
+        return result;
     }
 
     // 소셜로그인
     @Transactional
-    public LoginResponseDTO socialLogin(SocialLoginRequestDTO dto, HttpServletResponse response) {
+    public LoginResult socialLogin(SocialLoginRequestDTO dto) {
         User user = userRepository.findBySocialTypeAndSocialId(dto.getSocialType(), dto.getSocialId())
                 .orElseGet(() -> {
                     User newUser = User.builder()
@@ -154,34 +127,44 @@ public class UserService {
             throw new IllegalStateException("탈퇴한 계정은 로그인할 수 없습니다.");
         }
 
+        return issueTokens(user);
+    }
+
+    /**
+     * access/refresh token 을 발급하고 기존 refresh token 을 모두 폐기한 뒤 새 토큰을 저장한다.
+     * refresh token 쿠키는 컨트롤러가 {@link LoginResult#refreshToken()} 으로 만든다.
+     */
+    private LoginResult issueTokens(User user) {
         String accessToken = jwtTokenProvider.createAccessToken(user);
         String refreshToken = jwtTokenProvider.createRefreshToken();
-        LocalDateTime expiry = LocalDateTime.now().plusDays(7);
+        LocalDateTime expiry = LocalDateTime.now().plusDays(REFRESH_TOKEN_VALID_DAYS);
 
         refreshTokenService.invalidateAllByUser(user);
         refreshTokenService.saveRefreshToken(user, refreshToken, expiry);
 
-        // RefreshToken을 HttpOnly 쿠키로 설정
-        response.addHeader("Set-Cookie", refreshTokenCookieManager.create(refreshToken).toString());
-
-        return LoginResponseDTO.builder()
-                .user(UserResponseDTO.builder()
-                        .userId(user.getUserId())
-                        .email(user.getEmail())
-                        .name(user.getName())
-                        .phone(user.getPhone())
-                        .profileImage(user.getProfileImage())
-                        .role(user.getRole())
-                        .isVerified(user.getIsVerified())
-                        .build())
+        LoginResponseDTO response = LoginResponseDTO.builder()
+                .user(toUserResponse(user))
                 .accessToken(accessToken)
+                .build();
+        return new LoginResult(response, refreshToken);
+    }
+
+    private static UserResponseDTO toUserResponse(User user) {
+        return UserResponseDTO.builder()
+                .userId(user.getUserId())
+                .email(user.getEmail())
+                .name(user.getName())
+                .phone(user.getPhone())
+                .profileImage(user.getProfileImage())
+                .role(user.getRole())
+                .isVerified(user.getIsVerified())
                 .build();
     }
 
     @Transactional(readOnly = true)
     public UserInfoDTO getUserInfo(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
         return UserInfoDTO.from(user);
     }
 
@@ -191,7 +174,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public boolean verifyPassword(Long userId, String password) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
         return passwordEncoder.matches(password, user.getPasswordHash());
     }
 
@@ -202,7 +185,7 @@ public class UserService {
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
 
         boolean emailChanged = !user.getEmail().equals(dto.getEmail());
 
@@ -221,7 +204,7 @@ public class UserService {
     public String updateProfileImage(Long userId, MultipartFile file) throws Exception {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+                .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
         fileStorage.delete("profile", user.getProfileImage());
 
         String imgUrl = fileStorage.upload(file,"profile");
@@ -234,7 +217,7 @@ public class UserService {
     @Transactional
     public void changePassword(Long userId, String currentPassword, String newPassword) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
 
         if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
             throw new IllegalArgumentException("현재 비밀번호가 올바르지 않습니다.");
@@ -267,39 +250,8 @@ public class UserService {
     @Transactional
     public void deleteAccount(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("유저를 찾을 수 없습니다."));
         user.deleteAccount();
         userRepository.save(user);
     }
-
-    @Transactional
-    public void usePoint(Long userId, Integer usedPoint) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다"));
-
-        int current = user.getPoint();
-        if (current < usedPoint) {
-            throw new IllegalArgumentException("사용 가능한 포인트가 부족합니다");
-        }
-
-        user.updatePoint(current - usedPoint);
-        userRepository.save(user);
-
-        log.info("🪙 포인트 차감 완료: userId={}, usedPoint={}, remainingPoint={}",
-                userId, usedPoint, user.getPoint());
-    }
-
-    @Transactional
-    public void addPoint(Long userId, Integer amount) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자 없음"));
-
-        int updated = user.getPoint() + amount;
-        user.updatePoint(updated);
-        userRepository.save(user);
-
-        log.info("🪙 포인트 적립 완료: userId={}, amount={}, balance={}", userId, amount, updated);
-    }
-
-
 }

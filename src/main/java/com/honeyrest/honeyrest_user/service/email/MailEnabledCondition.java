@@ -13,7 +13,7 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
  *   <li>명시하지 않으면 {@code spring.mail.username} 이 채워져 있을 때만 켠다.
  *       (운영 prod 프로필은 {@code MAIL_USERNAME} 환경변수가 비어 있으면 빈 값이 된다)</li>
  * </ol>
- * 꺼지면 {@link EmailService} 대신 {@link NoOpEmailService} 가 등록되어, Gmail 앱 비밀번호 없이도
+ * 꺼지면 {@link SmtpEmailService} 대신 {@link NoOpEmailService} 가 {@link EmailService} 로 등록되어, Gmail 앱 비밀번호 없이도
  * 기동·가입·결제가 실패하지 않는다(메일만 발송되지 않음).
  */
 public class MailEnabledCondition extends SpringBootCondition {

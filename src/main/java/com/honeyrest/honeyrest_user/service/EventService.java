@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.service;
 
+import com.honeyrest.honeyrest_user.exception.NotFoundException;
 import com.honeyrest.honeyrest_user.dto.event.EventCreateRequestDTO;
 import com.honeyrest.honeyrest_user.dto.event.EventDetailDTO;
 import com.honeyrest.honeyrest_user.dto.event.EventResponseDTO;
@@ -32,7 +33,7 @@ public class EventService {
 
     public EventDetailDTO getEventDetail(Long eventId) {
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new IllegalArgumentException("이벤트가 존재하지 않습니다."));
+                .orElseThrow(() -> new NotFoundException("이벤트가 존재하지 않습니다."));
         return EventDetailDTO.from(event);
     }
 

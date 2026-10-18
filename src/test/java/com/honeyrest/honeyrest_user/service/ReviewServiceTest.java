@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.data.redis.core.RedisTemplate;
+import com.honeyrest.honeyrest_user.exception.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
@@ -37,10 +37,8 @@ class ReviewServiceTest {
     @Mock private ReviewRedisLikeRepository reviewRedisLikeRepository;
     @Mock private RatingCacheService ratingCacheService;
     @Mock private AccommodationService accommodationService;
-    @Mock private PointHistoryService pointHistoryService;
-    @Mock private UserService userService;
+    @Mock private PointService pointService;
     @Mock private FileStorage fileStorage;
-    @Mock private RedisTemplate<String, Object> redisTemplate;
     @Mock private SearchCacheVersionService searchCacheVersionService;
 
     @InjectMocks
@@ -108,6 +106,8 @@ class ReviewServiceTest {
 
         verify(reviewRepository).save(any(Review.class));
         verify(accommodationService).updateRating(1L);
+        // 적립은 PointService 한 번 호출로 잔액 + 이력을 함께 처리한다.
+        verify(pointService).earn(user, ReviewService.REVIEW_REWARD_POINT, "리뷰 작성 적립", 1L);
     }
 
     @Test
@@ -122,8 +122,9 @@ class ReviewServiceTest {
         when(reservationRepository.findByIdForUpdate(999L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> reviewService.createReview(1L, request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(NotFoundException.class)
                 .hasMessageContaining("예약 정보를 찾을 수 없습니다");
+        verifyNoInteractions(pointService);
     }
 
     @Test

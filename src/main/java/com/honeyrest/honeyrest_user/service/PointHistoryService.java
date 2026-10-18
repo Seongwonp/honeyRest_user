@@ -1,15 +1,9 @@
 package com.honeyrest.honeyrest_user.service;
 
-import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
 import com.honeyrest.honeyrest_user.dto.point.PointHistoryResponseDTO;
 import com.honeyrest.honeyrest_user.dto.point.PointHistoryDTO;
-import com.honeyrest.honeyrest_user.dto.point.PointHistoryRequestDTO;
 import com.honeyrest.domain.entity.PointHistory;
-import com.honeyrest.domain.entity.Reservation;
-import com.honeyrest.domain.entity.User;
 import com.honeyrest.honeyrest_user.repository.PointHistoryRepository;
-import com.honeyrest.honeyrest_user.repository.UserRepository;
-import com.honeyrest.honeyrest_user.repository.reservation.ReservationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
@@ -19,63 +13,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * 포인트 이력 조회 전용 서비스.
+ * 잔액 변경과 이력 기록은 함께 처리해야 하므로 {@link PointService} 가 담당한다.
+ */
 @Log4j2
 @Service
 @RequiredArgsConstructor
 public class PointHistoryService {
 
     private final PointHistoryRepository pointHistoryRepository;
-    private final UserRepository userRepository;
-    private final ReservationRepository reservationRepository;
-
-
-    @Transactional
-    public void addHistory(PointHistoryRequestDTO dto) {
-        User user = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new RuntimeException("사용자 없음"));
-
-        int current = user.getPoint();
-
-        PointHistory history = PointHistory.builder()
-                .user(user)
-                .amount(dto.getAmount())
-                .type(dto.getType())
-                .reason(dto.getReason())
-                .relatedId(dto.getRelatedId())
-                .balance(current)
-                .expiresAt(dto.getExpiresAt())
-                .build();
-
-        pointHistoryRepository.save(history);
-
-        log.info("📄 포인트 내역 추가 완료: userId={}, amount={}, type={}, balance={}",
-                dto.getUserId(), dto.getAmount(), dto.getType(), current);
-    }
-
-
-
-    @Transactional
-    public void recordUsage(Long userId, Long reservationId, Integer usedPoint) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다"));
-
-        Reservation reservation = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new RuntimeException("예약 정보를 찾을 수 없습니다"));
-
-        PointHistory history = PointHistory.builder()
-                .user(user)
-                .amount(-usedPoint)
-                .type("USE")
-                .reason("예약 시 포인트 사용")
-                .relatedId(reservationId)
-                .balance(user.getPoint()) // 이미 차감된 상태 기준
-                .build();
-
-        pointHistoryRepository.save(history);
-
-        log.info("📄 포인트 사용 이력 저장 완료: userId={}, reservationId={}, usedPoint={}, balance={}",
-                userId, reservationId, usedPoint, user.getPoint());
-    }
 
     @Transactional(readOnly = true)
     public PointHistoryResponseDTO getHistoryByUser(Long userId, Pageable pageable) {

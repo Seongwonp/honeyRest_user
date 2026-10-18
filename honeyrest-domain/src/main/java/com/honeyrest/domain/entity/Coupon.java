@@ -1,6 +1,7 @@
 package com.honeyrest.domain.entity;
 
 
+import com.honeyrest.domain.type.CouponDiscountType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
 @Entity
@@ -55,4 +57,35 @@ public class Coupon extends BaseEntity {
 
     @Column(name = "is_active",nullable = false)
     private boolean isActive; // 활성 여부
+
+    /**
+     * 주문 금액(amount)에 이 쿠폰을 적용한 할인액.
+     * <ul>
+     *   <li>정률(RATE/PERCENT/PERCENTAGE): amount × discountValue / 100 (소수 둘째 자리 반올림)</li>
+     *   <li>정액(FIXED/AMOUNT): discountValue</li>
+     * </ul>
+     * 그 뒤 maxDiscountAmount(있으면)와 amount 를 넘지 않도록 자르고, 음수면 0 으로 만든다.
+     * 사용 가능 여부(기간·활성·최소 주문 금액)는 검사하지 않는다 — 호출자가 먼저 확인한다.
+     *
+     * @throws IllegalStateException 지원하지 않는 할인 유형 (과거처럼 정액으로 조용히 처리하지 않는다)
+     */
+    public BigDecimal calculateDiscount(BigDecimal amount) {
+        if (amount == null) {
+            throw new IllegalArgumentException("주문 금액이 없습니다.");
+        }
+        BigDecimal value = discountValue != null ? discountValue : BigDecimal.ZERO;
+
+        BigDecimal discount = switch (CouponDiscountType.from(discountType)) {
+            case RATE -> amount.multiply(value).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            case FIXED -> value;
+        };
+
+        if (maxDiscountAmount != null && discount.compareTo(maxDiscountAmount) > 0) {
+            discount = maxDiscountAmount;
+        }
+        if (discount.compareTo(amount) > 0) {
+            discount = amount;
+        }
+        return discount.max(BigDecimal.ZERO);
+    }
 }

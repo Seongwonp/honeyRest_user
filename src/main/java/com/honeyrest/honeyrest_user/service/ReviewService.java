@@ -1,7 +1,6 @@
 package com.honeyrest.honeyrest_user.service;
 
 import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
-import com.honeyrest.honeyrest_user.dto.point.PointHistoryRequestDTO;
 import com.honeyrest.honeyrest_user.dto.review.MyReviewDTO;
 import com.honeyrest.honeyrest_user.dto.review.ReviewDTO;
 import com.honeyrest.honeyrest_user.dto.review.ReviewRequestDTO;
@@ -10,6 +9,7 @@ import com.honeyrest.domain.type.ReservationStatus;
 import com.honeyrest.domain.entity.Review;
 import com.honeyrest.domain.entity.ReviewImage;
 import com.honeyrest.domain.entity.User;
+import com.honeyrest.honeyrest_user.exception.NotFoundException;
 import com.honeyrest.honeyrest_user.repository.review.ReviewImageRepository;
 import com.honeyrest.honeyrest_user.repository.review.ReviewRedisLikeRepository;
 import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;
@@ -22,12 +22,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -41,21 +39,21 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final ReviewImageRepository imageRepository;
     private final ReviewRedisLikeRepository reviewRedisLikeRepository;
-    private final ReviewImageRepository reviewImageRepository;
     private final RatingCacheService ratingCacheService;
     private final AccommodationService accommodationService;
-    private final PointHistoryService pointHistoryService;
-    private final UserService userService;
+    private final PointService pointService;
     private final FileStorage fileStorage;
-    private final RedisTemplate<String, Object> redisTemplate;
     private final SearchCacheVersionService searchCacheVersionService;
+
+    /** 리뷰 작성 적립 포인트. */
+    static final int REVIEW_REWARD_POINT = 1000;
 
     @Transactional
     public void createReview(Long userId, ReviewRequestDTO request) {
         // 예약 행을 잠가 같은 예약에 대한 동시 작성 요청을 직렬화한다. 그래야 아래 existsByReservation 검사가
         // 경쟁 상태(더블 클릭 등)에서도 "예약당 리뷰 1건"과 포인트 1회 적립을 보장한다.
         Reservation reservation = reservationRepository.findByIdForUpdate(request.getReservationId())
-                .orElseThrow(() -> new IllegalArgumentException("예약 정보를 찾을 수 없습니다"));
+                .orElseThrow(() -> new NotFoundException("예약 정보를 찾을 수 없습니다"));
 
         // 호출자가 이 예약의 소유자인지, 체크아웃이 끝난 예약인지 확인하지 않으면 아무 reservationId나
         // 넣어 타인 명의로 리뷰를 작성하고 평점을 조작할 수 있었다(P0-6).
@@ -92,25 +90,14 @@ public class ReviewService {
                         .review(review)
                         .imageUrl(url)
                         .build();
-                reviewImageRepository.save(image);
+                imageRepository.save(image);
             }
         }
 
         // 리뷰 작성 포인트 적립
         User user = reservation.getUser();
         if (user != null) {
-            int rewardPoint = 1000;
-            userService.addPoint(user.getUserId(),rewardPoint);
-            pointHistoryService.addHistory(PointHistoryRequestDTO.builder()
-                    .userId(user.getUserId())
-                    .amount(rewardPoint)
-                    .type("SAVE")
-                    .reason("리뷰 작성 적립")
-                    .relatedId(reservation.getReservationId())
-                    .expiresAt(LocalDateTime.now().plusYears(1))
-                    .build());
-            log.info("🪙 리뷰 작성 포인트 적립 완료: userId={}, amount={}, reservationId={}",
-                    user.getUserId(), rewardPoint, reservation.getReservationId());
+            pointService.earn(user, REVIEW_REWARD_POINT, "리뷰 작성 적립", reservation.getReservationId());
         }
 
 
@@ -136,7 +123,7 @@ public class ReviewService {
     @Transactional
     public int toggleLike(Long userId, Long reviewId, boolean isLiked) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new IllegalArgumentException("리뷰가 존재하지 않습니다"));
+                .orElseThrow(() -> new NotFoundException("리뷰가 존재하지 않습니다"));
         int dbCount = review.getLikeCount() != null ? review.getLikeCount() : 0;
 
         // 카운터 캐시가 없으면 DB 값에서 시작해야 INCR 이 DB 값을 1 로 덮어쓰지 않는다.
@@ -205,7 +192,7 @@ public class ReviewService {
     public void updateReviewWithImages(Long userId, Long reviewId, ReviewRequestDTO dto, List<MultipartFile> newImages) throws Exception {
         // 1. 리뷰 조회 및 권한 확인
         Review existing = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new IllegalArgumentException("리뷰가 존재하지 않습니다"));
+                .orElseThrow(() -> new NotFoundException("리뷰가 존재하지 않습니다"));
 
         if (!existing.getUser().getUserId().equals(userId)) {
             throw new IllegalArgumentException("본인의 리뷰만 수정할 수 있습니다");
@@ -257,7 +244,7 @@ public class ReviewService {
     @Transactional
     public void deleteReview(Long userId, Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new IllegalArgumentException("리뷰가 존재하지 않습니다"));
+                .orElseThrow(() -> new NotFoundException("리뷰가 존재하지 않습니다"));
 
         if (!review.getUser().getUserId().equals(userId)) {
             throw new IllegalArgumentException("본인의 리뷰만 삭제할 수 있습니다");

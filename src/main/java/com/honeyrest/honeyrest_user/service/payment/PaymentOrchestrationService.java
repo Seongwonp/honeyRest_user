@@ -266,23 +266,8 @@ public class PaymentOrchestrationService {
             throw new IllegalArgumentException("쿠폰 최소 주문 금액 조건을 충족하지 않습니다.");
         }
 
-        BigDecimal discount;
-        if ("RATE".equalsIgnoreCase(coupon.getDiscountType()) || "PERCENT".equalsIgnoreCase(coupon.getDiscountType())) {
-            discount = original.multiply(coupon.getDiscountValue())
-                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        } else {
-            discount = coupon.getDiscountValue();
-        }
-
-        if (coupon.getMaxDiscountAmount() != null && discount.compareTo(coupon.getMaxDiscountAmount()) > 0) {
-            discount = coupon.getMaxDiscountAmount();
-        }
-
-        if (discount.compareTo(original) > 0) {
-            discount = original;
-        }
-
-        return discount.max(BigDecimal.ZERO);
+        // 할인액 계산(정률/정액, 최대 할인·주문 금액 상한)은 쿠폰 도메인이 담당한다.
+        return coupon.calculateDiscount(original);
     }
 
     private Integer normalizeUsedPoint(ReservationRequestDTO request) {

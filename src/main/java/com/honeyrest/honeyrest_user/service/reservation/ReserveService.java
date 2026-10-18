@@ -10,6 +10,7 @@ import com.honeyrest.honeyrest_user.dto.reservation.guest.GuestReservationLookup
 import com.honeyrest.domain.entity.*;
 import com.honeyrest.domain.type.*;
 import com.honeyrest.honeyrest_user.exception.ApiException;
+import com.honeyrest.honeyrest_user.exception.NotFoundException;
 import com.honeyrest.honeyrest_user.mapper.ReservationMapper;
 import com.honeyrest.honeyrest_user.repository.payment.PaymentDetailRepository;
 import com.honeyrest.honeyrest_user.repository.payment.PaymentRepository;
@@ -18,8 +19,7 @@ import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;
 import com.honeyrest.honeyrest_user.repository.room.RoomRepository;
 import com.honeyrest.honeyrest_user.service.coupon.CouponUsageService;
-import com.honeyrest.honeyrest_user.service.PointHistoryService;
-import com.honeyrest.honeyrest_user.service.UserService;
+import com.honeyrest.honeyrest_user.service.PointService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
@@ -46,9 +46,8 @@ public class ReserveService {
     private final ReservationMapper reservationMapper;
     private final ReviewRepository reviewRepository;
 
-    private final UserService userService;
     private final CouponUsageService couponUsageService;
-    private final PointHistoryService pointHistoryService;
+    private final PointService pointService;
     private final SearchCacheVersionService searchCacheVersionService;
 
     @Transactional
@@ -94,10 +93,12 @@ public class ReserveService {
             couponUsageService.recordUsage(request.getCouponId(), reservation, discountAmount);
         }
 
-        // 포인트 사용 처리
+        // 포인트 사용 처리 (잔액 차감 + 이력 기록을 한 번에)
         if (request.getUsedPoint() != null && request.getUsedPoint() > 0) {
-            userService.usePoint(request.getUserId(), request.getUsedPoint());
-            pointHistoryService.recordUsage(request.getUserId(), reservation.getReservationId(), request.getUsedPoint());
+            if (user == null) {
+                throw new NotFoundException("사용자 정보를 찾을 수 없습니다");
+            }
+            pointService.use(user, request.getUsedPoint(), "예약 시 포인트 사용", reservation.getReservationId());
         }
 
         return reservation;
@@ -129,12 +130,10 @@ public class ReserveService {
                 request.getReservationCode(), request.getGuestPhone()
         );
         if (reservation == null) {
-            throw new IllegalArgumentException("예약 정보를 찾을 수 없습니다.");
+            throw new NotFoundException("예약 정보를 찾을 수 없습니다.");
         }
-        Payment payment = paymentRepository.findByReservation(reservation).orElse(null);
-        if (payment == null) {
-            throw new IllegalArgumentException("결제 정보를 찾을 수 없습니다.");
-        }
+        Payment payment = paymentRepository.findByReservation(reservation)
+                .orElseThrow(() -> new NotFoundException("결제 정보를 찾을 수 없습니다."));
         return reservationMapper.toCompleteDTO(reservation, payment);
     }
 
@@ -157,13 +156,13 @@ public class ReserveService {
     @Transactional(readOnly = true)
     public ReservationDetailDTO getReservationDetail(Long userId, Long reservationId) {
         Reservation reservation = reservationRepository.findByReservationIdAndUser_UserId(reservationId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("예약 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("예약 정보를 찾을 수 없습니다."));
 
         Payment payment = paymentRepository.findByReservation(reservation)
-                .orElseThrow(() -> new IllegalArgumentException("결제 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("결제 정보를 찾을 수 없습니다."));
 
         PaymentDetail detail = paymentDetailRepository.findByPayment(payment)
-                .orElseThrow(() -> new IllegalArgumentException("결제 상세 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("결제 상세 정보를 찾을 수 없습니다."));
         boolean isReviewed = reviewRepository.existsByReservation(reservation);
         ReservationDetailDTO dto = reservationMapper.toDetailDTO(reservation, payment, detail, isReviewed);
 
@@ -174,16 +173,13 @@ public class ReserveService {
     }
 
 
+    @Transactional
     public void requestReservationCancel(Long userId, Long reservationId, String reason) {
         Reservation reservation = reservationRepository.findByReservationIdAndUser_UserId(reservationId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("예약 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("예약 정보를 찾을 수 없습니다."));
 
-        if (!ReservationStatus.CONFIRMED.equals(reservation.getStatus())) {
-            throw new IllegalStateException("확정된 예약만 취소 요청이 가능합니다.");
-        }
-
-        reservation.setStatus(ReservationStatus.CANCEL_REQUEST); // 상태 변경
-        reservation.setCancelReason(reason);     // 사유 저장 (필드 추가 필요)
+        // CONFIRMED 가 아니면 도메인 메서드가 IllegalStateException(409) 을 던진다.
+        reservation.requestCancel(reason);
 
         reservationRepository.save(reservation);
         log.info("예약 취소 요청 접수됨: reservationId={}, reason={}", reservationId, reason);

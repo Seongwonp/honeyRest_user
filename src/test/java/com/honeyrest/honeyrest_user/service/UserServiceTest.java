@@ -1,6 +1,7 @@
 package com.honeyrest.honeyrest_user.service;
 
-import com.honeyrest.honeyrest_user.dto.user.LoginResponseDTO;
+import com.honeyrest.honeyrest_user.dto.user.LoginResult;
+import com.honeyrest.honeyrest_user.dto.user.SocialLoginRequestDTO;
 import com.honeyrest.honeyrest_user.dto.user.UserLoginRequestDTO;
 import com.honeyrest.honeyrest_user.dto.user.UserResponseDTO;
 import com.honeyrest.honeyrest_user.dto.user.UserSignupRequestDTO;
@@ -9,15 +10,14 @@ import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.security.JwtTokenProvider;
 import com.honeyrest.honeyrest_user.service.email.EmailVerificationTokenService;
 import com.honeyrest.honeyrest_user.storage.FileStorage;
-import com.honeyrest.honeyrest_user.util.RefreshTokenCookieManager;
-import jakarta.servlet.http.HttpServletResponse;
+import com.honeyrest.honeyrest_user.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.ResponseCookie;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.Optional;
@@ -35,8 +35,6 @@ class UserServiceTest {
     @Mock private BCryptPasswordEncoder passwordEncoder;
     @Mock private JwtTokenProvider jwtTokenProvider;
     @Mock private FileStorage fileStorage;
-    @Mock private RefreshTokenCookieManager refreshTokenCookieManager;
-    @Mock private HttpServletResponse httpResponse;
 
     @InjectMocks
     private UserService userService;
@@ -134,14 +132,50 @@ class UserServiceTest {
         when(passwordEncoder.matches("rawPassword", "hashed")).thenReturn(true);
         when(jwtTokenProvider.createAccessToken(user)).thenReturn("access_token");
         when(jwtTokenProvider.createRefreshToken()).thenReturn("refresh_token");
-        when(refreshTokenCookieManager.create("refresh_token"))
-                .thenReturn(ResponseCookie.from("refreshToken", "refresh_token").build());
         when(userRepository.save(any(User.class))).thenReturn(user);
 
-        LoginResponseDTO response = userService.login(dto, httpResponse);
+        LoginResult result = userService.login(dto);
 
-        assertThat(response.getAccessToken()).isEqualTo("access_token");
-        assertThat(response.getUser().getEmail()).isEqualTo("user@example.com");
+        // 서비스는 쿠키를 만들지 않고 토큰과 응답 DTO 만 돌려준다 (쿠키는 AuthController 책임).
+        assertThat(result.response().getAccessToken()).isEqualTo("access_token");
+        assertThat(result.response().getUser().getEmail()).isEqualTo("user@example.com");
+        assertThat(result.refreshToken()).isEqualTo("refresh_token");
+        assertThat(result.toString()).doesNotContain("refresh_token");
+        verify(refreshTokenService).invalidateAllByUser(user);
+        verify(refreshTokenService).saveRefreshToken(eq(user), eq("refresh_token"), any());
+        assertThat(user.getLastLogin()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("소셜 로그인: 처음이면 가입시키고 토큰을 발급한다")
+    void socialLogin_createsUserAndIssuesTokens() {
+        SocialLoginRequestDTO dto = SocialLoginRequestDTO.builder()
+                .socialType("KAKAO").socialId("k-1").email("kakao@example.com").name("카카오")
+                .build();
+        when(userRepository.findBySocialTypeAndSocialId("KAKAO", "k-1")).thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(jwtTokenProvider.createAccessToken(any(User.class))).thenReturn("access_token");
+        when(jwtTokenProvider.createRefreshToken()).thenReturn("refresh_token");
+
+        LoginResult result = userService.socialLogin(dto);
+
+        assertThat(result.response().getUser().getEmail()).isEqualTo("kakao@example.com");
+        assertThat(result.response().getAccessToken()).isEqualTo("access_token");
+        assertThat(result.refreshToken()).isEqualTo("refresh_token");
+        verify(refreshTokenService).saveRefreshToken(any(User.class), eq("refresh_token"), any());
+    }
+
+    @Test
+    @DisplayName("소셜 로그인: 탈퇴 계정이면 토큰을 발급하지 않는다")
+    void socialLogin_deletedAccount() {
+        User deleted = User.builder().userId(2L).status("DELETED").build();
+        SocialLoginRequestDTO dto = SocialLoginRequestDTO.builder().socialType("GOOGLE").socialId("g-1").build();
+        when(userRepository.findBySocialTypeAndSocialId("GOOGLE", "g-1")).thenReturn(Optional.of(deleted));
+
+        assertThatThrownBy(() -> userService.socialLogin(dto))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("탈퇴한 계정");
+        verifyNoInteractions(jwtTokenProvider, refreshTokenService);
     }
 
     @Test
@@ -163,7 +197,7 @@ class UserServiceTest {
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("wrong", "hashed")).thenReturn(false);
 
-        assertThatThrownBy(() -> userService.login(dto, httpResponse))
+        assertThatThrownBy(() -> userService.login(dto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("이메일 또는 비밀번호가 올바르지 않습니다");
     }
@@ -187,7 +221,7 @@ class UserServiceTest {
         when(userRepository.findByEmail("gone@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("pass", "hashed")).thenReturn(true);
 
-        assertThatThrownBy(() -> userService.login(dto, httpResponse))
+        assertThatThrownBy(() -> userService.login(dto))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("탈퇴한 계정");
     }
@@ -211,7 +245,7 @@ class UserServiceTest {
         when(userRepository.findByEmail("unverified@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("pass", "hashed")).thenReturn(true);
 
-        assertThatThrownBy(() -> userService.login(dto, httpResponse))
+        assertThatThrownBy(() -> userService.login(dto))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("이메일 인증");
     }
@@ -284,31 +318,20 @@ class UserServiceTest {
                 .hasMessageContaining("현재 비밀번호가 올바르지 않습니다");
     }
 
-    // ── usePoint ──────────────────────────────────────────
+    // ── not found → 404 ─────────────────────────────────
 
     @Test
-    @DisplayName("포인트 사용 성공")
-    void usePoint_success() {
-        User user = User.builder().userId(1L).point(5000).build();
+    @DisplayName("없는 사용자 조회·탈퇴는 404(NotFoundException)")
+    void missingUserIsNotFound() {
+        when(userRepository.findById(9L)).thenReturn(Optional.empty());
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenReturn(user);
-
-        assertThatCode(() -> userService.usePoint(1L, 3000))
-                .doesNotThrowAnyException();
-
-        verify(userRepository).save(user);
-    }
-
-    @Test
-    @DisplayName("포인트 부족 시 예외 발생")
-    void usePoint_insufficientPoints() {
-        User user = User.builder().userId(1L).point(500).build();
-
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-
-        assertThatThrownBy(() -> userService.usePoint(1L, 1000))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("포인트");
+        assertThatThrownBy(() -> userService.getUserInfo(9L))
+                .isInstanceOf(NotFoundException.class)
+                .extracting(e -> ((NotFoundException) e).getStatus())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+        assertThatThrownBy(() -> userService.deleteAccount(9L))
+                .isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> userService.changePassword(9L, "a", "b"))
+                .isInstanceOf(NotFoundException.class);
     }
 }

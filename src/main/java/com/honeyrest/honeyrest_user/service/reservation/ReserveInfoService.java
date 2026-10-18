@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.service.reservation;
 
+import com.honeyrest.honeyrest_user.exception.NotFoundException;
 import com.honeyrest.honeyrest_user.dto.CancellationPolicyDTO;
 import com.honeyrest.honeyrest_user.dto.coupon.AvailableCouponDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.PriceBreakdownDTO;
@@ -37,7 +38,7 @@ public class ReserveInfoService {
         }
 
         Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new RuntimeException("객실 정보를 찾을 수 없습니다"));
+                .orElseThrow(() -> new NotFoundException("객실 정보를 찾을 수 없습니다"));
 
         if (guests == null || guests <= 0 || guests > room.getMaxOccupancy()) {
             throw new IllegalArgumentException("예약 인원이 허용 범위를 초과했습니다");
@@ -50,7 +51,7 @@ public class ReserveInfoService {
         Integer userPoint =  null;
         if (userId != null) {
             User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다"));
+                    .orElseThrow(() -> new NotFoundException("사용자 정보를 찾을 수 없습니다"));
             userName = user.getName();
             userPhone = user.getPhone();
             userPoint = user.getPoint();

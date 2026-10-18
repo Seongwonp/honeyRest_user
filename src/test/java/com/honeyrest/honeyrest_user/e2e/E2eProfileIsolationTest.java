@@ -1,10 +1,12 @@
 package com.honeyrest.honeyrest_user.e2e;
 
 import com.honeyrest.honeyrest_user.service.email.EmailService;
+import com.honeyrest.honeyrest_user.service.email.SmtpEmailService;
 import com.honeyrest.honeyrest_user.service.payment.HttpTossClient;
 import com.honeyrest.honeyrest_user.service.payment.TossClient;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
@@ -35,9 +37,11 @@ class E2eProfileIsolationTest {
     }
 
     @Test
-    @DisplayName("토스 클라이언트는 실제 HTTP 구현, 메일은 원래 EmailService 다")
+    @DisplayName("토스 클라이언트는 실제 HTTP 구현, 메일은 SMTP 구현 하나뿐이다")
     void productionWiring() {
         assertThat(context.getBean(TossClient.class)).isInstanceOf(HttpTossClient.class);
-        assertThat(context.getBean(EmailService.class)).isNotInstanceOf(E2eNoOpEmailService.class);
+        assertThat(context.getBeanNamesForType(EmailService.class)).hasSize(1);
+        // @Async 메서드가 있어 인터페이스 기반 프록시로 감싸지므로 대상 클래스로 확인한다.
+        assertThat(AopUtils.getTargetClass(context.getBean(EmailService.class))).isEqualTo(SmtpEmailService.class);
     }
 }

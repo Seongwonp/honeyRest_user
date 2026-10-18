@@ -227,7 +227,7 @@ class JwtTokenProviderTest {
         when(passwordEncoder.encode("newPass")).thenReturn("newHash");
         UserService userService = new UserService(
                 userRepository, null, mock(com.honeyrest.honeyrest_user.service.RefreshTokenService.class),
-                passwordEncoder, jwtTokenProvider, null, null);
+                passwordEncoder, jwtTokenProvider, null);
 
         String oldToken = jwtTokenProvider.createAccessToken(user);
         userService.changePassword(1L, "currentPass", "newPass");

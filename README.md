@@ -217,11 +217,11 @@ Swagger UI: `http://localhost:8080/swagger-ui.html` · 상세 설정: [SETUP.md]
 | DB | H2 인메모리(MySQL 모드), `create-drop`, Flyway 끔 — 기동할 때마다 새로 만든 뒤 시드 적재(`spring.sql.init` + `defer-datasource-initialization`) | [`application-e2e.properties`](src/main/resources/application-e2e.properties), [`db/e2e-seed.sql`](src/main/resources/db/e2e-seed.sql) |
 | 시드 | 지역 4, 숙소 2(객실 3 — 그중 `total_rooms=1` 객실 1개), 태그 3, 인증 완료 회원 `e2e.user@honeyrest.test` / `Honey1234!`, 쿠폰 1 | `db/e2e-seed.sql` (BCrypt 해시 재생성 방법은 파일 주석) |
 | Redis | 자동 설정 제외 + 같은 이름의 인메모리 `RedisTemplate` (TTL·값/리스트/집합/정렬 집합/scan) | `e2e/E2eRedisConfig`, `e2e/InMemoryRedisTemplate` |
-| 메일 | `EmailService` 대신 발송하지 않는 `E2eNoOpEmailService` (원래 빈은 `@Profile("!e2e")`) | `e2e/E2eNoOpEmailService` |
+| 메일 | `EmailService` 포트의 구현으로 SMTP(`SmtpEmailService`, `@Profile("!e2e")`) 대신 발송하지 않는 `E2eNoOpEmailService` | `e2e/E2eNoOpEmailService` |
 | 토스 결제 | `TossService` 가 쓰는 `TossClient` 인터페이스의 스텁: 어떤 paymentKey/orderId/amount 든 `DONE` 승인, 조회는 `DONE`, 취소는 기록. 금액·재고·중복 검증은 실제와 동일 | `service/payment/TossClient`, `e2e/E2eTossClient` |
 | 테스트 보조 API | `GET /e2e/verification-token?email=` (최근 가입 인증 토큰), `POST /e2e/reservations/{id}/complete` (COMPLETED 전환), `GET /e2e/toss/cancellations` | `e2e/E2eSupportController` |
 
-- **운영 배선은 그대로**: 기본·local·test 프로필은 실제 HTTP 구현 `HttpTossClient`(`@Profile("!e2e")`), 원래 `EmailService`·`RedisConfig` 를 쓴다. H2 는 `developmentOnly`(bootRun 전용)로 추가해 `bootJar` 에는 포함되지 않는다.
+- **운영 배선은 그대로**: 기본·local·test 프로필은 실제 HTTP 구현 `HttpTossClient`(`@Profile("!e2e")`), 메일은 `SmtpEmailService`(메일 설정이 없으면 `NoOpEmailService`), Redis 는 `RedisConfig` 를 쓴다. H2 는 `developmentOnly`(bootRun 전용)로 추가해 `bootJar` 에는 포함되지 않는다.
 - **`/e2e/**` 는 e2e 프로필에만 존재한다**: 컨트롤러가 `@Profile("e2e")` 라 다른 프로필에서는 빈 자체가 없어 경로가 매핑되지 않는다. [`E2eProfileIsolationTest`](src/test/java/com/honeyrest/honeyrest_user/e2e/E2eProfileIsolationTest.java)가 test 프로필에서 e2e 전용 빈이 하나도 없는지와 운영 배선을 검증한다. 운영 DB·비밀값과 함께 e2e 프로필을 켜지 말 것.
 
 ---

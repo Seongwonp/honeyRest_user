@@ -72,11 +72,12 @@ public class Reservation extends BaseEntity{
     @Column(name = "discount_amount", precision = 10, scale = 2)
     private BigDecimal discountAmount; // 총 할인 금액
 
-    @Setter
+    // 상태는 setter 없이 아래 도메인 메서드(requestCancel/complete/cancel/approveCancelRequest/rejectCancelRequest/
+    // markNoShow/changeStatus)로만 바꾼다.
+    // 허용 전이는 ReservationStatus.canTransition 표가 기준이다.
     @Column(name = "status", nullable = false, length = 20)
     private String status; // 예약 상태
 
-    @Setter
     @Column(name = "cancel_reason", columnDefinition = "TEXT")
     private String cancelReason; // 취소 사유
 
@@ -142,7 +143,78 @@ public class Reservation extends BaseEntity{
         if (ReservationStatus.CANCELLED.equalsIgnoreCase(this.status)) {
             throw new IllegalStateException("이미 취소된 예약입니다.");
         }
-        this.status = ReservationStatus.CANCELLED;
+        transitionTo(ReservationStatus.CANCELLED);
         this.cancelReason = reason;
+    }
+
+    /** 사용자 취소 요청: CONFIRMED → CANCEL_REQUEST. 사유를 함께 저장한다. */
+    public void requestCancel(String reason) {
+        if (!ReservationStatus.CONFIRMED.equals(this.status)) {
+            throw new IllegalStateException("확정된 예약만 취소 요청이 가능합니다.");
+        }
+        transitionTo(ReservationStatus.CANCEL_REQUEST);
+        this.cancelReason = reason;
+    }
+
+    /** 이용 완료(체크아웃): CONFIRMED → COMPLETED. */
+    public void complete() {
+        if (!ReservationStatus.CONFIRMED.equals(this.status)) {
+            throw new IllegalStateException("확정된 예약만 이용 완료 처리할 수 있습니다. 현재 상태: " + this.status);
+        }
+        transitionTo(ReservationStatus.COMPLETED);
+    }
+
+    /** 호스트 취소 승인: CANCEL_REQUEST → CANCELLED. reason 이 null 이면 기존 사유를 그대로 둔다. */
+    public void approveCancelRequest(String reason) {
+        requireCancelRequest();
+        transitionTo(ReservationStatus.CANCELLED);
+        if (reason != null) this.cancelReason = reason;
+    }
+
+    /** 호스트 취소 거부: CANCEL_REQUEST → CONFIRMED. 사유는 "[REJECT] " 접두어로 남긴다 (호스트 기존 JPQL 과 같은 형식). */
+    public void rejectCancelRequest(String reason) {
+        requireCancelRequest();
+        transitionTo(ReservationStatus.CONFIRMED);
+        this.cancelReason = "[REJECT] " + (reason != null ? reason : "");
+    }
+
+    /** 노쇼 처리: PENDING/CONFIRMED → NO_SHOW. */
+    public void markNoShow() {
+        if (!ReservationStatus.PENDING.equals(this.status) && !ReservationStatus.CONFIRMED.equals(this.status)) {
+            throw new IllegalStateException("대기/확정 예약만 노쇼 처리할 수 있습니다. 현재 상태: " + this.status);
+        }
+        transitionTo(ReservationStatus.NO_SHOW);
+    }
+
+    private void requireCancelRequest() {
+        if (!ReservationStatus.CANCEL_REQUEST.equals(this.status)) {
+            throw new IllegalStateException("취소 요청 상태의 예약만 처리할 수 있습니다. 현재 상태: " + this.status);
+        }
+    }
+
+    /**
+     * 범용 상태 전이 (호스트 관리자 화면처럼 목표 상태를 입력으로 받는 경우용).
+     * 목표 상태를 정규화하고 {@link ReservationStatus#canTransition} 표에 없으면 IllegalStateException.
+     * 현재와 같은 상태면 아무것도 바꾸지 않는다. 재고 검사·캐시 무효화는 호출자 책임이다.
+     *
+     * @throws IllegalArgumentException 허용 목록({@link ReservationStatus#ALL})에 없는 상태
+     * @throws IllegalStateException    허용되지 않는 전이
+     */
+    public void changeStatus(String to) {
+        String target = ReservationStatus.normalize(to, null);
+        if (target == null) {
+            throw new IllegalArgumentException("변경할 예약 상태가 없습니다.");
+        }
+        if (target.equalsIgnoreCase(this.status)) {
+            return;
+        }
+        transitionTo(target);
+    }
+
+    private void transitionTo(String target) {
+        if (!ReservationStatus.canTransition(this.status, target)) {
+            throw new IllegalStateException("예약 상태를 " + this.status + " 에서 " + target + " (으)로 바꿀 수 없습니다.");
+        }
+        this.status = target;
     }
 }

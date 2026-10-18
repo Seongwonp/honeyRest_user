@@ -35,6 +35,11 @@ import java.util.Map;
 
 import static org.springframework.data.domain.Sort.Direction.DESC;
 
+/**
+ * 마이페이지 API. SecurityConfig 가 {@code /api/user/**} 를 authenticated 로 막으므로
+ * (예외: permitAll 인 {@code /api/user/email/**} 는 EmailController 소관) 여기 핸들러에는 항상 인증된 principal 이 들어온다.
+ * 그래서 과거의 {@code if (principal == null) return 401} 분기는 도달할 수 없는 코드라 제거했다.
+ */
 @Log4j2
 @RestController
 @RequiredArgsConstructor
@@ -196,10 +201,6 @@ public class UserController {
     public ResponseEntity<Void> deleteAccount(
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(401).build();
-        }
-
         Long userId = principal.getUserId();
         userService.deleteAccount(userId);
 
@@ -215,10 +216,6 @@ public class UserController {
             @RequestBody InquiryRequestDTO request,
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(401).build(); // 비회원 접근 차단
-        }
-
         Long userId = principal.getUserId();
         request.setUserId(userId);
 
@@ -241,10 +238,6 @@ public class UserController {
             @AuthenticationPrincipal CustomUserPrincipal principal,
             @PageableDefault(size = 5, sort = "createdAt", direction = DESC) Pageable pageable
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(401).build(); // 비회원 접근 차단
-        }
-
         Long userId = principal.getUserId();
         return ResponseEntity.ok(inquiryService.getUserInquiries(userId, pageable));
     }
@@ -252,9 +245,6 @@ public class UserController {
     @GetMapping("/inquiries/counts")
     public ResponseEntity<InquiryCountDTO> getMyInquiryCounts(
             @AuthenticationPrincipal CustomUserPrincipal principal) {
-        if (principal == null) {
-            return ResponseEntity.status(401).build();
-        }
         Long userId = principal.getUserId();
         InquiryCountDTO counts = inquiryService.getUserInquiryCounts(userId);
         return ResponseEntity.ok(counts);
@@ -267,10 +257,6 @@ public class UserController {
             @PathVariable Long inquiryId,
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(401).build(); // 비회원 접근 차단
-        }
-
         Long userId = principal.getUserId();
         InquiryDetailResponseDTO dto = inquiryService.getInquiryById(userId, inquiryId);
         log.info("🔍 문의 조회: userId={}, inquiryId={}", userId, inquiryId);
@@ -284,10 +270,6 @@ public class UserController {
             @RequestBody InquiryRequestDTO request,
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(401).build(); // 비회원 접근 차단
-        }
-
         Long userId = principal.getUserId();
 
         // 제목/내용이 없으면 기본값 설정
@@ -309,10 +291,6 @@ public class UserController {
             @PathVariable Long inquiryId,
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(401).build(); // 비회원 접근 차단
-        }
-
         Long userId = principal.getUserId();
         inquiryService.deleteInquiry(userId, inquiryId);
         log.info("🗑️ 문의 삭제: userId={}, inquiryId={}", userId, inquiryId);
@@ -324,10 +302,6 @@ public class UserController {
             @AuthenticationPrincipal CustomUserPrincipal principal,
             @PageableDefault(size = 5, sort = "issuedAt", direction = DESC) Pageable pageable
     ) {
-        if (principal == null) {
-            return ResponseEntity.status(401).build(); // 비회원 접근 차단
-        }
-
         Long userId = principal.getUserId();
         PageResponseDTO<UserCouponDTO> dto = userCouponService.getUserCoupons(userId, pageable);
         log.info("쿠폰 정보 조회: userId={}", userId);

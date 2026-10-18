@@ -3,7 +3,6 @@ package com.honeyrest.honeyrest_user.e2e;
 import com.honeyrest.domain.entity.EmailVerificationToken;
 import com.honeyrest.domain.entity.Reservation;
 import com.honeyrest.domain.entity.User;
-import com.honeyrest.domain.type.ReservationStatus;
 import com.honeyrest.honeyrest_user.repository.EmailVerificationTokenRepository;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.repository.reservation.ReservationRepository;
@@ -71,7 +70,8 @@ public class E2eSupportController {
         if (reservation == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "예약이 없습니다."));
         }
-        reservation.setStatus(ReservationStatus.COMPLETED);
+        // CONFIRMED 가 아니면 IllegalStateException → 409 (GlobalExceptionHandler)
+        reservation.complete();
         log.info("[e2e] 예약 이용 완료 처리: reservationId={}", reservationId);
         return ResponseEntity.ok(Map.of("reservationId", reservationId, "status", reservation.getStatus()));
     }

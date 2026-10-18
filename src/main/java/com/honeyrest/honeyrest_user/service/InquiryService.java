@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.service;
 
+import com.honeyrest.honeyrest_user.exception.NotFoundException;
 import com.honeyrest.honeyrest_user.dto.inquiry.*;
 import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
 import com.honeyrest.domain.entity.Inquiry;
@@ -25,9 +26,9 @@ public class InquiryService {
     // 생성
     public InquiryResponseDTO createInquiry(InquiryRequestDTO dto) {
         User user = userRepository.findById(dto.getUserId())
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("사용자를 찾을 수 없습니다."));
         var accommodation = accommodationRepository.findById(dto.getAccommodationId())
-                .orElseThrow(() -> new RuntimeException("숙소를 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("숙소를 찾을 수 없습니다."));
 
         Inquiry inquiry = Inquiry.builder()
                 .user(user)
@@ -59,7 +60,7 @@ public class InquiryService {
     // 단일 문의 조회
     public InquiryDetailResponseDTO getInquiryById(Long userId, Long inquiryId) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
-                .orElseThrow(() -> new RuntimeException("문의 내역을 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("문의 내역을 찾을 수 없습니다."));
 
         if (!inquiry.getUser().getUserId().equals(userId)) {
             throw new RuntimeException("권한이 없습니다.");
@@ -71,7 +72,7 @@ public class InquiryService {
     // 삭제
     public void deleteInquiry(Long inquiryId, Long userId) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
-                .orElseThrow(() -> new RuntimeException("문의 내역을 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("문의 내역을 찾을 수 없습니다."));
         if (!inquiry.getUser().getUserId().equals(userId)) {
             throw new RuntimeException("권한이 없습니다.");
         }
@@ -81,7 +82,7 @@ public class InquiryService {
     // 수정
     public void updateInquiry(Long inquiryId, Long userId, InquiryRequestDTO dto) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
-                .orElseThrow(() -> new RuntimeException("문의 내역을 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("문의 내역을 찾을 수 없습니다."));
 
         if (!inquiry.getUser().getUserId().equals(userId)) {
             throw new RuntimeException("권한이 없습니다.");

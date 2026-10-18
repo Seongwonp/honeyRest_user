@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.service;
 
+import com.honeyrest.honeyrest_user.exception.NotFoundException;
 import com.honeyrest.honeyrest_user.dto.WishlistedAccommodationDTO;
 import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
 import com.honeyrest.domain.entity.Accommodation;
@@ -44,9 +45,9 @@ public class WishListService {
             result = false;
         } else {
             User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+                    .orElseThrow(() -> new NotFoundException("존재하지 않는 사용자입니다."));
             Accommodation accommodation = accommodationRepository.findById(accommodationId)
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 숙소입니다."));
+                    .orElseThrow(() -> new NotFoundException("존재하지 않는 숙소입니다."));
 
             WishList wish = WishList.builder()
                     .user(user)
