@@ -14,10 +14,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.core.env.Environment;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -44,6 +49,7 @@ class DemoProfileStartupTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private UserRepository userRepository;
     @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     @Test
     @DisplayName("스텁은 e2e 와 공유하고, /e2e/** 보조 컨트롤러는 등록되지 않는다")
@@ -98,5 +104,39 @@ class DemoProfileStartupTest {
         assertThat(DemoSpaFallbackController.isServerPath("/oauth2/authorization/google")).isTrue();
         assertThat(DemoSpaFallbackController.isServerPath("/apartment")).isFalse();
         assertThat(DemoSpaFallbackController.isServerPath("/user/mypage")).isFalse();
+    }
+
+    @Test
+    @DisplayName("날씨: API 키가 없으면 예시 날씨(sample=true)를 돌려준다, 모르는 도시는 404")
+    void weatherFallsBackToSample() throws Exception {
+        mockMvc.perform(get("/api/weather").param("city", "Seoul"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("서울"))
+                .andExpect(jsonPath("$.sample").value(true))
+                .andExpect(jsonPath("$.temp").isNumber())
+                .andExpect(jsonPath("$.humidity").isNumber());
+        mockMvc.perform(get("/api/weather").param("lat", "33.5").param("lon", "126.5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("제주"));
+        mockMvc.perform(get("/api/weather").param("city", "Atlantis")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/weather")).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("데모 시드의 이미지 경로는 모두 uploads/demo 에 실제 파일이 있다 (플레이스홀더 문구 이미지 미사용)")
+    void seededImagesExist() throws Exception {
+        List<String> urls = jdbcTemplate.queryForList("""
+                SELECT image_url FROM region WHERE image_url IS NOT NULL
+                UNION SELECT thumbnail FROM accommodation
+                UNION SELECT image_url FROM accommodation_image
+                UNION SELECT image_url FROM room_image
+                UNION SELECT image_url FROM banner
+                UNION SELECT image_url FROM event
+                """, String.class);
+        assertThat(urls).isNotEmpty().allSatisfy(url -> {
+            assertThat(url).startsWith("/uploads/demo/");
+            assertThat(Files.exists(Path.of("uploads").resolve(url.substring("/uploads/".length())))).as(url).isTrue();
+        });
+        mockMvc.perform(get("/uploads/demo/hero-namsan.jpg")).andExpect(status().isOk());
     }
 }

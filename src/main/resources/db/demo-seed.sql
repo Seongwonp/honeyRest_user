@@ -8,7 +8,9 @@
 --
 -- 요약
 --   지역      : 서울(종로구·마포구), 부산(해운대구), 제주(제주시·서귀포시), 강원(강릉시·속초시), 경북(경주시)
---   숙소      : 10곳 (ID 1~10), 숙소마다 객실 2개 (객실 ID = 숙소ID*100 + 1, +2), 이미지는 /uploads/placeholder/*.svg
+--   숙소      : 10곳 (ID 1~10), 숙소마다 객실 2개 (객실 ID = 숙소ID*100 + 1, +2)
+--   이미지    : /uploads/demo/* (Dockerfile.render 가 uploads/demo 를 이미지에 넣는다)
+--               사진(*.jpg)은 프론트엔드 public/images 의 사진을 줄이거나 잘라 만든 것, 일러스트(*.svg)는 데모용으로 그린 것(글자 없음)
 --   데모 회원 : demo@honeyrest.app / Demo1234!  (이메일 인증 완료, 포인트 10,200P, 쿠폰 2장)
 --               예약 5건: 이용 완료 2(1건 리뷰 작성됨, 1건 리뷰 작성 가능), 예약 확정 2(다가오는 일정), 취소 1
 --   그 외     : 리뷰 작성자 회원 4명(비밀번호 없음 → 로그인 불가), 지난 이용 완료 예약 30건 + 리뷰
@@ -21,19 +23,19 @@
 
 -- ---- 지역 ----
 INSERT INTO region (region_id, parent_id, name, level, is_popular, image_url) VALUES
-  (1, NULL, '서울', 1, TRUE,  '/uploads/placeholder/region-1.svg'),
-  (2, NULL, '부산', 1, TRUE,  '/uploads/placeholder/region-2.svg'),
-  (3, NULL, '제주', 1, TRUE,  '/uploads/placeholder/region-1.svg'),
-  (4, NULL, '강원', 1, TRUE,  '/uploads/placeholder/region-2.svg'),
-  (5, NULL, '경북', 1, FALSE, '/uploads/placeholder/region-1.svg'),
-  (11, 1, '종로구',   2, TRUE,  NULL),
-  (12, 1, '마포구',   2, FALSE, NULL),
-  (21, 2, '해운대구', 2, TRUE,  NULL),
-  (31, 3, '제주시',   2, TRUE,  NULL),
-  (32, 3, '서귀포시', 2, TRUE,  NULL),
-  (41, 4, '강릉시',   2, TRUE,  NULL),
-  (42, 4, '속초시',   2, FALSE, NULL),
-  (51, 5, '경주시',   2, FALSE, NULL);
+  (1, NULL, '서울', 1, TRUE,  '/uploads/demo/region-seoul.jpg'),
+  (2, NULL, '부산', 1, TRUE,  '/uploads/demo/region-busan.svg'),
+  (3, NULL, '제주', 1, TRUE,  '/uploads/demo/region-jeju.svg'),
+  (4, NULL, '강원', 1, TRUE,  '/uploads/demo/region-gangwon.svg'),
+  (5, NULL, '경북', 1, FALSE, '/uploads/demo/stay-gyeongju.jpg'),
+  (11, 1, '종로구',   2, TRUE,  '/uploads/demo/stay-hanok.jpg'),
+  (12, 1, '마포구',   2, FALSE, '/uploads/demo/stay-mapo-night.jpg'),
+  (21, 2, '해운대구', 2, TRUE,  '/uploads/demo/region-busan.svg'),
+  (31, 3, '제주시',   2, TRUE,  '/uploads/demo/region-jeju.svg'),
+  (32, 3, '서귀포시', 2, TRUE,  '/uploads/demo/stay-pension-tangerine.svg'),
+  (41, 4, '강릉시',   2, TRUE,  '/uploads/demo/stay-pension-pine.svg'),
+  (42, 4, '속초시',   2, FALSE, '/uploads/demo/stay-resort-sea.svg'),
+  (51, 5, '경주시',   2, FALSE, '/uploads/demo/stay-gyeongju.jpg');
 
 -- ---- 숙소 카테고리 ----
 INSERT INTO accommodation_category (category_id, name, icon_url, sort_order) VALUES
@@ -55,43 +57,68 @@ INSERT INTO company (company_id, name, business_number, owner_name, phone, email
 INSERT INTO accommodation (accommodation_id, company_id, category_id, main_region_id, sub_region_id, name, address, latitude, longitude,
                            thumbnail, description, amenities, check_in_time, check_out_time, rating, min_price, status) VALUES
   (1, 1, 1, 3, 31, '허니레스트 제주 오션뷰', '제주특별자치도 제주시 애월읍 애월해안로 100', 33.462100, 126.309500,
-   '/uploads/placeholder/stay-1.svg', '애월 바다가 한눈에 보이는 오션뷰 호텔입니다. 루프탑 수영장에서 노을을 감상해 보세요.',
+   '/uploads/demo/stay-hotel-entrance.jpg', '애월 바다가 한눈에 보이는 오션뷰 호텔입니다. 루프탑 수영장에서 노을을 감상해 보세요.',
    '["무료 와이파이","주차장","수영장","조식"]' FORMAT JSON, TIMESTAMP '2025-01-01 15:00:00', TIMESTAMP '2025-01-01 11:00:00', 0.0, 120000.00, 'ACTIVE'),
   (2, 1, 3, 1, 11, '허니레스트 북촌 한옥', '서울특별시 종로구 북촌로 12', 37.582600, 126.983600,
-   '/uploads/placeholder/stay-2.svg', '북촌 골목 안 전통 한옥 스테이. 마당에서 즐기는 정갈한 한식 조식이 자랑입니다.',
+   '/uploads/demo/stay-hanok.jpg', '북촌 골목 안 전통 한옥 스테이. 마당에서 즐기는 정갈한 한식 조식이 자랑입니다.',
    '["무료 와이파이","조식","정원"]' FORMAT JSON, TIMESTAMP '2025-01-01 16:00:00', TIMESTAMP '2025-01-01 11:00:00', 0.0, 180000.00, 'ACTIVE'),
   (3, 2, 1, 2, 21, '씨사이드 해운대 호텔', '부산광역시 해운대구 해운대해변로 30', 35.158700, 129.160400,
-   '/uploads/placeholder/stay-3.svg', '해운대 해변 바로 앞 비즈니스 호텔. 해운대역 도보 5분.',
+   '/uploads/demo/stay-hotel-lobby.jpg', '해운대 해변 바로 앞 비즈니스 호텔. 해운대역 도보 5분.',
    '["무료 와이파이","주차장","피트니스"]' FORMAT JSON, TIMESTAMP '2025-01-01 15:00:00', TIMESTAMP '2025-01-01 12:00:00', 0.0, 110000.00, 'ACTIVE'),
   (4, 3, 2, 3, 32, '서귀포 귤밭 펜션', '제주특별자치도 서귀포시 남원읍 태위로 200', 33.276500, 126.703100,
-   '/uploads/placeholder/stay-4.svg', '귤밭 사이의 조용한 독채 펜션. 겨울에는 귤 따기 체험을 할 수 있어요.',
+   '/uploads/demo/stay-pension-tangerine.svg', '귤밭 사이의 조용한 독채 펜션. 겨울에는 귤 따기 체험을 할 수 있어요.',
    '["바비큐장","주차장","취사 가능"]' FORMAT JSON, TIMESTAMP '2025-01-01 16:00:00', TIMESTAMP '2025-01-01 11:00:00', 0.0, 95000.00, 'ACTIVE'),
   (5, 3, 2, 4, 41, '강릉 솔숲 펜션', '강원특별자치도 강릉시 창해로 350', 37.795100, 128.915600,
-   '/uploads/placeholder/stay-1.svg', '송정 해변 솔숲 옆 독채 펜션. 바다까지 걸어서 3분.',
+   '/uploads/demo/stay-pension-pine.svg', '송정 해변 솔숲 옆 독채 펜션. 바다까지 걸어서 3분.',
    '["무료 와이파이","주차장","바비큐장"]' FORMAT JSON, TIMESTAMP '2025-01-01 15:00:00', TIMESTAMP '2025-01-01 11:00:00', 0.0, 130000.00, 'ACTIVE'),
   (6, 3, 4, 4, 42, '속초 바다정원 리조트', '강원특별자치도 속초시 해오름로 120', 38.190200, 128.603500,
-   '/uploads/placeholder/stay-2.svg', '설악산과 동해를 함께 품은 가족형 리조트. 실내 워터파크 무료 이용.',
+   '/uploads/demo/stay-resort-sea.svg', '설악산과 동해를 함께 품은 가족형 리조트. 실내 워터파크 무료 이용.',
    '["무료 와이파이","주차장","워터파크","키즈룸"]' FORMAT JSON, TIMESTAMP '2025-01-01 15:00:00', TIMESTAMP '2025-01-01 11:00:00', 0.0, 160000.00, 'ACTIVE'),
   (7, 1, 3, 5, 51, '경주 황리단 한옥스테이', '경상북도 경주시 포석로 1080', 35.837400, 129.210400,
-   '/uploads/placeholder/stay-3.svg', '황리단길 한가운데 자리한 한옥 스테이. 대릉원·첨성대 도보 10분.',
+   '/uploads/demo/stay-gyeongju.jpg', '황리단길 한가운데 자리한 한옥 스테이. 대릉원·첨성대 도보 10분.',
    '["무료 와이파이","조식","자전거 대여"]' FORMAT JSON, TIMESTAMP '2025-01-01 16:00:00', TIMESTAMP '2025-01-01 11:00:00', 0.0, 140000.00, 'ACTIVE'),
   (8, 2, 1, 1, 12, '마포 어반스테이', '서울특별시 마포구 양화로 45', 37.556800, 126.923600,
-   '/uploads/placeholder/stay-4.svg', '홍대입구역 1분 거리의 감각적인 부티크 호텔.',
+   '/uploads/demo/stay-mapo-night.jpg', '홍대입구역 1분 거리의 감각적인 부티크 호텔.',
    '["무료 와이파이","라운지","셀프 체크인"]' FORMAT JSON, TIMESTAMP '2025-01-01 15:00:00', TIMESTAMP '2025-01-01 11:00:00', 0.0, 89000.00, 'ACTIVE'),
   (9, 2, 4, 2, 21, '해운대 마린 리조트', '부산광역시 해운대구 마린시티2로 38', 35.156200, 129.144700,
-   '/uploads/placeholder/stay-1.svg', '마린시티 야경이 펼쳐지는 오션뷰 리조트. 인피니티 풀 운영.',
+   '/uploads/demo/stay-city-skyline.jpg', '마린시티 야경이 펼쳐지는 오션뷰 리조트. 인피니티 풀 운영.',
    '["무료 와이파이","주차장","인피니티 풀","스파"]' FORMAT JSON, TIMESTAMP '2025-01-01 15:00:00', TIMESTAMP '2025-01-01 11:00:00', 0.0, 210000.00, 'ACTIVE'),
   (10, 1, 2, 3, 31, '제주 애월 스테이', '제주특별자치도 제주시 애월읍 한담서길 15', 33.461300, 126.311800,
-   '/uploads/placeholder/stay-2.svg', '한담 해안 산책로 앞 감성 펜션. 개별 자쿠지가 있는 객실.',
+   '/uploads/demo/stay-pension-sea.svg', '한담 해안 산책로 앞 감성 펜션. 개별 자쿠지가 있는 객실.',
    '["무료 와이파이","주차장","자쿠지"]' FORMAT JSON, TIMESTAMP '2025-01-01 15:00:00', TIMESTAMP '2025-01-01 11:00:00', 0.0, 150000.00, 'ACTIVE');
 
--- 숙소 이미지: 대표(MAIN) 1장 + 추가(SUB) 2장
-INSERT INTO accommodation_image (image_id, accommodation_id, image_url, image_type, sort_order, created_at, updated_at)
-SELECT a.accommodation_id * 10 + s.x, a.accommodation_id,
-       CASE WHEN s.x = 1 THEN a.thumbnail
-            ELSE '/uploads/placeholder/stay-' || (1 + MOD(a.accommodation_id + s.x, 4)) || '.svg' END,
-       CASE WHEN s.x = 1 THEN 'MAIN' ELSE 'SUB' END, s.x, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-  FROM accommodation a, SYSTEM_RANGE(1, 3) s;
+-- 숙소 이미지: 대표(MAIN) 1장 + 추가(SUB) 2장 — 숙소마다 다르게 보이도록 직접 지정 (대표 이미지는 accommodation.thumbnail 과 같다)
+INSERT INTO accommodation_image (image_id, accommodation_id, image_url, image_type, sort_order, created_at, updated_at) VALUES
+  (11, 1, '/uploads/demo/stay-hotel-entrance.jpg', 'MAIN', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (12, 1, '/uploads/demo/region-jeju.svg', 'SUB', 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (13, 1, '/uploads/demo/room-suite.svg', 'SUB', 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (21, 2, '/uploads/demo/stay-hanok.jpg', 'MAIN', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (22, 2, '/uploads/demo/room-ondol.svg', 'SUB', 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (23, 2, '/uploads/demo/region-seoul.jpg', 'SUB', 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (31, 3, '/uploads/demo/stay-hotel-lobby.jpg', 'MAIN', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (32, 3, '/uploads/demo/region-busan.svg', 'SUB', 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (33, 3, '/uploads/demo/room-twin.svg', 'SUB', 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (41, 4, '/uploads/demo/stay-pension-tangerine.svg', 'MAIN', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (42, 4, '/uploads/demo/room-house.svg', 'SUB', 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (43, 4, '/uploads/demo/region-jeju.svg', 'SUB', 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (51, 5, '/uploads/demo/stay-pension-pine.svg', 'MAIN', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (52, 5, '/uploads/demo/room-house.svg', 'SUB', 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (53, 5, '/uploads/demo/region-gangwon.svg', 'SUB', 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (61, 6, '/uploads/demo/stay-resort-sea.svg', 'MAIN', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (62, 6, '/uploads/demo/room-suite.svg', 'SUB', 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (63, 6, '/uploads/demo/region-gangwon.svg', 'SUB', 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (71, 7, '/uploads/demo/stay-gyeongju.jpg', 'MAIN', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (72, 7, '/uploads/demo/room-ondol.svg', 'SUB', 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (73, 7, '/uploads/demo/stay-hanok.jpg', 'SUB', 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (81, 8, '/uploads/demo/stay-mapo-night.jpg', 'MAIN', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (82, 8, '/uploads/demo/stay-city-skyline.jpg', 'SUB', 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (83, 8, '/uploads/demo/room-double.svg', 'SUB', 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (91, 9, '/uploads/demo/stay-city-skyline.jpg', 'MAIN', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (92, 9, '/uploads/demo/region-busan.svg', 'SUB', 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (93, 9, '/uploads/demo/room-suite.svg', 'SUB', 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (101, 10, '/uploads/demo/stay-pension-sea.svg', 'MAIN', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (102, 10, '/uploads/demo/room-double.svg', 'SUB', 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (103, 10, '/uploads/demo/region-jeju.svg', 'SUB', 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- ---- 객실 (숙소마다 2개) ----
 INSERT INTO room (room_id, accommodation_id, name, type, price, max_occupancy, standard_occupancy, extra_person_fee,
@@ -117,9 +144,16 @@ INSERT INTO room (room_id, accommodation_id, name, type, price, max_occupancy, s
   (1001, 10, '자쿠지 더블',      'DOUBLE', 150000.00, 2, 2, 20000.00, '["퀸 베드 1개"]' FORMAT JSON, '["자쿠지","오션뷰"]' FORMAT JSON, '개별 자쿠지가 있는 더블룸입니다.', 4, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   (1002, 10, '패밀리 트윈',      'FAMILY', 190000.00, 4, 3, 20000.00, '["퀸 베드 1개","싱글 베드 1개"]' FORMAT JSON, '["자쿠지","주방"]' FORMAT JSON, '가족 여행객을 위한 트윈룸입니다.', 2, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
+-- 객실 이미지: 객실 유형별 실내 일러스트
 INSERT INTO room_image (image_id, room_id, image_url, sort_order, created_at, updated_at)
 SELECT room_id, room_id,
-       CASE WHEN MOD(room_id, 2) = 1 THEN '/uploads/placeholder/room-1.svg' ELSE '/uploads/placeholder/room-2.svg' END,
+       CASE type
+            WHEN 'ONDOL'  THEN '/uploads/demo/room-ondol.svg'
+            WHEN 'SUITE'  THEN '/uploads/demo/room-suite.svg'
+            WHEN 'TWIN'   THEN '/uploads/demo/room-twin.svg'
+            WHEN 'FAMILY' THEN '/uploads/demo/room-twin.svg'
+            WHEN 'HOUSE'  THEN '/uploads/demo/room-house.svg'
+            ELSE '/uploads/demo/room-double.svg' END,
        1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
   FROM room;
 
@@ -276,17 +310,22 @@ INSERT INTO inquiry (inquiry_id, user_id, accommodation_id, category, title, con
 
 -- ---- 배너 / 이벤트 ----
 INSERT INTO banner (banner_id, title, image_url, target_url, position, sort_order, start_date, end_date, is_active, created_at, updated_at) VALUES
-  (1, '가을 여행 특가 — 최대 30% 할인', '/uploads/placeholder/banner-1.svg', '/accommodations', 'MAIN_TOP', 1,
+  (1, '가을 여행 특가 — 최대 30% 할인', '/uploads/demo/hero-namsan.jpg', '/accommodations', 'MAIN_TOP', 1,
    TIMESTAMP '2020-01-01 00:00:00', TIMESTAMP '2099-12-31 23:59:59', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  (2, '제주 오션뷰 숙소 모음', '/uploads/placeholder/banner-2.svg', '/accommodations', 'MAIN_TOP', 2,
+  (2, '서울 도심 속 달콤한 휴식', '/uploads/demo/hero-seoul.jpg', '/accommodations', 'MAIN_TOP', 2,
+   TIMESTAMP '2020-01-01 00:00:00', TIMESTAMP '2099-12-31 23:59:59', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (3, '경주 한옥에서 보내는 하루', '/uploads/demo/hero-gyeongju.jpg', '/accommodations', 'MAIN_TOP', 3,
    TIMESTAMP '2020-01-01 00:00:00', TIMESTAMP '2099-12-31 23:59:59', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO event (event_id, title, description, image_url, start_date, end_date, target_url, is_active, created_at, updated_at) VALUES
   (1, '첫 예약 1만원 할인 쿠폰', '신규 회원 첫 예약 시 사용할 수 있는 1만원 할인 쿠폰을 드립니다. (데모 이벤트)',
-   '/uploads/placeholder/event-1.svg', TIMESTAMP '2020-01-01 00:00:00', TIMESTAMP '2099-12-31 23:59:59', '/accommodations', TRUE,
+   '/uploads/demo/event-coupon.jpg', TIMESTAMP '2020-01-01 00:00:00', TIMESTAMP '2099-12-31 23:59:59', '/accommodations', TRUE,
    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   (2, '리뷰 작성하고 포인트 받기', '이용 완료 후 리뷰를 작성하면 500P 를 적립해 드립니다. (데모 이벤트)',
-   '/uploads/placeholder/event-1.svg', TIMESTAMP '2020-01-01 00:00:00', TIMESTAMP '2099-12-31 23:59:59', '/user/mypage', TRUE,
+   '/uploads/demo/event-review.jpg', TIMESTAMP '2020-01-01 00:00:00', TIMESTAMP '2099-12-31 23:59:59', '/user/mypage', TRUE,
+   CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  (3, '가을 숙박 할인 이벤트', '10월 한 달 동안 전국 펜션·한옥 숙소를 할인된 가격에 만나 보세요. (데모 이벤트)',
+   '/uploads/demo/event-discount.jpg', TIMESTAMP '2020-01-01 00:00:00', TIMESTAMP '2099-12-31 23:59:59', '/accommodations', TRUE,
    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- ---- IDENTITY 시작값 이동 (앱이 만드는 행과 PK 충돌 방지) ----

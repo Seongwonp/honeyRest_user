@@ -1,21 +1,35 @@
 package com.honeyrest.honeyrest_user.controller.weather;
 
+import com.honeyrest.honeyrest_user.service.weather.WeatherClient;
+import com.honeyrest.honeyrest_user.service.weather.WeatherInfo;
+import com.honeyrest.honeyrest_user.service.weather.WeatherUnavailableException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.beans.factory.annotation.Value;
-import java.util.Map;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * 홈 화면 날씨 위젯.
+ * <ul>
+ *     <li>200: {@code name, temp, condition, description, icon, humidity?, sample}</li>
+ *     <li>400: 도시·좌표 둘 다 없음 / 404: 도시를 찾지 못함</li>
+ *     <li>503: API 키 없음·외부 API 실패·시간 초과 → 프론트는 "불러올 수 없음 + 다시 시도"를 보여 준다</li>
+ * </ul>
+ */
 @Log4j2
 @RestController
 @RequestMapping("/api/weather")
+@RequiredArgsConstructor
 public class WeatherController {
 
-    @Value("${weather.api.key}")
-    private String apiKey;
-
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final WeatherClient weatherClient;
 
     @GetMapping
     public ResponseEntity<?> getWeather(
@@ -23,75 +37,25 @@ public class WeatherController {
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lon
     ) {
-        log.info("날씨 요청 수신: city={}, lat={}, lon={}", city, lat, lon);
-
-        String url;
-
-        if (city != null && !city.isEmpty()) {
-            url = String.format(
-                    "https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s&units=metric&lang=kr",
-                    city, apiKey
-            );
-        } else if (lat != null && lon != null) {
-            url = String.format(
-                    "https://api.openweathermap.org/data/2.5/weather?lat=%f&lon=%f&appid=%s&units=metric&lang=kr",
-                    lat, lon, apiKey
-            );
-        } else {
-            log.warn("잘못된 요청: 도시 또는 좌표가 누락됨");
-            return ResponseEntity.badRequest().body("도시 또는 좌표가 필요합니다.");
+        boolean hasCity = city != null && !city.isBlank();
+        if (!hasCity && (lat == null || lon == null)) {
+            return error(HttpStatus.BAD_REQUEST, "도시 또는 좌표가 필요합니다.");
         }
 
-        log.debug("OpenWeather 요청 URL: {}", url);
-
         try {
-            Map<?, ?> response = restTemplate.getForObject(url, Map.class);
-            log.debug("OpenWeather 응답: {}", response);
-
-            Object cod = response.get("cod");
-            if ((cod instanceof Integer && (Integer) cod != 200) ||
-                    (cod instanceof String && !"200".equals(cod))) {
-                log.warn("도시 정보 없음: {}", response.get("message"));
-                return ResponseEntity.badRequest().body("도시 정보를 찾을 수 없습니다.");
+            Optional<WeatherInfo> weather = weatherClient.getCurrent(hasCity ? city : null, lat, lon);
+            if (weather.isEmpty()) {
+                return error(HttpStatus.NOT_FOUND, "도시 정보를 찾을 수 없습니다.");
             }
-
-            if (!response.containsKey("main") || !response.containsKey("weather")) {
-                log.error("응답 데이터가 예상과 다름: {}", response);
-                return ResponseEntity.status(500).body(Map.of("success", false, "message", "날씨 정보를 가져오지 못했습니다."));
-            }
-
-            Map<?, ?> main = (Map<?, ?>) response.get("main");
-            Map<?, ?> weather = ((java.util.List<Map<?, ?>>) response.get("weather")).get(0);
-
-            String originalName = (String) response.get("name");
-            String translatedName = translateCityName(originalName);
-
-            Map<String, Object> result = Map.of(
-                    "name", translatedName,
-                    "temp", main.get("temp"),
-                    "condition", weather.get("main"),
-                    "description", weather.get("description"),
-                    "icon", weather.get("icon")
-            );
-
-            log.info("날씨 응답 결과: {}", result);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            log.error("날씨 API 호출 중 오류 발생", e);
-            return ResponseEntity.status(500).body("날씨 정보를 가져오지 못했습니다.");
+            return ResponseEntity.ok(weather.get().toResponse());
+        } catch (WeatherUnavailableException e) {
+            // 키 미설정은 정상 운영 상태일 수 있으므로 스택 트레이스 없이 남긴다
+            log.warn("날씨 정보를 가져오지 못함: {}", e.getMessage());
+            return error(HttpStatus.SERVICE_UNAVAILABLE, "날씨 정보를 가져오지 못했습니다.");
         }
     }
 
-    private String translateCityName(String name) {
-        return switch (name) {
-            case "Seoul" -> "서울";
-            case "Busan" -> "부산";
-            case "Daegu" -> "대구";
-            case "Incheon" -> "인천";
-            case "Gwangju" -> "광주";
-            case "Daejeon" -> "대전";
-            case "Ulsan" -> "울산";
-            default -> name;
-        };
+    private static ResponseEntity<Map<String, Object>> error(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(Map.of("success", false, "message", message));
     }
 }

@@ -6,7 +6,7 @@
 #
 #   1단계(spa)    : 프론트엔드 저장소를 git clone(alpine/git) 해 VITE_DEMO=true 로 빌드 (VITE_BACKEND_URL 은 비움 → 상대 경로 /api)
 #   2단계(build)  : Gradle bootJar -Pdemo (H2 드라이버 포함)
-#   3단계(runtime): JRE 17 + jar(풀어서 실행) + SPA(dist → /app/static) + 플레이스홀더 이미지(/app/uploads/placeholder)
+#   3단계(runtime): JRE 17 + jar(풀어서 실행) + SPA(dist → /app/static) + 데모 시드 이미지(/app/uploads/demo, /app/uploads/placeholder)
 #
 # 로컬 확인:
 #   docker build -f Dockerfile.render -t honeyrest-demo .
@@ -79,6 +79,8 @@ WORKDIR /app
 COPY --from=build --chown=honeyrest:honeyrest /workspace/extracted/ /app/
 COPY --from=spa --chown=honeyrest:honeyrest /spa/dist/ /app/static/
 COPY --chown=honeyrest:honeyrest uploads/placeholder /app/uploads/placeholder
+# db/demo-seed.sql 의 숙소·객실·배너·이벤트·지역 이미지 (사진 + 글자 없는 일러스트)
+COPY --chown=honeyrest:honeyrest uploads/demo /app/uploads/demo
 
 # JAVA_TOOL_OPTIONS: 512MB / 0.1 CPU 용 JVM 옵션 (render.yaml 에서 덮어쓸 수 있다, docs/DEPLOY_RENDER.md 참고)
 #   실측(--memory=512m --cpus=0.1): 힙 사용 ~70MB, 메타스페이스 ~105MB, 컨테이너 메모리 ~240~270MB
