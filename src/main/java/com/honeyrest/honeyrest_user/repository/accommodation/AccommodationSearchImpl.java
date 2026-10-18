@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.repository.accommodation;
 
+import com.honeyrest.domain.type.ReviewStatus;
 import com.honeyrest.honeyrest_user.service.redis.SearchCacheVersionService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -233,7 +234,8 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                         w.accommodation.accommodationId.eq(a.accommodationId)
                                 .and(userId != null ? w.user.userId.eq(userId) : Expressions.FALSE.isTrue())
                 )
-                .leftJoin(rv).on(rv.accommodationId.eq(a.accommodationId))
+                // 리뷰 수는 사용자 화면에 노출되는 리뷰(PUBLISHED)만 센다 (숨김/삭제 리뷰 제외, 상세 화면·평점 집계와 같은 기준)
+                .leftJoin(rv).on(rv.accommodationId.eq(a.accommodationId).and(rv.status.eq(ReviewStatus.PUBLISHED)))
                 .where(builder)
                 .groupBy(a.accommodationId)
                 .orderBy(order)

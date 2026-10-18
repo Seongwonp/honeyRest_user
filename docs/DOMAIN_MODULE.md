@@ -22,7 +22,7 @@ honeyRest_user/                               (루트 프로젝트 = 사용자 A
 │   └── src/main/java/com/honeyrest/domain/
 │       ├── entity/   엔티티 30개 + BaseEntity + ReservationChanges(인터페이스)
 │       └── type/     ReservationStatus, BannerPosition
-└── src/main/resources/db/migration/          Flyway V1~V11 (API 모듈에 남음)
+└── src/main/resources/db/migration/          Flyway V1~V12 (API 모듈에 남음)
 
 honeyRest_host/
 ├── .gitmodules                               libs/honeyrest-user → Seongwonp/honeyRest_user (branch main)

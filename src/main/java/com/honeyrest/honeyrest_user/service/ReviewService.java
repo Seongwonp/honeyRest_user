@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.service;
 
+import com.honeyrest.domain.type.ReviewStatus;
 import com.honeyrest.honeyrest_user.dto.page.PageResponseDTO;
 import com.honeyrest.honeyrest_user.dto.review.MyReviewDTO;
 import com.honeyrest.honeyrest_user.dto.review.ReviewDTO;
@@ -81,7 +82,7 @@ public class ReviewService {
                 .serviceRating(request.getServiceRating())
                 .locationRating(request.getLocationRating())
                 .content(request.getContent())
-                .status("PUBLISHED")
+                .status(ReviewStatus.PUBLISHED)
                 .build();
 
         reviewRepository.save(review);

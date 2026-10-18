@@ -9,7 +9,7 @@
 
 **HoneyRest**는 숙소 검색 → 객실 선택 → 쿠폰·포인트 적용 → 토스 결제 → 리뷰까지 이어지는 숙소 예약 플랫폼입니다.
 이 저장소는 사용자(React SPA)가 호출하는 **REST API 서버**로, 인증(JWT + OAuth2), 숙소 검색, 예약·재고, 결제, 리뷰, 마이페이지를 담당하고
-**공유 DB 스키마(Flyway V1~V11)의 소유자**입니다. 4주 팀 프로젝트(2025.08) 이후 예약 동시성, 결제 보상, 권한 경계, 테스트·CI를 단독으로 보강했습니다.
+**공유 DB 스키마(Flyway V1~V12)의 소유자**입니다. 4주 팀 프로젝트(2025.08) 이후 예약 동시성, 결제 보상, 권한 경계, 테스트·CI를 단독으로 보강했습니다.
 
 | 저장소 | 역할 |
 |--------|------|
@@ -62,7 +62,7 @@
 |------|------|
 | Language / Framework | Java 17, Spring Boot 3.5.4 (Web, Validation, Actuator) |
 | 인증 / 인가 | Spring Security, JJWT 0.11.5 (access token), HttpOnly refresh token 쿠키, OAuth2 소셜 로그인 (Google, Kakao) |
-| 데이터 | MySQL 8, Spring Data JPA, QueryDSL 5.0, Flyway (V1~V11, `ddl-auto=validate`) |
+| 데이터 | MySQL 8, Spring Data JPA, QueryDSL 5.0, Flyway (V1~V12, `ddl-auto=validate`) |
 | 캐시 | Redis (Spring Data Redis: 검색 결과 캐시, ZSet 인기 지역 랭킹, 리뷰 좋아요 카운터), Spring Cache |
 | 결제 | Toss Payments 결제 승인·취소 API (`RestTemplate`) |
 | 파일 저장 | `FileStorage` 추상화 — 로컬 디스크(기본) / Firebase Storage(선택), Thumbnailator |
@@ -90,7 +90,7 @@ flowchart LR
     end
 
     FE -- "REST /api/**<br/>refreshToken: HttpOnly 쿠키" --> F
-    Q --> DB[("MySQL 8<br/>Flyway V1~V11")]
+    Q --> DB[("MySQL 8<br/>Flyway V1~V12")]
     S --> R[("Redis<br/>검색 캐시 · ZSet 랭킹")]
     S -- "승인 / 보상 취소" --> TOSS["Toss Payments API"]
     S --> MAIL["Gmail SMTP"]
@@ -105,7 +105,7 @@ flowchart LR
   ```text
   honeyRest_user/                  (rootProject: 사용자 API, Flyway 마이그레이션 소유)
   ├── honeyrest-domain/            (:honeyrest-domain — 공유 엔티티, 두 앱이 @EntityScan("com.honeyrest.domain"))
-  └── src/main/resources/db/migration/   (V1~V11, 도메인 모듈이 아니라 API 모듈에 남음)
+  └── src/main/resources/db/migration/   (V1~V12, 도메인 모듈이 아니라 API 모듈에 남음)
   ```
 - 엔티티를 바꿀 때는 **이 저장소에서 엔티티 + Flyway 마이그레이션을 같은 커밋으로** 바꾸고, 관리자 저장소는 서브모듈을 그 커밋으로 재고정(re-pin)합니다.
 - 도메인·ERD: [ARCHITECTURE.md](docs/ARCHITECTURE.md) · 컬럼 명세: [DB_SCHEMA.md](DB_SCHEMA.md) · 기능 목록: [FEATURES.md](docs/FEATURES.md)
@@ -190,7 +190,7 @@ flowchart LR
    | `APP_STORAGE_LOCAL_DIR` | `app.storage.local.dir` | `./uploads` |
    | `FIREBASE_STORAGE_BUCKET` / `FIREBASE_PROJECT_ID` | `app.storage.firebase.*` | firebase 모드에서만 사용 |
 
-3. **실행**: 기동 시 Flyway가 `honeyrest_db`에 V1~V11을 적용합니다.
+3. **실행**: 기동 시 Flyway가 `honeyrest_db`에 V1~V12를 적용합니다.
    ```bash
    ./gradlew bootRun                                            # http://localhost:8080
    ./gradlew bootRun --args='--spring.profiles.active=local'    # SQL 로그 출력

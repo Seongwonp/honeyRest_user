@@ -10,7 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.core.io.support.EncodedResource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -20,6 +22,12 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import javax.sql.DataSource;
+import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Arrays;
 import java.util.List;
 
@@ -86,7 +94,7 @@ class FlywayMigrationMySqlIntegrationTest {
         List<String> versions = Arrays.stream(applied)
                 .map(info -> info.getVersion().getVersion())
                 .toList();
-        assertThat(versions).contains("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
+        assertThat(versions).contains("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12");
     }
 
     @Test
@@ -128,6 +136,34 @@ class FlywayMigrationMySqlIntegrationTest {
 
         assertThat(columnAttribute("reservation", "accommodation_name", "is_nullable")).isEqualTo("NO");
         assertThat(columnAttribute("cancellation_policy", "days_before", "is_nullable")).isEqualTo("YES");
+    }
+
+    @Test
+    void V12_는_리뷰_상태를_정규화하고_다시_실행해도_안전하다() throws Exception {
+        // review 는 reservation/user FK 가 있어 이 커넥션에서만 FK 검사를 끄고 상태 정규화만 확인한다.
+        try (Connection conn = dataSource.getConnection(); Statement st = conn.createStatement()) {
+            st.execute("SET FOREIGN_KEY_CHECKS = 0");
+            try {
+                st.execute("INSERT INTO review (review_id, reservation_id, user_id, accommodation_id, room_id, rating, status) VALUES "
+                        + "(990001, 1, 1, 1, 1, 4.00, 'VISIBLE'), (990002, 1, 1, 1, 1, 4.00, ' visible '), "
+                        + "(990003, 1, 1, 1, 1, 4.00, 'published'), (990004, 1, 1, 1, 1, 4.00, 'Hidden'), "
+                        + "(990005, 1, 1, 1, 1, 4.00, 'DELETED'), (990006, 1, 1, 1, 1, 4.00, 'UNKNOWN')");
+                ClassPathResource v12 = new ClassPathResource("db/migration/V12__normalize_review_status.sql");
+                ScriptUtils.executeSqlScript(conn, new EncodedResource(v12, "UTF-8"));
+                ScriptUtils.executeSqlScript(conn, new EncodedResource(v12, "UTF-8")); // 재실행 안전
+
+                Map<Long, String> statuses = new HashMap<>();
+                try (ResultSet rs = st.executeQuery("SELECT review_id, BINARY status FROM review WHERE review_id BETWEEN 990001 AND 990006")) {
+                    while (rs.next()) statuses.put(rs.getLong(1), new String(rs.getBytes(2), StandardCharsets.UTF_8));
+                }
+                assertThat(statuses).containsEntry(990001L, "PUBLISHED").containsEntry(990002L, "PUBLISHED")
+                        .containsEntry(990003L, "PUBLISHED").containsEntry(990004L, "HIDDEN")
+                        .containsEntry(990005L, "DELETED").containsEntry(990006L, "UNKNOWN");
+            } finally {
+                st.execute("DELETE FROM review WHERE review_id BETWEEN 990001 AND 990006");
+                st.execute("SET FOREIGN_KEY_CHECKS = 1");
+            }
+        }
     }
 
     private String columnAttribute(String table, String column, String attribute) {

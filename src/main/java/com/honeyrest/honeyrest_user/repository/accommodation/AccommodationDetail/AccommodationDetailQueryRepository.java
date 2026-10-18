@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.repository.accommodation.AccommodationDetail;
 
+import com.honeyrest.domain.type.ReviewStatus;
 import com.honeyrest.honeyrest_user.service.redis.AccommodationCacheKeys;
 import com.honeyrest.domain.type.ReservationStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -303,7 +304,7 @@ public class AccommodationDetailQueryRepository {
                     ))
                     .from(review)
                     .where(review.accommodationId.eq(id)
-                            .and(review.status.eq("PUBLISHED")))
+                            .and(review.status.eq(ReviewStatus.PUBLISHED)))
                     .orderBy(review.reviewId.desc())
                     .limit(10)
                     .fetch();
@@ -339,7 +340,7 @@ public class AccommodationDetailQueryRepository {
                     .select(review.count())
                     .from(review)
                     .where(review.accommodationId.eq(id)
-                            .and(review.status.eq("PUBLISHED")))
+                            .and(review.status.eq(ReviewStatus.PUBLISHED)))
                     .fetchOne()
                     .intValue();
             redisTemplate.opsForValue().set(reviewCountKey, reviewCount, Duration.ofMinutes(3));

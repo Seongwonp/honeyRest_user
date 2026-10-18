@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.repository.room;
 
+import com.honeyrest.domain.type.ReviewStatus;
 import com.honeyrest.domain.type.ReservationStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -83,7 +84,7 @@ public class RoomDetailRepository implements RoomDetailQueryRepository {
                 .leftJoin(review.user, user).fetchJoin()
                 .where(
                         review.roomId.eq(roomId),
-                        review.status.eq("PUBLISHED")
+                        review.status.eq(ReviewStatus.PUBLISHED)
                 )
                 .orderBy(review.createdAt.desc())
                 .limit(5)
@@ -114,7 +115,7 @@ public class RoomDetailRepository implements RoomDetailQueryRepository {
                 .from(review)
                 .where(
                         review.roomId.eq(roomId),
-                        review.status.eq("PUBLISHED")
+                        review.status.eq(ReviewStatus.PUBLISHED)
                 )
                 .fetchOne();
 

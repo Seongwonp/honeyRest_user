@@ -57,7 +57,11 @@ public class Accommodation {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(columnDefinition = "JSON")
+    // JSON 텍스트를 담는 문자열 컬럼. 실제 스키마(Flyway V1)는 LONGTEXT 이므로 매핑도 LONGTEXT 로 맞춘다.
+    // 과거 columnDefinition = "JSON" 이면 H2(demo/e2e/test, ddl-auto=create-drop)가 JSON 타입 컬럼을 만들고,
+    // 문자열 파라미터를 JSON '문자열 값'으로 감싸 저장해 저장할 때마다 따옴표가 누적됐다('["a"]' → "\"[...]\"").
+    // MySQL 은 Flyway 가 스키마를 관리하므로(ddl-auto=validate) 이 값은 H2 DDL 에만 영향을 준다.
+    @Column(columnDefinition = "LONGTEXT")
     private String amenities; // 편의시설 정보(JSON 문자열 저장)
 
     @Column(name = "check_in_time")

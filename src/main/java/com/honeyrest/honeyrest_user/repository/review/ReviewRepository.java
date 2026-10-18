@@ -1,5 +1,6 @@
 package com.honeyrest.honeyrest_user.repository.review;
 
+import com.honeyrest.domain.type.ReviewStatus;
 import com.honeyrest.domain.entity.Reservation;
 import com.honeyrest.domain.entity.Review;
 import org.springframework.data.domain.Page;
@@ -15,7 +16,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     boolean existsByReservation(Reservation reservation);
 
-    @Query("SELECT r.rating FROM Review r WHERE r.accommodationId = :accommodationId AND r.status = 'PUBLISHED'")
+    @Query("SELECT r.rating FROM Review r WHERE r.accommodationId = :accommodationId AND r.status = '" + ReviewStatus.PUBLISHED + "'")
     List<BigDecimal> findRatingsByAccommodationId(@Param("accommodationId") Long accommodationId);
 
     Page<Review> findByUser_UserId(Long userId, Pageable pageable);
