@@ -280,7 +280,9 @@ public class UserController {
             request.setContent("내용 없음");
         }
 
-        inquiryService.updateInquiry(userId, inquiryId, request);
+        // 서비스 시그니처는 (inquiryId, userId, dto). 과거에는 인자 순서가 뒤바뀌어 소유권 검사가
+        // "inquiryId 번 사용자의 userId 번 문의" 로 이뤄져, 다른 사람 문의를 수정할 수 있었다(IDOR).
+        inquiryService.updateInquiry(inquiryId, userId, request);
         log.info("✏️ 문의 수정: userId={}, inquiryId={}", userId, inquiryId);
         return ResponseEntity.ok().build();
     }
@@ -292,7 +294,7 @@ public class UserController {
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
         Long userId = principal.getUserId();
-        inquiryService.deleteInquiry(userId, inquiryId);
+        inquiryService.deleteInquiry(inquiryId, userId); // 시그니처 (inquiryId, userId) — 위 수정과 같은 IDOR 수정
         log.info("🗑️ 문의 삭제: userId={}, inquiryId={}", userId, inquiryId);
         return ResponseEntity.noContent().build();
     }

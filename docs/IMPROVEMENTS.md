@@ -349,3 +349,32 @@ spring.flyway.locations=classpath:db/migration
   (과거 IllegalArgumentException→400, RuntimeException→500). `deleteAccount` 의 RuntimeException(500)도 404.
   로그인 실패(이메일/비밀번호 불일치)와 결제 요청 본문의 객실·쿠폰 검증은 기존 400 유지.
 
+---
+
+## 🐞 버그 수정 (2026-10)
+
+| # | 버그 | 원인 | 수정 |
+|---|------|------|------|
+| 1 | 쿠폰 적용 결제가 실패하거나 다른 쿠폰이 적용됨 | 예약 폼 쿠폰 목록은 쿠폰 마스터 id(`couponId`)를 내려주고, 결제는 그 값을 `user_coupon` id 로 조회 | 목록 DTO 에 `userCouponId` 추가(`couponId` 는 표시용 유지), 결제/예약 요청 필드를 `reservationInfo.userCouponId` 로 변경(구 `couponId` 는 받지 않음 → 금액 불일치 400, 과금 없음). e2e 시드 `user_coupon_id=7 ≠ coupon_id=1` |
+| 2 | 리뷰 삭제 후 재작성 시 포인트 무한 적립 | 적립 판정이 "리뷰 존재 여부"뿐 (리뷰는 하드 삭제) | `PointService.earnOnce`: 같은 사유+예약 id 의 SAVE 이력이 있으면 적립 0. 삭제 시 회수는 하지 않음 |
+| 3 | `total_rooms` 초과 예약 가능 (MySQL) | REPEATABLE READ 에서 객실 락 전에 일반 SELECT 가 실행돼 스냅샷 고정 → 락 후 COUNT 가 방금 커밋된 예약을 못 봄 | 저장 트랜잭션 첫 문장에서 객실 락, 겹치는 예약은 잠금 읽기(`FOR UPDATE`)로 집계, 격리 수준 READ COMMITTED 로 명시 |
+| 4 | 같은 쿠폰/포인트 동시 이중 사용 | `UserCoupon.use()` 덮어쓰기, 포인트 read-modify-write | 조건부 UPDATE (`status='ISSUED'`, `point >= :amt`), 0행이면 409. 이력은 `PointService` 가 변동 후 DB 잔액으로 기록 |
+| 5 | 남의 문의 수정·삭제 가능 (IDOR) | 컨트롤러가 `(userId, inquiryId)` 순서로 `(inquiryId, userId)` 서비스 호출 | 인자 순서 수정, 소유권 실패 403(과거 500)·없음 404 |
+| 6 | 문의 수정 시 답변·카테고리 삭제 | 빌더로 새 엔티티를 만들어 save | `Inquiry.editQuestion` 으로 관리 엔티티 변경, 답변 달린 문의 수정은 409 (프론트 `!inquiry.reply` 규칙과 동일) |
+| 7 | 숙소 상세 캐시가 갱신되지 않음, 이미지 중복 | 상세·이미지·태그·취소 정책 캐시 TTL 없음, 이미지 MISS 시 개별 RPUSH | TTL 10분(`app.cache.accommodation-detail-ttl`), 이미지는 MULTI/EXEC 로 통째 교체 (키·자료형 유지 → 호스트 `allFor` 무효화 그대로) |
+| 8 | 정률 쿠폰 금액이 프론트와 1원 단위로 어긋남 | 서버 소수 둘째 자리 HALF_UP, 프론트 원 단위 버림 | `Coupon.calculateDiscount` 원 단위 버림(scale 0, DOWN). 33,333 × 10% = 3,333 |
+| 9 | 결제 시 쿠폰 적용 대상·사용 이력 미검증 | 목록 쿼리에서만 확인 | `CouponService.calculateDiscountForPayment`: 소유·ISSUED·만료·활성·기간·최소 금액(NULL=없음)·대상·`coupon_usage` 확인 |
+| 10 | 검색에 비활성 숙소/객실 노출, 예약 가능 여부 오표시 | 상태 필터 없음, 가용성 판단에 모든 객실 사용 | 숙소·객실 `ACTIVE`(대소문자 무시) 필터, 가용성은 운영 중 + `maxOccupancy >= guests` 객실만 |
+| 11 | 지난 날짜 예약 가능 | 서버 날짜 검증 없음 | `StayDatePolicy`: 체크인 ≥ 오늘(Asia/Seoul), 체크아웃 > 체크인, 최대 30박 → 400 (결제 승인 전·예약 폼) |
+| 12 | 찜 토글이 검색 결과에 반영되지 않음 | 검색 캐시 세대 미증가 | `searchCacheVersionService.bumpAfterCommit()` |
+| 13 | 최소 주문 금액 NULL 쿠폰이 목록에서 빠짐 | `min_order_amount <= :price` 가 NULL 에서 거짓 | `isNull().or(loe)` (+ 사용자 쿠폰 만료 시각 조건 추가) |
+| 14 | 마지막 리뷰 삭제 후 평점 유지 | 리뷰가 없으면 재계산 생략 | 평점 0.0 으로 초기화 (리뷰 수는 컬럼이 아니라 집계, 캐시는 함께 삭제) |
+| 15 | 상세의 업체 주소가 숙소 주소 / 예약 폼 로그에 실명·전화번호 | 잘못된 필드 매핑 / DTO 통째 로깅 | `getCompanyAddress()` 사용 / id·숙박일·쿠폰 수만 로깅 |
+| 16 | 날짜 없이 `/api/accommodations/{id}` 호출 시 500 | 재고 쿼리에 NULL 날짜 | 오늘~내일(Asia/Seoul) 기본값, 역순 400, 없는 숙소 404 |
+
+- 테스트: `CouponFlowH2Test`, `ReviewPointAndRatingH2Test`, `InquiryOwnershipApiTest`, `AccommodationSearchFilterH2Test`,
+  `AccommodationDetailCacheH2Test`, `PointAtomicUpdateH2Test`, `ReservationConcurrencyH2Test`, `StayDatePolicyTest`, `WishListServiceTest`,
+  `CouponTest`(도메인), 기존 `PointServiceTest`·`ReserveServiceTest`·`PaymentOrchestrationServiceTest`·`ReviewServiceTest` 보강.
+  MySQL 전용(InnoDB 잠금): `ReservationConcurrencyMySqlIntegrationTest` (`./gradlew integrationTest`, Docker 필요).
+- 공통 테스트 지원: `support/H2IntegrationTestSupport`(H2 + 인메모리 Redis), `TestFixtures`, `ConcurrencyResult`.
+- **[프론트 계약 변경]** 예약 폼 `availableCoupons[]` 에 `userCouponId` 추가, 결제 요청 `reservationInfo.couponId` → `reservationInfo.userCouponId`.

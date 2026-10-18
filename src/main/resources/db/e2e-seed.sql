@@ -14,7 +14,7 @@
 --               - 객실 201 '패밀리 룸'               total_rooms=3  1박 120,000원
 --   태그      : 오션뷰, 무료 주차, 바비큐
 --   회원      : e2e.user@honeyrest.test / Honey1234!  (이메일 인증 완료, 포인트 5,000)
---   쿠폰      : 'E2E 5천원 할인' (정액 5,000원, 최소 50,000원) — 위 회원에게 발급
+--   쿠폰      : 'E2E 5천원 할인' (coupon_id=1, 정액 5,000원, 최소 50,000원) — 위 회원에게 발급 (user_coupon_id=7)
 --
 -- 비밀번호 해시 재생성 방법 (BCrypt, cost 10 — SecurityConfig 의 BCryptPasswordEncoder 기본값과 동일):
 --   C=$(find ~/.gradle/caches -name 'spring-security-crypto-6*.jar' | head -1)
@@ -107,8 +107,10 @@ INSERT INTO coupon (coupon_id, name, code, discount_type, discount_value, min_or
   (1, 'E2E 5천원 할인', 'E2E-5000', 'FIXED', 5000.00, 50000.00, NULL, 'ALL', NULL,
    TIMESTAMP '2020-01-01 00:00:00', TIMESTAMP '2099-12-31 23:59:59', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
+-- user_coupon_id(7) 를 coupon_id(1) 와 일부러 다르게 둔다: 결제는 user_coupon id 로 조회하므로,
+-- 프론트가 쿠폰 마스터 id(couponId)를 보내는 회귀가 생기면 e2e 결제가 실패해 바로 드러난다.
 INSERT INTO user_coupon (user_coupon_id, user_id, coupon_id, status, issued_at, used_at, expired_at) VALUES
-  (1, 1, 1, 'ISSUED', CURRENT_TIMESTAMP, NULL, TIMESTAMP '2099-12-31 23:59:59');
+  (7, 1, 1, 'ISSUED', CURRENT_TIMESTAMP, NULL, TIMESTAMP '2099-12-31 23:59:59');
 
 -- ---- IDENTITY 시작값 이동 (앱이 만드는 행과 PK 충돌 방지) ----
 ALTER TABLE region ALTER COLUMN region_id RESTART WITH 100;

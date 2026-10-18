@@ -24,7 +24,7 @@ class CouponTest {
     @ValueSource(strings = {"RATE", "PERCENT", "PERCENTAGE", "percent", " Rate "})
     void 정률_별칭은_모두_퍼센트로_계산한다(String type) {
         assertThat(coupon(type, "10", null).calculateDiscount(new BigDecimal("123456")))
-                .isEqualByComparingTo("12345.60");
+                .isEqualByComparingTo("12345");
     }
 
     @ParameterizedTest
@@ -43,9 +43,51 @@ class CouponTest {
     }
 
     @Test
-    void 정률은_소수_둘째_자리에서_반올림한다() {
-        assertThat(coupon("RATE", "3.333", null).calculateDiscount(new BigDecimal("100")))
-                .isEqualByComparingTo("3.33");
+    void 정률은_원_단위_미만을_버린다_프론트_Math_floor_와_같다() {
+        // 과거: 소수 둘째 자리 HALF_UP → 3333.30 이 되어 프론트(3,333원)와 결제 금액이 어긋났다.
+        BigDecimal discount = coupon("PERCENT", "10", null).calculateDiscount(new BigDecimal("33333"));
+        assertThat(discount).isEqualByComparingTo("3333");
+        assertThat(discount.scale()).isZero();
+
+        // 반올림이 아니라 버림 (99.99 → 99)
+        assertThat(coupon("RATE", "3.333", null).calculateDiscount(new BigDecimal("3000")))
+                .isEqualByComparingTo("99");
+    }
+
+    @Test
+    void 정액도_원_단위_미만은_버린다() {
+        assertThat(coupon("FIXED", "5000.90", null).calculateDiscount(new BigDecimal("100000")))
+                .isEqualByComparingTo("5000");
+    }
+
+    @Test
+    void 최소_주문_금액이_NULL_이면_제한이_없다() {
+        Coupon noMin = Coupon.builder().discountType("FIXED").discountValue(BigDecimal.ONE).build();
+        Coupon min = Coupon.builder().discountType("FIXED").discountValue(BigDecimal.ONE)
+                .minOrderAmount(new BigDecimal("50000")).build();
+
+        assertThat(noMin.meetsMinOrder(new BigDecimal("1"))).isTrue();
+        assertThat(min.meetsMinOrder(new BigDecimal("49999"))).isFalse();
+        assertThat(min.meetsMinOrder(new BigDecimal("50000"))).isTrue();
+    }
+
+    @Test
+    void 적용_대상은_ALL_또는_해당_숙소만_허용한다() {
+        assertThat(Coupon.builder().targetType("ALL").build().isApplicableToAccommodation(1L)).isTrue();
+        assertThat(Coupon.builder().targetType("ACCOMMODATION").targetId(1L).build().isApplicableToAccommodation(1L)).isTrue();
+        assertThat(Coupon.builder().targetType("ACCOMMODATION").targetId(2L).build().isApplicableToAccommodation(1L)).isFalse();
+        assertThat(Coupon.builder().targetType("CATEGORY").build().isApplicableToAccommodation(1L)).isFalse();
+    }
+
+    @Test
+    void 사용_기간과_활성_여부() {
+        java.time.LocalDateTime now = java.time.LocalDateTime.of(2026, 10, 18, 12, 0);
+        Coupon active = Coupon.builder().isActive(true)
+                .startDate(now.minusDays(1)).endDate(now.plusDays(1)).build();
+        assertThat(active.isUsableAt(now)).isTrue();
+        assertThat(active.isUsableAt(now.plusDays(2))).isFalse();
+        assertThat(Coupon.builder().isActive(false)
+                .startDate(now.minusDays(1)).endDate(now.plusDays(1)).build().isUsableAt(now)).isFalse();
     }
 
     @Test

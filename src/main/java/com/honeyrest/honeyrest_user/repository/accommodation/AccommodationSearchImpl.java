@@ -150,6 +150,10 @@ public class AccommodationSearchImpl implements AccommodationSearch {
             );
         }
 
+        // 운영 중(ACTIVE)인 숙소와, 인원을 수용할 수 있는 운영 중 객실만 검색한다 (상태 값은 대소문자 혼용 데이터가 있어 대문자로 비교).
+        // 과거에는 상태 필터가 없어 비활성 숙소/객실도 검색 결과에 노출됐다.
+        builder.and(a.status.upper().eq("ACTIVE"));
+        builder.and(r.status.upper().eq("ACTIVE"));
         builder.and(r.maxOccupancy.goe(guests));
 
         if (maxPrice != null) {
@@ -261,10 +265,15 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                         tuple -> Optional.ofNullable(tuple.get(res.reservationId.count())).orElse(0L)
                 ));
 
-        // 숙소별 Room 리스트 조회
+        // 숙소별 Room 리스트 조회 — 예약 가능 여부는 검색 조건을 만족하는 객실(운영 중 + 인원 수용)로만 판단한다.
+        // 과거에는 모든 객실을 봐서, 인원이 맞는 객실은 매진이어도 작은/비활성 객실이 남아 있으면 "예약 가능"으로 표시됐다.
         List<Room> allRooms = queryFactory()
                 .selectFrom(r)
-                .where(r.accommodation.accommodationId.in(accommodationIds))
+                .where(
+                        r.accommodation.accommodationId.in(accommodationIds),
+                        r.status.upper().eq("ACTIVE"),
+                        r.maxOccupancy.goe(guests)
+                )
                 .fetch();
 
         Map<Long, List<Room>> roomMap = allRooms.stream()
@@ -276,7 +285,7 @@ public class AccommodationSearchImpl implements AccommodationSearch {
 
             boolean hasAvailableRoom = rooms.stream().anyMatch(room -> {
                 Long reserved = reservedRoomCounts.getOrDefault(room.getRoomId(), 0L);
-                return room.getTotalRooms() > reserved;
+                return room.getTotalRooms() != null && room.getTotalRooms() > reserved;
             });
 
             dto.setAvailable(hasAvailableRoom);

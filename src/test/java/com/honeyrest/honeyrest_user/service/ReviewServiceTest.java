@@ -26,6 +26,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 @DisplayName("ReviewService 테스트")
@@ -107,7 +108,9 @@ class ReviewServiceTest {
         verify(reviewRepository).save(any(Review.class));
         verify(accommodationService).updateRating(1L);
         // 적립은 PointService 한 번 호출로 잔액 + 이력을 함께 처리한다.
-        verify(pointService).earn(user, ReviewService.REVIEW_REWARD_POINT, "리뷰 작성 적립", 1L);
+        // 예약당 1회만 적립: 리뷰 삭제 후 재작성 시 다시 적립되지 않도록 earnOnce(이력 기준 중복 방지)를 쓴다.
+        verify(pointService).earnOnce(user, ReviewService.REVIEW_REWARD_POINT, "리뷰 작성 적립", 1L);
+        verify(pointService, never()).earn(any(), anyInt(), any(), any());
     }
 
     @Test

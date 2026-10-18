@@ -75,7 +75,7 @@ public class TossService {
                 .amount(amount)
                 .receiptUrl(receiptUrl)
                 .reservationInfo(reservationInfo)   // 프론트에서 받은 예약정보 유지
-                .couponName(reservationInfo != null && reservationInfo.getCouponId() != null ? "쿠폰적용" : null)
+                .couponName(reservationInfo != null && reservationInfo.getUserCouponId() != null ? "쿠폰적용" : null)
                 .isEmailSend(reservationInfo != null ? reservationInfo.getIsEmailSend() : null)
                 .raw(responseMap)
                 .build();

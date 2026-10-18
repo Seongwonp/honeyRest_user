@@ -18,7 +18,12 @@ public class UserCouponQueryRepository {
 
     private final JPAQueryFactory queryFactory;
 
+    /**
+     * 예약 폼의 사용 가능 쿠폰. 결제 시점 검증(CouponService#calculateDiscountForPayment)과 같은 조건을 쓴다.
+     * 최소 주문 금액이 NULL 인 쿠폰은 "최소 금액 없음"이다 (과거에는 {@code NULL <= 금액} 이 참이 아니라 목록에서 빠졌다).
+     */
     public List<UserCoupon> findAvailableCoupons(Long userId, BigDecimal originalPrice, Long accommodationId) {
+        LocalDateTime now = LocalDateTime.now();
         QUserCoupon userCoupon = QUserCoupon.userCoupon;
         QCoupon coupon = QCoupon.coupon;
         QCouponUsage usage = QCouponUsage.couponUsage;
@@ -30,9 +35,10 @@ public class UserCouponQueryRepository {
                         userCoupon.user.userId.eq(userId),
                         userCoupon.status.eq("ISSUED"),
                         coupon.isActive.isTrue(),
-                        coupon.startDate.loe(LocalDateTime.now()),
-                        coupon.endDate.goe(LocalDateTime.now()),
-                        coupon.minOrderAmount.loe(originalPrice),
+                        userCoupon.expiredAt.goe(now),
+                        coupon.startDate.loe(now),
+                        coupon.endDate.goe(now),
+                        coupon.minOrderAmount.isNull().or(coupon.minOrderAmount.loe(originalPrice)),
                         coupon.targetType.in("ALL", "ACCOMMODATION"),
                         coupon.targetId.isNull().or(coupon.targetId.eq(accommodationId)),
                         com.querydsl.jpa.JPAExpressions.selectOne()

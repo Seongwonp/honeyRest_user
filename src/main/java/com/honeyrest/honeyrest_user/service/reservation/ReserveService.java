@@ -56,7 +56,7 @@ public class ReserveService {
         // (결제 승인 전 사전 확인은 락 없이 수행되므로 여기서의 재확인이 최종 판정이다.)
         Room room = roomRepository.findByIdForUpdate(request.getRoomId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 객실입니다"));
-        assertRoomAvailable(room, request.getCheckIn(), request.getCheckOut());
+        assertRoomAvailableLocked(room, request.getCheckIn(), request.getCheckOut());
 
         User user = request.getUserId() != null
                 ? userRepository.findById(request.getUserId()).orElse(null)
@@ -88,9 +88,9 @@ public class ReserveService {
         // 재고가 줄었으므로 검색 결과(예약 가능 여부) 캐시 세대를 커밋 후 올린다.
         searchCacheVersionService.bumpAfterCommit();
 
-        // 쿠폰 사용 처리
-        if (request.getCouponId() != null) {
-            couponUsageService.recordUsage(request.getCouponId(), reservation, discountAmount);
+        // 쿠폰 사용 처리 (조건부 UPDATE 로 원자적 — 동시에 같은 쿠폰을 쓰면 하나만 성공, 나머지는 409)
+        if (request.getUserCouponId() != null) {
+            couponUsageService.recordUsage(request.getUserCouponId(), request.getUserId(), reservation, discountAmount);
         }
 
         // 포인트 사용 처리 (잔액 차감 + 이력 기록을 한 번에)
@@ -110,12 +110,32 @@ public class ReserveService {
      */
     @Transactional(readOnly = true)
     public void assertRoomAvailable(Room room, LocalDate checkIn, LocalDate checkOut) {
+        validateDates(checkIn, checkOut);
+        long occupied = reservationRepository.countOverlapping(
+                room.getRoomId(), checkIn, checkOut, ReservationStatus.OCCUPYING);
+        rejectIfFull(room, checkIn, checkOut, occupied);
+    }
+
+    /**
+     * 객실 행 락(FOR UPDATE)을 잡은 트랜잭션 안에서 쓰는 최종 재고 판정.
+     * 겹치는 예약을 잠금 읽기(SELECT ... FOR UPDATE)로 세므로 MySQL REPEATABLE READ 스냅샷이 락 대기 전에
+     * 고정됐더라도 방금 커밋된 예약을 놓치지 않는다 (일반 SELECT COUNT 는 스냅샷을 읽어 초과 예약이 가능했다).
+     */
+    private void assertRoomAvailableLocked(Room room, LocalDate checkIn, LocalDate checkOut) {
+        validateDates(checkIn, checkOut);
+        long occupied = reservationRepository.findOverlappingIdsForUpdate(
+                room.getRoomId(), checkIn, checkOut, ReservationStatus.OCCUPYING).size();
+        rejectIfFull(room, checkIn, checkOut, occupied);
+    }
+
+    private static void validateDates(LocalDate checkIn, LocalDate checkOut) {
         if (checkIn == null || checkOut == null || !checkIn.isBefore(checkOut)) {
             throw new IllegalArgumentException("체크인/체크아웃 날짜가 올바르지 않습니다.");
         }
+    }
+
+    private void rejectIfFull(Room room, LocalDate checkIn, LocalDate checkOut, long occupied) {
         int totalRooms = room.getTotalRooms() != null ? room.getTotalRooms() : 0;
-        long occupied = reservationRepository.countOverlapping(
-                room.getRoomId(), checkIn, checkOut, ReservationStatus.OCCUPYING);
         if (occupied >= totalRooms) {
             log.info("재고 부족으로 예약 거절: roomId={}, checkIn={}, checkOut={}, occupied={}, totalRooms={}",
                     room.getRoomId(), checkIn, checkOut, occupied, totalRooms);

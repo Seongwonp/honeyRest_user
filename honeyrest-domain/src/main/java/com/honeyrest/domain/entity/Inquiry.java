@@ -59,6 +59,29 @@ public class Inquiry extends BaseEntity {
         this.reply = reply;
         this.isReplied = (reply != null && !reply.isBlank());
     }
+    /** 답변이 달렸는지 (reply 내용 기준. isReplied 플래그만 true 인 과거 데이터도 답변 있음으로 본다). */
+    public boolean hasReply() {
+        return (reply != null && !reply.isBlank()) || Boolean.TRUE.equals(isReplied);
+    }
+
+    /**
+     * 작성자의 문의 수정. 관리 중인 엔티티의 제목·내용·카테고리만 바꾸고 답변(reply/isReplied)·숙소·작성자는 보존한다.
+     * 답변이 달린 문의는 수정할 수 없다 (프론트 InquiryEditModal 의 isEditable = !inquiry.reply 와 같은 규칙).
+     * category 가 null/빈 값이면 기존 카테고리를 유지한다.
+     *
+     * @throws IllegalStateException 이미 답변이 달린 문의
+     */
+    public void editQuestion(String title, String content, String category) {
+        if (hasReply()) {
+            throw new IllegalStateException("답변이 등록된 문의는 수정할 수 없습니다.");
+        }
+        this.title = title;
+        this.content = content;
+        if (category != null && !category.isBlank()) {
+            this.category = category;
+        }
+    }
+
     public void changeUser(User user) { this.user = user; }
     public void changeAccommodation(Accommodation acc) { this.accommodation = acc; }
 }

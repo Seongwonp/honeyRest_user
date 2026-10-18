@@ -19,7 +19,11 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
@@ -41,6 +45,13 @@ public class AccommodationDetailQueryRepository {
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
     private final ReviewRedisLikeRepository reviewRedisLikeRepository;
+
+    /**
+     * 숙소 상세·이미지·태그·취소 정책 캐시 TTL. 과거에는 TTL 없이 저장해 호스트가 무효화하지 못한 변경
+     * (예: 다른 경로의 숙소 정보 수정)이 영원히 반영되지 않았다. 무효화가 누락돼도 이 시간이 지나면 갱신된다.
+     */
+    @Value("${app.cache.accommodation-detail-ttl:10m}")
+    private Duration detailCacheTtl = Duration.ofMinutes(10);
 
     public AccommodationDetailDTO fetchDetailById(Long id, Long userId, LocalDate checkIn, LocalDate checkOut, Integer guests) {
         QAccommodation accommodation = QAccommodation.accommodation;
@@ -110,7 +121,7 @@ public class AccommodationDetailQueryRepository {
                     .fetchOne();
 
             if (flat == null) return null;
-            redisTemplate.opsForValue().set(detailKey, flat);
+            redisTemplate.opsForValue().set(detailKey, flat, detailCacheTtl);
             log.info("✅ Redis 캐시 생성 - 숙소 상세(detailKey): {}", detailKey);
         } else {
             log.info("✅ Redis HIT - 숙소 상세(detailKey): {}", detailKey);
@@ -133,7 +144,7 @@ public class AccommodationDetailQueryRepository {
                         .ownerName(flat.getOwnerName())
                         .phone(flat.getPhone())
                         .email(flat.getEmail())
-                        .address(flat.getAddress())
+                        .address(flat.getCompanyAddress()) // 업체 주소 (과거에는 숙소 주소를 잘못 넣었다)
                         .build())
                 .mainRegion(RegionDTO.builder()
                         .regionId(flat.getMainRegionId())
@@ -168,7 +179,7 @@ public class AccommodationDetailQueryRepository {
                     .where(image.accommodation.accommodationId.eq(id))
                     .orderBy(image.sortOrder.asc())
                     .fetch();
-            images.forEach(img -> redisTemplate.opsForList().rightPush(imagesKey, img));
+            cacheImages(imagesKey, images);
             log.info("✅ Redis 캐시 생성 - 숙소 이미지(imagesKey): {}", imagesKey);
         } else {
             log.info("✅ Redis HIT - 숙소 이미지(imagesKey): {}", imagesKey);
@@ -193,7 +204,7 @@ public class AccommodationDetailQueryRepository {
                     .join(tagMap.tag, tag)
                     .where(tagMap.accommodation.accommodationId.eq(id))
                     .fetch();
-            redisTemplate.opsForValue().set(tagsKey, tags);
+            redisTemplate.opsForValue().set(tagsKey, tags, detailCacheTtl);
             log.info("✅ Redis 캐시 생성 - 숙소 태그(tagsKey): {}", tagsKey);
         } else {
             log.info("✅ Redis HIT - 숙소 태그(tagsKey): {}", tagsKey);
@@ -382,7 +393,7 @@ public class AccommodationDetailQueryRepository {
                     .from(qCancellationPolicy)
                     .where(qCancellationPolicy.accommodation.accommodationId.eq(id))
                     .fetch();
-            redisTemplate.opsForValue().set(cancellationKey, cancellationPolicies);
+            redisTemplate.opsForValue().set(cancellationKey, cancellationPolicies, detailCacheTtl);
             log.info("✅ Redis 캐시 생성 - 취소 정책(cancellationKey): {}", cancellationKey);
         } else {
             log.info("✅ Redis HIT - 취소 정책(cancellationKey): {}", cancellationKey);
@@ -398,11 +409,35 @@ public class AccommodationDetailQueryRepository {
         boolean hasAvailableRoom = rooms.stream().anyMatch(RoomDTO::isAvailable);
         log.info("🏨 숙소 전체 예약 가능 여부: {}", hasAvailableRoom ? "가능" : "불가");
 
-        log.info("최종 데이터: {}",dto);
+        log.debug("숙소 상세 조회 완료: id={}, rooms={}, reviews={}", id, rooms.size(), reviews.size());
 
         return dto;
     }
 
+
+    /**
+     * 이미지 목록 캐시를 한 번에 교체한다: MULTI → DEL → RPUSH(전체) → EXPIRE → EXEC.
+     * <p>
+     * 과거에는 캐시 MISS 때 이미지마다 RPUSH 를 따로 보내, 동시에 MISS 난 두 요청이 같은 목록을 두 번 쌓아
+     * 이미지가 중복 표시됐고 TTL 도 없었다. 키 이름과 Redis 자료형(List)은 그대로라 호스트의
+     * {@code AccommodationCacheKeys.allFor(id)} 무효화도 그대로 동작한다.
+     */
+    void cacheImages(String imagesKey, List<String> images) {
+        if (images == null || images.isEmpty()) {
+            return; // 빈 목록은 캐시하지 않는다 (RPUSH 는 최소 1개 값이 필요)
+        }
+        redisTemplate.execute(new SessionCallback<List<Object>>() {
+            @Override
+            @SuppressWarnings({"unchecked", "rawtypes"})
+            public List<Object> execute(RedisOperations operations) throws DataAccessException {
+                operations.multi();
+                operations.delete(imagesKey);
+                operations.opsForList().rightPushAll(imagesKey, images.toArray());
+                operations.expire(imagesKey, detailCacheTtl);
+                return operations.exec();
+            }
+        });
+    }
 
     private String formatTime(LocalDateTime time) {
         return time != null ? time.toLocalTime().toString() : "-";

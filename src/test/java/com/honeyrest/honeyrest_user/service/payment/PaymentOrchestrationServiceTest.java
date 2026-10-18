@@ -11,13 +11,15 @@ import com.honeyrest.domain.entity.Room;
 import com.honeyrest.honeyrest_user.exception.ApiException;
 import com.honeyrest.honeyrest_user.mapper.ReservationMapper;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
-import com.honeyrest.honeyrest_user.repository.coupon.UserCouponRepository;
 import com.honeyrest.honeyrest_user.repository.payment.PaymentRepository;
 import com.honeyrest.honeyrest_user.repository.reservation.ReservationRepository;
 import com.honeyrest.honeyrest_user.repository.room.RoomRepository;
+import com.honeyrest.honeyrest_user.service.coupon.CouponService;
 import com.honeyrest.honeyrest_user.service.email.EmailService;
 import com.honeyrest.honeyrest_user.service.reservation.PriceCalculator;
 import com.honeyrest.honeyrest_user.service.reservation.ReserveService;
+import com.honeyrest.honeyrest_user.service.reservation.StayDatePolicy;
+import org.mockito.InOrder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,8 +48,8 @@ class PaymentOrchestrationServiceTest {
     private static final String PAYMENT_KEY = "pk_test";
     private static final String ORDER_ID = "RES-100";
     private static final BigDecimal AMOUNT = BigDecimal.valueOf(200000);
-    private static final LocalDate CHECK_IN = LocalDate.now().plusDays(1);
-    private static final LocalDate CHECK_OUT = LocalDate.now().plusDays(3);
+    private static final LocalDate CHECK_IN = StayDatePolicy.today().plusDays(1);
+    private static final LocalDate CHECK_OUT = StayDatePolicy.today().plusDays(3);
 
     @Mock private TossService tossService;
     @Mock private ReserveService reserveService;
@@ -58,7 +60,7 @@ class PaymentOrchestrationServiceTest {
     @Mock private TransactionTemplate transactionTemplate;
     @Mock private RoomRepository roomRepository;
     @Mock private UserRepository userRepository;
-    @Mock private UserCouponRepository userCouponRepository;
+    @Mock private CouponService couponService;
     @Mock private PaymentRepository paymentRepository;
     @Mock private ReservationRepository reservationRepository;
     @Mock private PriceCalculator priceCalculator;
@@ -99,6 +101,7 @@ class PaymentOrchestrationServiceTest {
                 .build();
 
         when(roomRepository.findById(10L)).thenReturn(Optional.of(room));
+        when(roomRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(room));
         when(priceCalculator.calculate(room, CHECK_IN, CHECK_OUT, 2)).thenReturn(new PriceBreakdownDTO(
                 2, List.of(), AMOUNT, 0, BigDecimal.ZERO, BigDecimal.ZERO, AMOUNT));
         when(tossService.confirmPayment(request)).thenReturn(TossPaymentResult.builder()
@@ -215,5 +218,81 @@ class PaymentOrchestrationServiceTest {
 
         verify(tossService, never()).cancelPayment(anyString(), anyString());
         verify(reserveService, never()).createReservation(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("저장 트랜잭션은 객실 행 락을 첫 문장으로 잡는다 (REPEATABLE READ 스냅샷이 락 전에 고정되지 않게)")
+    void roomLockIsFirstStatementInTransaction() {
+        Reservation reservation = Reservation.builder().reservationId(1L).build();
+        Payment payment = Payment.builder().paymentId(1L).build();
+        when(reserveService.createReservation(any(), eq(AMOUNT), any())).thenReturn(reservation);
+        when(paymentService.saveTossPayment(any(), eq(reservation))).thenReturn(payment);
+        when(reservationMapper.toCompleteDTO(reservation, payment))
+                .thenReturn(ReservationCompleteDTO.builder().reservationCode(ORDER_ID).build());
+
+        service.confirmAndSave(request);
+
+        InOrder order = inOrder(tossService, roomRepository, paymentRepository, reservationRepository, reserveService);
+        order.verify(tossService).confirmPayment(request);
+        order.verify(roomRepository).findByIdForUpdate(10L);
+        order.verify(paymentRepository).existsByTransactionId(PAYMENT_KEY);
+        order.verify(reservationRepository).existsByReservationNumber(ORDER_ID);
+        order.verify(reserveService).createReservation(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("지난 체크인 날짜는 토스 승인 전에 400(IllegalArgumentException)으로 거절한다")
+    void pastCheckInRejectedBeforeToss() {
+        LocalDate yesterday = StayDatePolicy.today().minusDays(1);
+        request.getReservationInfo().setCheckIn(yesterday);
+        request.getReservationInfo().setCheckOut(yesterday.plusDays(2));
+
+        assertThatThrownBy(() -> service.confirmAndSave(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("체크인 날짜는 오늘");
+        verifyNoInteractions(tossService);
+    }
+
+    @Test
+    @DisplayName("최대 숙박 일수(30박)를 넘으면 400")
+    void tooLongStayRejected() {
+        request.getReservationInfo().setCheckOut(CHECK_IN.plusDays(StayDatePolicy.MAX_NIGHTS + 1));
+
+        assertThatThrownBy(() -> service.confirmAndSave(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("최대 30박");
+        verifyNoInteractions(tossService);
+    }
+
+    @Test
+    @DisplayName("쿠폰은 user_coupon id·로그인 사용자·객실의 숙소 id 로 검증하고, 할인 후 금액이 결제 금액과 같아야 한다")
+    void couponValidatedByUserCouponIdAndAccommodation() {
+        BigDecimal discount = BigDecimal.valueOf(20000);
+        request.getReservationInfo().setUserId(1L);
+        request.getReservationInfo().setUserCouponId(7L);
+        when(roomRepository.findAccommodationIdByRoomId(10L)).thenReturn(Optional.of(3L));
+        when(couponService.calculateDiscountForPayment(1L, 7L, AMOUNT, 3L)).thenReturn(discount);
+
+        // 결제 금액은 할인 전 금액이므로 서버 계산(할인 후)과 달라 토스 승인 전에 거절된다.
+        assertThatThrownBy(() -> service.confirmAndSave(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("서버 계산 금액");
+        verify(couponService).calculateDiscountForPayment(1L, 7L, AMOUNT, 3L);
+        verifyNoInteractions(tossService);
+    }
+
+    @Test
+    @DisplayName("쿠폰 검증 실패(다른 숙소 전용 등)는 토스 승인 전에 400")
+    void couponValidationFailureRejectedBeforeToss() {
+        request.getReservationInfo().setUserId(1L);
+        request.getReservationInfo().setUserCouponId(7L);
+        when(roomRepository.findAccommodationIdByRoomId(10L)).thenReturn(Optional.of(3L));
+        when(couponService.calculateDiscountForPayment(1L, 7L, AMOUNT, 3L))
+                .thenThrow(new IllegalArgumentException("이 숙소에는 사용할 수 없는 쿠폰입니다."));
+
+        assertThatThrownBy(() -> service.confirmAndSave(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("사용할 수 없는 쿠폰");
+        verifyNoInteractions(tossService);
     }
 }

@@ -26,6 +26,7 @@ import org.mockito.MockitoAnnotations;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
 
@@ -91,7 +92,7 @@ class ReserveServiceTest {
                 .build();
 
         when(roomRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(room));
-        when(reservationRepository.countOverlapping(eq(10L), any(), any(), anyCollection())).thenReturn(1L);
+        when(reservationRepository.findOverlappingIdsForUpdate(eq(10L), any(), any(), anyCollection())).thenReturn(List.of(99L));
 
         Reservation saved = Reservation.builder()
                 .reservationId(1L)
@@ -130,7 +131,7 @@ class ReserveServiceTest {
                 .build();
 
         when(roomRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(room));
-        when(reservationRepository.countOverlapping(eq(10L), any(), any(), anyCollection())).thenReturn(0L);
+        when(reservationRepository.findOverlappingIdsForUpdate(eq(10L), any(), any(), anyCollection())).thenReturn(List.of());
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
         Reservation result = reserveService.createReservation(request, BigDecimal.valueOf(97000), BigDecimal.ZERO);
@@ -154,7 +155,7 @@ class ReserveServiceTest {
                 .build();
 
         when(roomRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(room));
-        when(reservationRepository.countOverlapping(eq(10L), any(), any(), anyCollection())).thenReturn(0L);
+        when(reservationRepository.findOverlappingIdsForUpdate(eq(10L), any(), any(), anyCollection())).thenReturn(List.of());
         when(userRepository.findById(77L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> reserveService.createReservation(request, BigDecimal.valueOf(1000), BigDecimal.ZERO))
@@ -196,13 +197,14 @@ class ReserveServiceTest {
                 .guestName("홍길동")
                 .guestPhone("01012345678")
                 .reservationCode("RES-003")
-                .couponId(5L)
+                .userCouponId(5L)
                 .userId(1L)
                 .usedPoint(1000)
                 .build();
 
         when(roomRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(room));
-        when(reservationRepository.countOverlapping(eq(10L), eq(checkIn), eq(checkOut), anyCollection())).thenReturn(2L);
+        when(reservationRepository.findOverlappingIdsForUpdate(eq(10L), eq(checkIn), eq(checkOut), anyCollection()))
+                .thenReturn(List.of(1L, 2L));
 
         assertThatThrownBy(() ->
                 reserveService.createReservation(request, BigDecimal.valueOf(200000), BigDecimal.ZERO))
@@ -215,6 +217,33 @@ class ReserveServiceTest {
         verify(roomRepository, never()).findById(any());
         verify(reservationRepository, never()).save(any());
         verifyNoInteractions(couponUsageService, pointService);
+        // 락 안의 최종 판정은 스냅샷을 읽는 일반 COUNT 가 아니라 잠금 읽기(FOR UPDATE)여야 한다 (REPEATABLE READ 초과 예약 회귀 방지)
+        verify(reservationRepository, never()).countOverlapping(any(), any(), any(), anyCollection());
+    }
+
+    @Test
+    @DisplayName("쿠폰 사용 처리는 user_coupon id 와 로그인 사용자 id 로 한다")
+    void createReservation_recordsCouponWithUserCouponIdAndUserId() {
+        User user = User.builder().userId(1L).point(0).build();
+        ReservationRequestDTO request = ReservationRequestDTO.builder()
+                .roomId(10L)
+                .checkIn(LocalDate.now().plusDays(1))
+                .checkOut(LocalDate.now().plusDays(2))
+                .guests(2)
+                .guestName("홍길동")
+                .guestPhone("01012345678")
+                .reservationCode("RES-CP")
+                .userId(1L)
+                .userCouponId(7L)
+                .build();
+
+        when(roomRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(room));
+        when(reservationRepository.findOverlappingIdsForUpdate(eq(10L), any(), any(), anyCollection())).thenReturn(List.of());
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        Reservation result = reserveService.createReservation(request, BigDecimal.valueOf(95000), BigDecimal.valueOf(5000));
+
+        verify(couponUsageService).recordUsage(eq(7L), eq(1L), eq(result), eq(BigDecimal.valueOf(5000)));
     }
 
     @Test

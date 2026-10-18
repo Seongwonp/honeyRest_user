@@ -5,6 +5,7 @@ import org.springframework.data.redis.core.DefaultTypedTuple;
 import org.springframework.data.redis.core.ListOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.SetOperations;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.core.ZSetOperations;
@@ -72,6 +73,13 @@ public class InMemoryRedisTemplate<V> extends RedisTemplate<String, V> {
             if (get(key) == null) return false;
             expiresAt.put(key, System.currentTimeMillis() + ttl.toMillis());
             return true;
+        }
+
+        /** 남은 TTL(ms). 키가 없으면 -2, 만료 없음이면 -1 (Redis PTTL 과 같은 규칙). */
+        synchronized long ttlMillis(String key) {
+            if (get(key) == null) return -2L;
+            Long exp = expiresAt.get(key);
+            return exp == null ? -1L : Math.max(0L, exp - System.currentTimeMillis());
         }
 
         synchronized Set<String> keys(String globPattern) {
@@ -159,6 +167,38 @@ public class InMemoryRedisTemplate<V> extends RedisTemplate<String, V> {
         return store.expire(key, Duration.ofMillis(unit.toMillis(timeout)));
     }
 
+    /** Redis TTL 명령과 같은 규칙(초 단위, 키 없음 -2, 만료 없음 -1). */
+    @Override
+    public Long getExpire(String key) {
+        long ms = store.ttlMillis(key);
+        return ms < 0 ? ms : TimeUnit.MILLISECONDS.toSeconds(ms);
+    }
+
+    // ---- 트랜잭션(MULTI/EXEC) -----------------------------------------------------------
+    // SessionCallback 전체를 저장소 락 안에서 실행해 MULTI/EXEC 의 원자성을 흉내 낸다 (명령 결과 목록은 돌려주지 않는다).
+
+    @Override
+    public <T> T execute(SessionCallback<T> session) {
+        synchronized (store) {
+            return session.execute(this);
+        }
+    }
+
+    @Override
+    public void multi() {
+        // no-op: execute(SessionCallback) 가 이미 저장소 락을 잡고 있다
+    }
+
+    @Override
+    public List<Object> exec() {
+        return new ArrayList<>();
+    }
+
+    @Override
+    public void discard() {
+        // no-op
+    }
+
     @Override
     public Cursor<String> scan(ScanOptions options) {
         String pattern = options != null && options.getPattern() != null ? options.getPattern() : "*";
@@ -234,6 +274,15 @@ public class InMemoryRedisTemplate<V> extends RedisTemplate<String, V> {
                 return (long) store.<List<Object>>compute(key, cur -> {
                     List<Object> list = cur instanceof List<?> l ? new ArrayList<>(l) : new ArrayList<>();
                     list.add(args[1]);
+                    return list;
+                }).size();
+            }
+            if ("rightPushAll".equals(name) && n == 2) {
+                Collection<?> values = args[1] instanceof Collection<?> c ? c
+                        : args[1] instanceof Object[] arr ? List.of(arr) : List.of(args[1]);
+                return (long) store.<List<Object>>compute(key, cur -> {
+                    List<Object> list = cur instanceof List<?> l ? new ArrayList<>(l) : new ArrayList<>();
+                    list.addAll(values);
                     return list;
                 }).size();
             }

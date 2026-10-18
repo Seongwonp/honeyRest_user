@@ -8,7 +8,9 @@ import com.honeyrest.domain.entity.Accommodation;
 import com.honeyrest.honeyrest_user.repository.accommodation.AccommodationRepository;
 import com.honeyrest.honeyrest_user.repository.accommodation.AccommodationDetail.AccommodationDetailQueryRepository;
 import com.honeyrest.honeyrest_user.repository.review.ReviewRepository;
+import com.honeyrest.honeyrest_user.exception.NotFoundException;
 import com.honeyrest.honeyrest_user.service.redis.RatingCacheService;
+import com.honeyrest.honeyrest_user.service.reservation.StayDatePolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.*;
@@ -206,9 +208,23 @@ public class AccommodationService {
         return Map.of("min", BigDecimal.ZERO, "max", maxPrice != null ? maxPrice : BigDecimal.ZERO);
     }
 
+    /**
+     * 숙소 상세. 날짜를 생략하면 오늘~내일(Asia/Seoul) 기준으로 객실 예약 가능 여부를 계산한다.
+     * (과거에는 날짜 없이 호출하면 재고 쿼리에 NULL 이 들어가 500 이 났다.)
+     * 체크아웃만 없으면 체크인 다음 날, 체크아웃이 체크인보다 앞서거나 같으면 400, 숙소가 없으면 404.
+     */
     @Transactional(readOnly = true)
     public AccommodationDetailDTO getDetail(Long id, Long userId, LocalDate checkIn, LocalDate checkOut, Integer guests){
-        AccommodationDetailDTO dto = detailQueryRepository.fetchDetailById(id, userId, checkIn, checkOut, guests);
+        LocalDate effectiveCheckIn = checkIn != null ? checkIn : StayDatePolicy.today();
+        LocalDate effectiveCheckOut = checkOut != null ? checkOut : effectiveCheckIn.plusDays(1);
+        if (!effectiveCheckOut.isAfter(effectiveCheckIn)) {
+            throw new IllegalArgumentException("체크아웃 날짜는 체크인 날짜보다 뒤여야 합니다.");
+        }
+
+        AccommodationDetailDTO dto = detailQueryRepository.fetchDetailById(id, userId, effectiveCheckIn, effectiveCheckOut, guests);
+        if (dto == null) {
+            throw new NotFoundException("숙소 정보를 찾을 수 없습니다.");
+        }
         incrementPopularity(dto.getId(),dto.getCategory());
         return dto;
     }
@@ -217,11 +233,14 @@ public class AccommodationService {
     public void updateRating(Long accommodationId) {
         // 1. 리뷰 평점 목록 조회
         List<BigDecimal> ratings = reviewRepository.findRatingsByAccommodationId(accommodationId);
-        if (ratings.isEmpty()) return;
 
-        // 2. 평균 계산
-        BigDecimal sum = ratings.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal average = sum.divide(BigDecimal.valueOf(ratings.size()), 1, RoundingMode.HALF_UP);
+        // 2. 평균 계산 — 마지막 리뷰가 삭제돼 리뷰가 없으면 0.0 으로 되돌린다.
+        //    (과거에는 여기서 return 해 삭제된 리뷰의 평점이 계속 남았다. 리뷰 수는 컬럼이 아니라 매번 집계하며
+        //     reviewCount 캐시는 호출자(ReviewService)가 숙소 캐시와 함께 지운다.)
+        BigDecimal average = ratings.isEmpty()
+                ? BigDecimal.ZERO.setScale(1)
+                : ratings.stream().reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .divide(BigDecimal.valueOf(ratings.size()), 1, RoundingMode.HALF_UP);
 
         // 3. Redis에 캐싱
         ratingCacheService.saveRating(accommodationId, average);

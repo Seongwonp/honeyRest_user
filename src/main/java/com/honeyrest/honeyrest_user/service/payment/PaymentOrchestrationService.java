@@ -4,22 +4,21 @@ import com.honeyrest.honeyrest_user.dto.payment.toss.TossConfirmRequest;
 import com.honeyrest.honeyrest_user.dto.payment.toss.TossPaymentResult;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationCompleteDTO;
 import com.honeyrest.honeyrest_user.dto.reservation.ReservationRequestDTO;
-import com.honeyrest.domain.entity.Coupon;
 import com.honeyrest.domain.entity.Payment;
 import com.honeyrest.domain.entity.Reservation;
 import com.honeyrest.domain.entity.Room;
 import com.honeyrest.domain.entity.User;
-import com.honeyrest.domain.entity.UserCoupon;
 import com.honeyrest.honeyrest_user.exception.ApiException;
 import com.honeyrest.honeyrest_user.mapper.ReservationMapper;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
-import com.honeyrest.honeyrest_user.repository.coupon.UserCouponRepository;
 import com.honeyrest.honeyrest_user.repository.payment.PaymentRepository;
 import com.honeyrest.honeyrest_user.repository.reservation.ReservationRepository;
 import com.honeyrest.honeyrest_user.repository.room.RoomRepository;
+import com.honeyrest.honeyrest_user.service.coupon.CouponService;
 import com.honeyrest.honeyrest_user.service.email.EmailService;
 import com.honeyrest.honeyrest_user.service.reservation.PriceCalculator;
 import com.honeyrest.honeyrest_user.service.reservation.ReserveService;
+import com.honeyrest.honeyrest_user.service.reservation.StayDatePolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
@@ -28,7 +27,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDateTime;
 
 @Log4j2
 @Service
@@ -45,7 +43,7 @@ public class PaymentOrchestrationService {
 
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
-    private final UserCouponRepository userCouponRepository;
+    private final CouponService couponService;
     private final PaymentRepository paymentRepository;
     private final ReservationRepository reservationRepository;
     private final PriceCalculator priceCalculator;
@@ -55,7 +53,7 @@ public class PaymentOrchestrationService {
      * <ol>
      *   <li>사전 검증 (토스 호출 전, 과금 없음): 중복 결제/예약번호, 주문번호·금액 일치, 서버 금액 재계산, 재고(락 없음)</li>
      *   <li>토스 승인 (실제 과금)</li>
-     *   <li>트랜잭션 안에서 객실 행 락 + 재고 재확인 후 예약/결제 저장</li>
+     *   <li>트랜잭션 안에서 객실 행 락(트랜잭션의 첫 문장) + 잠금 읽기로 재고 재확인 후 예약/결제 저장</li>
      *   <li>3 단계가 실패하면 토스 결제를 취소(보상)하고 사용자에게 결제가 취소되었음을 알린다</li>
      * </ol>
      */
@@ -95,6 +93,12 @@ public class PaymentOrchestrationService {
         try {
             validateApprovedResult(request, result);
             dto = transactionTemplate.execute(status -> {
+                // 객실 행 락을 트랜잭션의 "첫 문장"으로 잡는다. 과거에는 아래 중복 확인 SELECT 가 먼저 실행돼
+                // MySQL REPEATABLE READ 스냅샷이 락 대기 전에 고정됐고, 락을 얻은 뒤의 재고 COUNT(일반 SELECT)가
+                // 앞 트랜잭션이 막 커밋한 예약을 보지 못해 total_rooms 를 초과 예약할 수 있었다.
+                // (재고 판정 자체도 ReserveService 에서 잠금 읽기로 하고, 운영 격리 수준은 READ COMMITTED 다.)
+                roomRepository.findByIdForUpdate(reservationInfo.getRoomId())
+                        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 객실입니다."));
                 if (paymentRepository.existsByTransactionId(result.getPaymentKey())) {
                     throw new ApiException("이미 처리된 결제입니다.", HttpStatus.CONFLICT);
                 }
@@ -102,7 +106,7 @@ public class PaymentOrchestrationService {
                     throw new ApiException("이미 처리된 예약번호입니다.", HttpStatus.CONFLICT);
                 }
 
-                // createReservation 이 객실 행을 FOR UPDATE 로 잠그고 재고를 재확인한다.
+                // createReservation 이 (이미 잡은) 객실 행 락 안에서 재고를 잠금 읽기로 재확인한다.
                 Reservation reservation = reserveService.createReservation(
                         reservationInfo,
                         result.getAmount(),
@@ -204,16 +208,15 @@ public class PaymentOrchestrationService {
             throw new IllegalArgumentException("예약 필수값이 누락되었습니다.");
         }
 
-        if (!request.getCheckIn().isBefore(request.getCheckOut())) {
-            throw new IllegalArgumentException("체크인/체크아웃 날짜가 올바르지 않습니다.");
-        }
+        // 지난 날짜(Asia/Seoul 기준)·역순·최대 숙박 일수 초과는 토스 승인 전에 400 으로 거절한다.
+        StayDatePolicy.validate(request.getCheckIn(), request.getCheckOut());
 
         if (request.getGuests() <= 0 || request.getGuests() > room.getMaxOccupancy()) {
             throw new IllegalArgumentException("예약 인원이 허용 범위를 벗어났습니다.");
         }
 
         BigDecimal original = priceCalculator.calculate(room, request.getCheckIn(), request.getCheckOut(), request.getGuests()).total();
-        BigDecimal couponDiscount = calculateCouponDiscount(original, request);
+        BigDecimal couponDiscount = calculateCouponDiscount(room, original, request);
         Integer usedPoint = normalizeUsedPoint(request);
 
         BigDecimal finalAmount = original.subtract(couponDiscount).subtract(BigDecimal.valueOf(usedPoint));
@@ -229,45 +232,14 @@ public class PaymentOrchestrationService {
         );
     }
 
-    private BigDecimal calculateCouponDiscount(BigDecimal original, ReservationRequestDTO request) {
-        if (request.getCouponId() == null) {
+    private BigDecimal calculateCouponDiscount(Room room, BigDecimal original, ReservationRequestDTO request) {
+        if (request.getUserCouponId() == null) {
             return BigDecimal.ZERO;
         }
-
-        if (request.getUserId() == null) {
-            throw new IllegalArgumentException("회원 쿠폰은 로그인 사용자만 사용할 수 있습니다.");
-        }
-
-        UserCoupon userCoupon = userCouponRepository.findUserCouponByUserCouponId(request.getCouponId())
-                .orElseThrow(() -> new IllegalArgumentException("사용자 쿠폰을 찾을 수 없습니다."));
-
-        if (!userCoupon.getUser().getUserId().equals(request.getUserId())) {
-            throw new IllegalArgumentException("쿠폰 사용자 정보가 일치하지 않습니다.");
-        }
-
-        if (!"ISSUED".equals(userCoupon.getStatus())) {
-            throw new IllegalArgumentException("사용 가능한 쿠폰이 아닙니다.");
-        }
-
-        if (userCoupon.getExpiredAt().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("만료된 쿠폰입니다.");
-        }
-
-        Coupon coupon = userCoupon.getCoupon();
-        if (!coupon.isActive()) {
-            throw new IllegalArgumentException("비활성 쿠폰입니다.");
-        }
-
-        if (coupon.getStartDate().isAfter(LocalDateTime.now()) || coupon.getEndDate().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("사용 기간이 아닌 쿠폰입니다.");
-        }
-
-        if (coupon.getMinOrderAmount() != null && original.compareTo(coupon.getMinOrderAmount()) < 0) {
-            throw new IllegalArgumentException("쿠폰 최소 주문 금액 조건을 충족하지 않습니다.");
-        }
-
-        // 할인액 계산(정률/정액, 최대 할인·주문 금액 상한)은 쿠폰 도메인이 담당한다.
-        return coupon.calculateDiscount(original);
+        Long accommodationId = roomRepository.findAccommodationIdByRoomId(room.getRoomId()).orElse(null);
+        // 소유·상태·기간·최소 금액·적용 대상·사용 이력 검증과 할인액(원 단위) 계산은 CouponService 가 담당한다.
+        return couponService.calculateDiscountForPayment(
+                request.getUserId(), request.getUserCouponId(), original, accommodationId);
     }
 
     private Integer normalizeUsedPoint(ReservationRequestDTO request) {

@@ -33,9 +33,8 @@ public class ReserveInfoService {
     private final PriceCalculator priceCalculator;
 
     public ReservationFormInfoDTO getFormInfo(Long roomId, Long userId, LocalDate checkIn, LocalDate checkOut, Integer guests) {
-        if (checkIn == null || checkOut == null || !checkIn.isBefore(checkOut)) {
-            throw new IllegalArgumentException("체크인/체크아웃 날짜가 올바르지 않습니다");
-        }
+        // 지난 날짜·역순·최대 숙박 일수 초과는 400 (StayDatePolicy)
+        StayDatePolicy.validate(checkIn, checkOut);
 
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new NotFoundException("객실 정보를 찾을 수 없습니다"));
@@ -93,7 +92,9 @@ public class ReserveInfoService {
                 .availableCoupons(availableCoupons)
                 .build();
 
-        log.info("!! 예약 진행 정보 = {}", formInfoDTO);
+        // formInfoDTO 에는 예약자 실명·전화번호·포인트가 들어 있어 통째로 로깅하지 않는다.
+        log.info("예약 진행 정보 조회: roomId={}, userId={}, nights={}, coupons={}",
+                room.getRoomId(), userId, nights, availableCoupons.size());
         return formInfoDTO;
     }
 }

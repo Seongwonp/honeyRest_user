@@ -8,10 +8,13 @@ import com.honeyrest.domain.entity.User;
 import com.honeyrest.honeyrest_user.repository.InquiryRepository;
 import com.honeyrest.honeyrest_user.repository.UserRepository;
 import com.honeyrest.honeyrest_user.repository.accommodation.AccommodationRepository;
+import com.honeyrest.honeyrest_user.exception.ApiException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -35,6 +38,7 @@ public class InquiryService {
                 .accommodation(accommodation)
                 .title(dto.getTitle())
                 .content(dto.getContent())
+                .category(dto.getCategory())
                 .isReplied(false)
                 .build();
         Inquiry saved = inquiryRepository.save(inquiry);
@@ -58,47 +62,36 @@ public class InquiryService {
     }
 
     // 단일 문의 조회
+    @Transactional(readOnly = true)
     public InquiryDetailResponseDTO getInquiryById(Long userId, Long inquiryId) {
-        Inquiry inquiry = inquiryRepository.findById(inquiryId)
-                .orElseThrow(() -> new NotFoundException("문의 내역을 찾을 수 없습니다."));
-
-        if (!inquiry.getUser().getUserId().equals(userId)) {
-            throw new RuntimeException("권한이 없습니다.");
-        }
-
-        return InquiryDetailResponseDTO.from(inquiry);
+        return InquiryDetailResponseDTO.from(findOwnedInquiry(inquiryId, userId));
     }
 
     // 삭제
+    @Transactional
     public void deleteInquiry(Long inquiryId, Long userId) {
-        Inquiry inquiry = inquiryRepository.findById(inquiryId)
-                .orElseThrow(() -> new NotFoundException("문의 내역을 찾을 수 없습니다."));
-        if (!inquiry.getUser().getUserId().equals(userId)) {
-            throw new RuntimeException("권한이 없습니다.");
-        }
-        inquiryRepository.delete(inquiry);
+        inquiryRepository.delete(findOwnedInquiry(inquiryId, userId));
     }
 
-    // 수정
+    /**
+     * 수정. 관리 중인 엔티티를 도메인 메서드로 바꿔 답변(reply/isReplied)·카테고리·숙소를 보존한다.
+     * (과거에는 빌더로 새 엔티티를 만들어 save 해 reply·category 가 NULL 로 지워졌다.)
+     * 답변이 달린 문의는 수정할 수 없다 → IllegalStateException(409).
+     */
+    @Transactional
     public void updateInquiry(Long inquiryId, Long userId, InquiryRequestDTO dto) {
+        Inquiry inquiry = findOwnedInquiry(inquiryId, userId);
+        inquiry.editQuestion(dto.getTitle(), dto.getContent(), dto.getCategory());
+    }
+
+    /** 문의가 없으면 404, 다른 사용자의 문의면 403. (과거에는 RuntimeException 으로 500 이 났다.) */
+    private Inquiry findOwnedInquiry(Long inquiryId, Long userId) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
                 .orElseThrow(() -> new NotFoundException("문의 내역을 찾을 수 없습니다."));
-
-        if (!inquiry.getUser().getUserId().equals(userId)) {
-            throw new RuntimeException("권한이 없습니다.");
+        if (userId == null || inquiry.getUser() == null || !userId.equals(inquiry.getUser().getUserId())) {
+            throw new ApiException("본인의 문의만 조회·수정·삭제할 수 있습니다.", HttpStatus.FORBIDDEN);
         }
-
-        Inquiry updatedInquiry = Inquiry.builder()
-                .inquiryId(inquiry.getInquiryId())
-                .user(inquiry.getUser())
-                .accommodation(inquiry.getAccommodation())
-                .title(dto.getTitle())
-                .content(dto.getContent())
-                .isReplied(inquiry.getIsReplied())
-                .build();
-
-        Inquiry saved = inquiryRepository.save(updatedInquiry);
-        InquiryResponseDTO.from(saved);
+        return inquiry;
     }
 
     public InquiryCountDTO getUserInquiryCounts(Long userId) {

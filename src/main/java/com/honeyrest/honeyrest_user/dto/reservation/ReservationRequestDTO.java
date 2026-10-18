@@ -44,7 +44,12 @@ public class ReservationRequestDTO {
     @Size(max = 500)
     private String specialRequest;
 
-    private Long couponId;
+    /**
+     * 선택한 사용자 쿠폰(user_coupon) id. 예약 폼 availableCoupons[].userCouponId 값을 보낸다.
+     * (과거 필드명 couponId 는 쿠폰 마스터 id 와 혼동돼 제거했다. 구 클라이언트가 couponId 를 보내면 무시되고,
+     * 쿠폰 없이 다시 계산한 금액이 결제 금액과 달라 토스 승인 전에 400 으로 거절된다 — 과금 없음.)
+     */
+    private Long userCouponId;
     private Long userId;
 
     private Boolean isEmailSend;

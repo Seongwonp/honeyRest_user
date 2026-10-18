@@ -11,6 +11,7 @@ import com.honeyrest.honeyrest_user.repository.wishList.WishListQueryRepository;
 import com.honeyrest.honeyrest_user.repository.wishList.WishListRepository;
 import com.honeyrest.honeyrest_user.repository.accommodation.AccommodationRepository;
 import com.honeyrest.honeyrest_user.service.redis.RatingCacheService;
+import com.honeyrest.honeyrest_user.service.redis.SearchCacheVersionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
@@ -32,6 +33,7 @@ public class WishListService {
     private final AccommodationRepository accommodationRepository;
     private final RatingCacheService ratingCacheService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final SearchCacheVersionService searchCacheVersionService;
 
     public boolean toggleWish(Long userId, Long accommodationId) {
         log.info("🧡 찜 토글 실행: userId={}, accommodationId={}", userId, accommodationId);
@@ -62,6 +64,8 @@ public class WishListService {
 
         // 찜 토글 후 숙소 관련 모든 캐시 삭제
         ratingCacheService.evictAllAccommodationCache(accommodationId);
+        // 검색 결과 캐시에도 사용자별 찜 여부(wishlisted)가 들어가므로 세대를 올린다 (과거에는 찜해도 검색 결과 하트가 그대로였다).
+        searchCacheVersionService.bumpAfterCommit();
         log.info("🗑️ 숙소 관련 모든 캐시 삭제 완료: accommodationId={}", accommodationId);
 
         return result;

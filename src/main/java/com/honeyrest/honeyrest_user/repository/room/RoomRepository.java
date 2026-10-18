@@ -19,4 +19,8 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from Room r where r.roomId = :roomId")
     Optional<Room> findByIdForUpdate(@Param("roomId") Long roomId);
+
+    /** 객실의 숙소 id (지연 로딩 프록시를 트랜잭션 밖에서 초기화하지 않도록 스칼라로 조회). */
+    @Query("select r.accommodation.accommodationId from Room r where r.roomId = :roomId")
+    Optional<Long> findAccommodationIdByRoomId(@Param("roomId") Long roomId);
 }

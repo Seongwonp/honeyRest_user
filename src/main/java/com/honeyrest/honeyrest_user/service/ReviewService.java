@@ -47,6 +47,8 @@ public class ReviewService {
 
     /** 리뷰 작성 적립 포인트. */
     static final int REVIEW_REWARD_POINT = 1000;
+    /** 리뷰 적립 이력 사유 (point_history.reason). 예약당 1회 적립 판정 기준이므로 바꾸지 말 것. */
+    static final String REVIEW_REWARD_REASON = "리뷰 작성 적립";
 
     @Transactional
     public void createReview(Long userId, ReviewRequestDTO request) {
@@ -94,10 +96,11 @@ public class ReviewService {
             }
         }
 
-        // 리뷰 작성 포인트 적립
+        // 리뷰 작성 포인트 적립 — 예약당 1회만. 리뷰는 삭제 후 다시 쓸 수 있으므로(삭제 시 포인트 회수는 하지 않음)
+        // 리뷰 존재 여부가 아니라 포인트 이력(사유 + 예약 ID)으로 판정한다. 재작성 시 적립은 0.
         User user = reservation.getUser();
         if (user != null) {
-            pointService.earn(user, REVIEW_REWARD_POINT, "리뷰 작성 적립", reservation.getReservationId());
+            pointService.earnOnce(user, REVIEW_REWARD_POINT, REVIEW_REWARD_REASON, reservation.getReservationId());
         }
 
 

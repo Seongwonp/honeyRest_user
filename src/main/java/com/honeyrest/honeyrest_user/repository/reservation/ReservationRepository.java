@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface ReservationRepository extends JpaRepository<Reservation, Long> {
@@ -42,4 +43,25 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
                           @Param("checkIn") LocalDate checkIn,
                           @Param("checkOut") LocalDate checkOut,
                           @Param("statuses") Collection<String> statuses);
+
+    /**
+     * {@link #countOverlapping} 의 잠금 읽기(locking read) 버전: 겹치는 예약 id 를 {@code SELECT ... FOR UPDATE} 로 읽는다.
+     * <p>
+     * 일반 SELECT 는 MySQL REPEATABLE READ 에서 트랜잭션의 첫 일관된 읽기 시점 스냅샷을 보므로, 객실 행 락을 기다리는 동안
+     * 다른 트랜잭션이 커밋한 예약을 놓칠 수 있다. 잠금 읽기는 격리 수준과 상관없이 항상 최신 커밋 데이터를 읽는다.
+     * 집계(COUNT) 에는 FOR UPDATE 를 붙일 수 없는 DB(H2)가 있어 id 목록을 읽고 개수는 호출자가 센다.
+     * 객실 행 락(RoomRepository#findByIdForUpdate)을 먼저 잡은 트랜잭션 안에서만 호출한다.
+     */
+    @Query(value = """
+            select r.reservation_id from reservation r
+             where r.room_id = :roomId
+               and r.status in (:statuses)
+               and r.check_in_date < :checkOut
+               and r.check_out_date > :checkIn
+               for update
+            """, nativeQuery = true)
+    List<Long> findOverlappingIdsForUpdate(@Param("roomId") Long roomId,
+                                           @Param("checkIn") LocalDate checkIn,
+                                           @Param("checkOut") LocalDate checkOut,
+                                           @Param("statuses") Collection<String> statuses);
 }
