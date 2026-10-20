@@ -50,7 +50,7 @@ public class AuthController {
         // 인증 객체가 있을 경우만 DB에서 RefreshToken 삭제
         if (principal != null) {
             refreshTokenService.invalidateAllByUser(principal.getUser());
-            // 이미 발급된 access token은 만료 전까지 그대로 유효했다(P1-10). 폐기 시각을 기록해 막는다.
+            // 이미 발급된 access token 도 막기 위해 폐기 시각을 기록한다.
             userService.revokeTokens(principal.getUserId());
             log.info("🚪 로그아웃 처리 완료: userId={}", principal.getUser().getUserId());
         } else {

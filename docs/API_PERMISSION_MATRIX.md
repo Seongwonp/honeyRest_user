@@ -4,7 +4,7 @@
 범위: `honeyRest_user`(사용자 백엔드), `honeyRest_host`(호스트 백엔드)
 기준 커밋: 각 저장소 `main` 최신 (1단계 + 2단계 병합 후)
 
-이 문서는 [CLAUDE_REVIEW_ACTION_PLAN.md](CLAUDE_REVIEW_ACTION_PLAN.md) 2단계 항목 1·완료 게이트 G2의 산출물이다.
+이 문서는 [ROADMAP.md](ROADMAP.md) 2단계 항목 1·완료 게이트 G2의 산출물이다.
 "인가 근거"는 각 엔드포인트가 실제로 무엇을 기준으로 접근을 허용/거부하는지를 가리키며,
 **요청 본문·쿼리의 id를 신뢰하지 않는다**는 원칙이 지켜지는지가 핵심 점검 대상이다.
 

@@ -28,15 +28,10 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 
 /**
- * e2e 프로필 전용: Redis 서버 없이 동작하는 인메모리 {@link RedisTemplate}.
- * <p>
- * 앱 코드는 캐시·인기 지역 집계·좋아요 집합 등에 RedisTemplate 을 직접 쓰고, 대부분 Redis 장애 폴백이 없다.
- * e2e 는 외부 인프라 없이 사용자 여정을 검증하는 것이 목적이므로, 앱이 실제로 쓰는 연산만
- * 프로세스 메모리의 {@link Store} 로 흉내 낸다 (TTL 포함, 두 템플릿이 같은 키 공간을 공유).
- * 여기 없는 연산을 호출하면 {@link UnsupportedOperationException} 으로 바로 드러나게 한다.
- * 운영/로컬/test 프로필에서는 절대 등록되지 않는다 ({@link E2eRedisConfig} 참고).
+ * e2e·demo 프로필 전용: Redis 서버 없이 동작하는 인메모리 {@link RedisTemplate}.
+ * 앱이 실제로 쓰는 연산만 구현하고(TTL 포함), 그 밖의 연산은 {@link UnsupportedOperationException} 을 던진다.
  *
- * @param <V> 값 타입. String 템플릿은 읽을 때 문자열로 변환한다 (실제 Redis 의 StringRedisSerializer 와 동일한 관찰 결과).
+ * @param <V> 값 타입. String 템플릿은 읽을 때 문자열로 변환한다.
  */
 public class InMemoryRedisTemplate<V> extends RedisTemplate<String, V> {
 

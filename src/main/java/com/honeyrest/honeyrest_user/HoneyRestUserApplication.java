@@ -9,8 +9,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 @EnableJpaAuditing
 @EnableAsync
 @SpringBootApplication
-// JPA 엔티티는 공유 도메인 모듈(:honeyrest-domain, com.honeyrest.domain)에 있다. 앱 패키지 밖이라 명시적으로 스캔한다.
-// (리포지토리 스캔은 기본값대로 앱 패키지 com.honeyrest.honeyrest_user 기준)
+// JPA 엔티티는 도메인 모듈(com.honeyrest.domain)에 있어 앱 패키지 밖이므로 명시적으로 스캔한다.
 @EntityScan("com.honeyrest.domain")
 public class HoneyRestUserApplication {
 

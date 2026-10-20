@@ -101,12 +101,8 @@ public class User extends BaseEntity {
     }
 
     /**
-     * 로그아웃·비밀번호 변경 시 호출: 그 이전에 발급된 access token을 전부 무효화한다.
-     * <p>
-     * JWT {@code iat}는 초 단위라서 이 값도 초 단위로 맞춘다. 현재 시각을 초 단위로 내린 뒤 1초를 더해
-     * "폐기 시점과 같은 초에 이미 발급된 토큰"까지 확실히 무효화한다(iat &lt; tokenValidAfter → 거부).
-     * 폐기 직후 재로그인으로 발급되는 토큰은 {@code JwtTokenProvider.createAccessToken(User)}가
-     * iat = max(현재 시각, tokenValidAfter)로 발급하므로 같은 초 안에 재로그인해도 정상 인증된다.
+     * 로그아웃·비밀번호 변경 시 그 이전에 발급된 access token 을 전부 무효화한다.
+     * JWT iat 가 초 단위이므로 현재 시각을 초 단위로 내리고 1초를 더해, 같은 초에 발급된 토큰까지 막는다.
      */
     public void revokeExistingTokens() {
         this.tokenValidAfter = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).plusSeconds(1);

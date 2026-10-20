@@ -4,13 +4,8 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * 쿠폰 할인 유형 (coupon.discount_type VARCHAR). DB 에는 여러 철자가 섞여 있어 별칭으로 해석한다.
- * <ul>
- *   <li>{@link #RATE}: 정률(%) — "RATE", "PERCENT"(사용자 API 시드·프론트), "PERCENTAGE"(호스트 쿠폰 등록 화면)</li>
- *   <li>{@link #FIXED}: 정액(원) — "FIXED"(시드·프론트), "AMOUNT"(호스트 쿠폰 등록 화면)</li>
- * </ul>
- * 과거 사용자 API 는 RATE/PERCENT 가 아니면 모두 정액으로 계산해, 호스트가 만든 "PERCENTAGE" 쿠폰(예: 10%)이
- * 10원 할인으로 적용됐다. 이제 모르는 값은 조용히 정액으로 처리하지 않고 예외로 드러낸다.
+ * 쿠폰 할인 유형 (coupon.discount_type). DB 에 여러 철자가 섞여 있어 별칭으로 해석한다.
+ * RATE: "RATE", "PERCENT", "PERCENTAGE" / FIXED: "FIXED", "AMOUNT". 모르는 값은 예외로 드러낸다.
  */
 public enum CouponDiscountType {
 

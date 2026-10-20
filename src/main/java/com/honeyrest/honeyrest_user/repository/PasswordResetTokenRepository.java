@@ -13,8 +13,7 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     Optional<PasswordResetToken> findByTokenValue(String tokenValue);
 
     /**
-     * 토큰을 원자적으로 소비(삭제)한다. 삭제된 행 수를 반환하므로 0 이면 이미 다른 요청이 사용한 토큰이다.
-     * 동시 요청 두 개가 같은 토큰을 조회하더라도 DELETE 는 한쪽만 1 을 받으므로 1회용이 보장된다.
+     * 토큰을 원자적으로 소비(삭제)한다. 0 이면 이미 다른 요청이 사용한 토큰이다 (동시 요청 중 하나만 1).
      */
     @Modifying
     @Query("delete from PasswordResetToken t where t.tokenValue = :tokenValue")

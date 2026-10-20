@@ -24,10 +24,7 @@ public class RatingCacheService {
         return value != null ? new BigDecimal(value) : null;
     }
 
-    /**
-     * 숙소에 딸린 캐시 키를 명시적으로 삭제한다.
-     * KEYS 패턴 검색(O(N), Redis 블로킹)을 쓰지 않고 {@link AccommodationCacheKeys#allFor} 목록을 한 번의 DEL 로 지운다.
-     */
+    /** 숙소에 딸린 캐시 키를 KEYS 없이 {@link AccommodationCacheKeys#allFor} 목록으로 한 번에 지운다. */
     public void evictAllAccommodationCache(Long accommodationId) {
         List<String> keys = AccommodationCacheKeys.allFor(accommodationId);
         Long deleted = redisTemplate.delete(keys);

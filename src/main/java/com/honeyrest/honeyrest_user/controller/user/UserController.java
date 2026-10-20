@@ -36,9 +36,8 @@ import java.util.Map;
 import static org.springframework.data.domain.Sort.Direction.DESC;
 
 /**
- * 마이페이지 API. SecurityConfig 가 {@code /api/user/**} 를 authenticated 로 막으므로
- * (예외: permitAll 인 {@code /api/user/email/**} 는 EmailController 소관) 여기 핸들러에는 항상 인증된 principal 이 들어온다.
- * 그래서 과거의 {@code if (principal == null) return 401} 분기는 도달할 수 없는 코드라 제거했다.
+ * 마이페이지 API. SecurityConfig 가 {@code /api/user/**} 를 authenticated 로 막으므로 principal 은 항상 존재한다.
+ * ({@code /api/user/email/**} 는 EmailController 소관)
  */
 @Log4j2
 @RestController
@@ -280,8 +279,7 @@ public class UserController {
             request.setContent("내용 없음");
         }
 
-        // 서비스 시그니처는 (inquiryId, userId, dto). 과거에는 인자 순서가 뒤바뀌어 소유권 검사가
-        // "inquiryId 번 사용자의 userId 번 문의" 로 이뤄져, 다른 사람 문의를 수정할 수 있었다(IDOR).
+        // 서비스 시그니처는 (inquiryId, userId, dto) 순서다.
         inquiryService.updateInquiry(inquiryId, userId, request);
         log.info("✏️ 문의 수정: userId={}, inquiryId={}", userId, inquiryId);
         return ResponseEntity.ok().build();
@@ -294,7 +292,7 @@ public class UserController {
             @AuthenticationPrincipal CustomUserPrincipal principal
     ) {
         Long userId = principal.getUserId();
-        inquiryService.deleteInquiry(inquiryId, userId); // 시그니처 (inquiryId, userId) — 위 수정과 같은 IDOR 수정
+        inquiryService.deleteInquiry(inquiryId, userId);
         log.info("🗑️ 문의 삭제: userId={}, inquiryId={}", userId, inquiryId);
         return ResponseEntity.noContent().build();
     }

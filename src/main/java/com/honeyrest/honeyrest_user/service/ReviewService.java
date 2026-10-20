@@ -53,13 +53,11 @@ public class ReviewService {
 
     @Transactional
     public void createReview(Long userId, ReviewRequestDTO request) {
-        // 예약 행을 잠가 같은 예약에 대한 동시 작성 요청을 직렬화한다. 그래야 아래 existsByReservation 검사가
-        // 경쟁 상태(더블 클릭 등)에서도 "예약당 리뷰 1건"과 포인트 1회 적립을 보장한다.
+        // 예약 행을 잠가 동시 작성을 직렬화한다. 그래야 예약당 리뷰 1건, 포인트 1회 적립이 보장된다.
         Reservation reservation = reservationRepository.findByIdForUpdate(request.getReservationId())
                 .orElseThrow(() -> new NotFoundException("예약 정보를 찾을 수 없습니다"));
 
-        // 호출자가 이 예약의 소유자인지, 체크아웃이 끝난 예약인지 확인하지 않으면 아무 reservationId나
-        // 넣어 타인 명의로 리뷰를 작성하고 평점을 조작할 수 있었다(P0-6).
+        // 본인 예약이고 체크아웃이 끝난 예약인지 확인한다.
         if (reservation.getUser() == null || !reservation.getUser().getUserId().equals(userId)) {
             throw new IllegalArgumentException("본인의 예약에만 리뷰를 작성할 수 있습니다.");
         }
@@ -97,8 +95,7 @@ public class ReviewService {
             }
         }
 
-        // 리뷰 작성 포인트 적립 — 예약당 1회만. 리뷰는 삭제 후 다시 쓸 수 있으므로(삭제 시 포인트 회수는 하지 않음)
-        // 리뷰 존재 여부가 아니라 포인트 이력(사유 + 예약 ID)으로 판정한다. 재작성 시 적립은 0.
+        // 예약당 1회만 적립. 삭제 후 재작성이 가능하므로 리뷰 존재 여부가 아니라 포인트 이력으로 판정한다.
         User user = reservation.getUser();
         if (user != null) {
             pointService.earnOnce(user, REVIEW_REWARD_POINT, REVIEW_REWARD_REASON, reservation.getReservationId());
@@ -115,11 +112,7 @@ public class ReviewService {
     }
 
     /**
-     * 좋아요 설정/해제 (사용자별 멱등).
-     * <p>
-     * 과거에는 클라이언트가 보낸 isLiked 값대로 카운터만 INCR/DECR 해서, 같은 사용자가 반복 호출하면
-     * 좋아요 수를 무한히 올릴 수 있었다. 이제 Redis 집합(review:like:users:{id})에 userId 를 넣고/빼서
-     * 실제로 상태가 바뀐 경우에만 카운터를 움직인다.
+     * 좋아요 설정/해제 (사용자별 멱등). Redis 집합(review:like:users:{id})으로 상태가 실제로 바뀔 때만 카운터를 움직인다.
      *
      * @param isLiked 클라이언트가 알고 있는 현재 상태. true 면 좋아요 해제, false 면 좋아요 요청.
      * @return 반영 후 좋아요 수
@@ -145,7 +138,7 @@ public class ReviewService {
 
         Integer redisCount = reviewRedisLikeRepository.getLikeCount(reviewId);
         int count = redisCount != null ? redisCount : dbCount;
-        review.setLikeCount(count); // 관리 엔티티이므로 dirty checking 으로 반영된다.
+        review.setLikeCount(count);
         return count;
     }
 
@@ -202,8 +195,7 @@ public class ReviewService {
             throw new IllegalArgumentException("본인의 리뷰만 수정할 수 있습니다");
         }
 
-        // 2. 리뷰 필드 수정 — 관리 엔티티를 직접 변경해 createdAt/likeCount/reply/status 를 보존한다.
-        //    (과거에는 빌더로 새 객체를 만들어 save 해 likeCount·reply 가 null 로 덮어써졌다.)
+        // 2. 리뷰 필드 수정 — 관리 엔티티를 직접 바꿔 createdAt/likeCount/reply/status 를 보존한다.
         existing.updateContent(
                 dto.getRating(),
                 dto.getCleanlinessRating(),

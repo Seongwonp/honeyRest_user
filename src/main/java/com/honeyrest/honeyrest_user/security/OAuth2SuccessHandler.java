@@ -27,8 +27,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         CustomUserPrincipal userPrincipal = (CustomUserPrincipal) authentication.getPrincipal();
         String email = userPrincipal.getUser().getEmail();
 
-        // JWT 발급 - subject를 이메일이 아닌 userId로 발급해야 JwtTokenProvider.getUserId()가 정상 동작한다(P1-11).
-        // 로그아웃 직후 같은 초에 재로그인해도 거부되지 않도록 User 기준 발급을 사용한다(iat ≥ tokenValidAfter).
+        // subject 는 userId 여야 getUserId() 가 동작한다. 같은 초 재로그인을 위해 User 기준으로 발급한다.
         String token = jwtTokenProvider.createAccessToken(userPrincipal.getUser());
 
         // 응답 JSON 구성

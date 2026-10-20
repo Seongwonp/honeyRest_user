@@ -6,11 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 /**
- * 날씨 클라이언트 배선.
- * <ul>
- *     <li>demo 외 프로필: {@link OpenWeatherClient} (키가 없으면 호출 없이 503)</li>
- *     <li>demo 프로필: {@link DemoWeatherClient} — 키가 있으면 실제 값, 없거나 실패하면 예시 데이터</li>
- * </ul>
+ * 날씨 클라이언트 배선. demo 프로필만 {@link DemoWeatherClient} 로 감싼다.
  */
 @Configuration
 public class WeatherClientConfig {

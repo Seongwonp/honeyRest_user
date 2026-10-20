@@ -62,10 +62,7 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                 selectedCategories, selectedTags, maxPrice, pageable);
     }
 
-    /**
-     * 검색 결과 캐시 키. {@code version} 은 {@link SearchCacheVersionService} 의 세대 번호로,
-     * 예약 생성·리뷰 변경·태그 매핑 변경 시 증가해 이전 세대 키를 한꺼번에 무효화한다.
-     */
+    /** 검색 결과 캐시 키. {@code version} 은 {@link SearchCacheVersionService} 의 세대 번호다. */
     static String buildCacheKey(
             long version,
             String location,
@@ -151,8 +148,7 @@ public class AccommodationSearchImpl implements AccommodationSearch {
             );
         }
 
-        // 운영 중(ACTIVE)인 숙소와, 인원을 수용할 수 있는 운영 중 객실만 검색한다 (상태 값은 대소문자 혼용 데이터가 있어 대문자로 비교).
-        // 과거에는 상태 필터가 없어 비활성 숙소/객실도 검색 결과에 노출됐다.
+        // 운영 중(ACTIVE)인 숙소와 인원을 수용하는 운영 중 객실만 검색한다 (상태 값 대소문자가 섞여 있어 대문자로 비교).
         builder.and(a.status.upper().eq("ACTIVE"));
         builder.and(r.status.upper().eq("ACTIVE"));
         builder.and(r.maxOccupancy.goe(guests));
@@ -234,7 +230,7 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                         w.accommodation.accommodationId.eq(a.accommodationId)
                                 .and(userId != null ? w.user.userId.eq(userId) : Expressions.FALSE.isTrue())
                 )
-                // 리뷰 수는 사용자 화면에 노출되는 리뷰(PUBLISHED)만 센다 (숨김/삭제 리뷰 제외, 상세 화면·평점 집계와 같은 기준)
+                // 리뷰 수는 노출 리뷰(PUBLISHED)만 센다 (상세 화면·평점 집계와 같은 기준)
                 .leftJoin(rv).on(rv.accommodationId.eq(a.accommodationId).and(rv.status.eq(ReviewStatus.PUBLISHED)))
                 .where(builder)
                 .groupBy(a.accommodationId)
@@ -253,7 +249,7 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                 .from(res)
                 .join(res.room, r)
                 .where(
-                        // 취소(CANCELLED 등) 예약은 재고를 점유하지 않는다 (ReserveService.assertRoomAvailable 과 동일 기준).
+                        // 취소 예약은 재고를 점유하지 않는다 (ReserveService 와 같은 기준).
                         res.status.in(ReservationStatus.OCCUPYING),
                         res.checkInDate.lt(checkOut),
                         res.checkOutDate.gt(checkIn),
@@ -267,8 +263,7 @@ public class AccommodationSearchImpl implements AccommodationSearch {
                         tuple -> Optional.ofNullable(tuple.get(res.reservationId.count())).orElse(0L)
                 ));
 
-        // 숙소별 Room 리스트 조회 — 예약 가능 여부는 검색 조건을 만족하는 객실(운영 중 + 인원 수용)로만 판단한다.
-        // 과거에는 모든 객실을 봐서, 인원이 맞는 객실은 매진이어도 작은/비활성 객실이 남아 있으면 "예약 가능"으로 표시됐다.
+        // 숙소별 Room 리스트 조회 — 예약 가능 여부는 검색 조건을 만족하는 객실로만 판단한다.
         List<Room> allRooms = queryFactory()
                 .selectFrom(r)
                 .where(

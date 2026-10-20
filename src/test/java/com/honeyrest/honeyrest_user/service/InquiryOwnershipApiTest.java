@@ -18,7 +18,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 문의 수정/삭제 API: 컨트롤러 인자 순서 뒤바뀜(IDOR) 회귀와 답변 보존 규칙을 두 사용자로 확인한다.
+ * 문의 수정/삭제 API: 소유권 검사(IDOR 방지)와 답변 보존 규칙을 두 사용자로 확인한다.
  */
 @DisplayName("문의 API: 소유권(IDOR) · 답변/카테고리 보존 (H2)")
 class InquiryOwnershipApiTest extends H2IntegrationTestSupport {

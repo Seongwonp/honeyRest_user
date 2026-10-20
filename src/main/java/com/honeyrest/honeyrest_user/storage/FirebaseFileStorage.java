@@ -20,12 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Firebase(Google Cloud) Storage 기반 파일 저장소.
- * <p>
- * {@code app.storage.type=firebase} 일 때만 빈으로 등록된다.
- * 서비스 계정 키 파일 경로({@code fire.base.secretKey}, classpath 기준)와
- * 버킷/프로젝트 ID({@code app.storage.firebase.*})는 프로퍼티로 주입한다.
- * (기존 util/FileUploadUtil 로직을 옮겨 온 것이다.)
+ * Firebase(Google Cloud) Storage 기반 파일 저장소. {@code app.storage.type=firebase} 일 때만 등록된다.
  */
 @Component
 @ConditionalOnProperty(name = "app.storage.type", havingValue = "firebase")

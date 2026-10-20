@@ -6,10 +6,7 @@ public interface ReviewRedisLikeRepository {
     void decreaseLikeCount(Long reviewId);
     Integer getLikeCount(Long reviewId);
 
-    /**
-     * 카운터 키가 없을 때만 DB 의 like_count 로 초기화한다.
-     * 캐시 미스 상태에서 INCR 하면 0 부터 세어 DB 값이 1 로 덮어써지는 문제를 막는다.
-     */
+    /** 카운터 키가 없을 때만 DB 의 like_count 로 초기화한다 (캐시 미스에서 INCR 하면 0 부터 센다). */
     void initLikeCountIfAbsent(Long reviewId, int dbLikeCount);
 
     /** 사용자를 좋아요 집합에 추가한다. 새로 추가됐으면 true, 이미 있었으면 false. */

@@ -3,12 +3,7 @@ package com.honeyrest.honeyrest_user.service.weather;
 import java.util.Optional;
 
 /**
- * 현재 날씨 조회. 홈 화면 날씨 위젯({@code GET /api/weather})이 사용한다.
- * <ul>
- *     <li>{@link OpenWeatherClient}: OpenWeather API 호출 (기본)</li>
- *     <li>{@link DemoWeatherClient}: demo 프로필 전용 — API 키가 없으면 예시 날씨를 돌려준다</li>
- * </ul>
- * 배선은 {@link WeatherClientConfig}.
+ * 현재 날씨 조회. 구현은 {@link OpenWeatherClient}, demo 는 {@link DemoWeatherClient} ({@link WeatherClientConfig}).
  */
 public interface WeatherClient {
 

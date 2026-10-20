@@ -10,18 +10,8 @@ import java.util.Locale;
 import java.util.Optional;
 
 /**
- * demo 프로필 전용 날씨 클라이언트 — <b>예시 데이터</b>.
- * <p>
- * Render 무료 데모에는 날씨 API 키가 없어 홈 화면 날씨 위젯이 비어 보인다. 그래서 키가 없거나(또는 실제 호출이 실패하면)
- * 국내 주요 도시의 "그럴듯한" 고정 날씨를 돌려준다. 실제 관측값이 아니므로 응답에 {@code sample=true} 를 붙이고,
- * 프론트는 이 값을 보고 "예시" 표시를 단다.
- * <ul>
- *     <li>기온: 서울 월평균 기온 + 도시별 보정값 (날짜별로 조금씩 달라짐)</li>
- *     <li>날씨/습도: 날짜와 도시로 정해지는 결정적 값 (같은 날 같은 도시는 항상 같은 값)</li>
- *     <li>좌표 조회: 가장 가까운 도시</li>
- *     <li>목록에 없는 도시: empty (위젯은 "찾을 수 없음" 표시)</li>
- * </ul>
- * WEATHER_API_KEY 를 주면 실제 OpenWeather 값을 먼저 쓴다.
+ * demo 프로필 전용 날씨 클라이언트. API 키가 없거나 호출이 실패하면 주요 도시의 예시 날씨를 돌려준다.
+ * 같은 날·같은 도시는 항상 같은 값이고, 응답에 {@code sample=true} 를 붙인다.
  */
 @Log4j2
 public class DemoWeatherClient implements WeatherClient {

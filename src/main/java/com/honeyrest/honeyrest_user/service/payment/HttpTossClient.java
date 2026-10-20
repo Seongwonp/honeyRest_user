@@ -27,8 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 실제 토스페이먼츠 API 를 호출하는 {@link TossClient} (e2e·demo 프로필을 제외한 모든 프로필).
- * 시크릿 키는 Basic 인증(시크릿키:빈 비밀번호)으로 보낸다.
+ * 실제 토스페이먼츠 API 를 호출하는 {@link TossClient}. 시크릿 키는 Basic 인증(시크릿키:빈 비밀번호)으로 보낸다.
  */
 @Log4j2
 @Component

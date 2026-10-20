@@ -1,8 +1,5 @@
-// 공유 도메인 모듈: 사용자 API(이 저장소 루트 프로젝트)와 호스트 관리자 앱(honeyRest_host)이 함께 쓰는
-// JPA 엔티티, ReservationStatus, 배너 위치 등 순수 값 타입만 둔다.
-// - Spring 서비스/리포지토리/설정은 두지 않는다 (Spring 의존성 없음).
-// - Flyway 마이그레이션은 여기가 아니라 루트(사용자 API) 모듈의 src/main/resources/db/migration 에 있다.
-// - 호스트는 composite build 로 좌표 com.honeyrest:honeyrest-domain 을 이 프로젝트로 치환해 사용한다.
+// 공유 도메인 모듈: 사용자 API 와 호스트 관리자 앱이 함께 쓰는 JPA 엔티티와 값 타입만 둔다 (Spring 의존성 없음).
+// Flyway 마이그레이션은 루트 모듈의 src/main/resources/db/migration 에 있다.
 plugins {
     id 'java-library'
 }

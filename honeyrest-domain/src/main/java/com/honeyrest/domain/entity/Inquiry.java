@@ -49,7 +49,7 @@ public class Inquiry extends BaseEntity {
     @Column(length = 50)
     private String category;
 
-    /* ===== 도메인 변경 메서드들 (호스트 사본에서 합침) ===== */
+    /* ===== 도메인 메서드 ===== */
     public void changeTitle(String title)      { this.title = title; }
     public void changeContent(String content)  { this.content = content; }
     public void changeCategory(String category){ this.category = category; }
@@ -59,15 +59,13 @@ public class Inquiry extends BaseEntity {
         this.reply = reply;
         this.isReplied = (reply != null && !reply.isBlank());
     }
-    /** 답변이 달렸는지 (reply 내용 기준. isReplied 플래그만 true 인 과거 데이터도 답변 있음으로 본다). */
+    /** 답변이 달렸는지 (reply 내용 기준). */
     public boolean hasReply() {
         return (reply != null && !reply.isBlank()) || Boolean.TRUE.equals(isReplied);
     }
 
     /**
-     * 작성자의 문의 수정. 관리 중인 엔티티의 제목·내용·카테고리만 바꾸고 답변(reply/isReplied)·숙소·작성자는 보존한다.
-     * 답변이 달린 문의는 수정할 수 없다 (프론트 InquiryEditModal 의 isEditable = !inquiry.reply 와 같은 규칙).
-     * category 가 null/빈 값이면 기존 카테고리를 유지한다.
+     * 작성자의 문의 수정. 제목·내용·카테고리만 바꾸고, category 가 비어 있으면 기존 값을 유지한다.
      *
      * @throws IllegalStateException 이미 답변이 달린 문의
      */

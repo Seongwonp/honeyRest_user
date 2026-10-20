@@ -34,16 +34,8 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 실제 MySQL 8.0 (Testcontainers) 위에서 공유 스키마 마이그레이션을 검증한다.
- *
- * <p>기본 {@code test} 태스크는 H2 + create-drop 이라 Flyway SQL 자체(MySQL 전용 PREPARE/information_schema 구문 포함)와
- * "마이그레이션 결과 스키마 == 엔티티 매핑" 여부를 검증하지 못한다. 이 테스트는 빈 DB 에서
- * <ol>
- *   <li>Flyway V1~최신 마이그레이션이 모두 성공하는지</li>
- *   <li>{@code reservation.accommodation_name} 이 NOT NULL 인지 (V10, 호스트 매핑과 동일)</li>
- *   <li>그 스키마에 대해 사용자 엔티티의 Hibernate {@code ddl-auto=validate} 가 통과하는지 (컨텍스트 기동 자체가 검증)</li>
- * </ol>
- * 를 확인한다. Docker 가 없으면 클래스 전체를 건너뛴다({@code disabledWithoutDocker}).
+ * 실제 MySQL 8.0 (Testcontainers) 에서 Flyway 마이그레이션이 모두 성공하고,
+ * 그 스키마로 엔티티의 {@code ddl-auto=validate} 가 통과하는지 검증한다. Docker 가 없으면 건너뛴다.
  * 실행: {@code ./gradlew integrationTest}
  */
 @Tag("integration")
@@ -127,7 +119,7 @@ class FlywayMigrationMySqlIntegrationTest {
 
     @Test
     void V10_V11_은_이미_적용된_DB에서_다시_실행해도_안전하다() {
-        // 개발 DB 처럼 과거 ddl-auto=update 로 컬럼/테이블이 먼저 생긴 상태를 흉내 내기 위해 같은 SQL 을 한 번 더 실행한다.
+        // ddl-auto=update 로 컬럼/테이블이 먼저 생긴 개발 DB 를 흉내 내기 위해 같은 SQL 을 한 번 더 실행한다.
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator(
                 new ClassPathResource("db/migration/V10__add_reservation_accommodation_name.sql"),
                 new ClassPathResource("db/migration/V11__host_schema_alignment.sql"));

@@ -45,8 +45,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/verify-password").authenticated()
-                        // 이메일 변경 확정은 본인 계정에만 영향을 줘야 하므로 인증이 필요하다(P0-8).
-                        // 과거에는 /api/user/email/** 전체가 permitAll이라 인증 없이도 호출할 수 있었다.
+                        // 이메일 변경 확정은 본인 계정에만 영향을 주므로 인증이 필요하다.
                         .requestMatchers("/api/user/email/verify-change").authenticated()
                         // 숙소/이벤트/배너 목록·상세 조회(GET)는 비회원도 볼 수 있어야 하므로 공개한다.
                         .requestMatchers(HttpMethod.GET, "/api/accommodations/**", "/api/event/**", "/api/banner/**")
@@ -64,13 +63,11 @@ public class SecurityConfig {
                                 "/api/reserve/guest-lookup",
                                 "/swagger-resources/**",
                                 "/webjars/**",
-                                // 로컬 파일 저장소(app.storage.type=local)의 업로드 이미지는 공개 조회 가능해야 한다.
+                                // 로컬 저장소(app.storage.type=local) 업로드 이미지는 공개 조회
                                 "/uploads/**"
                         ).permitAll()
-                        // 배너/이벤트 등록과 숙소 태그 매핑 변경(POST/PUT/DELETE)은 관리자 전용이다.
-                        // 과거에는 이 경로 전체가 permitAll이라 인증 없이 누구나 배너·이벤트를 생성하거나
-                        // 숙소 태그를 조작할 수 있었다(P0-3). 이 백엔드에는 아직 ADMIN 역할을 실제로
-                        // 부여하는 절차가 없으므로, 당장은 사실상 전면 차단되며 이는 의도된 fail-closed다.
+                        // 배너/이벤트 등록과 숙소 태그 매핑 변경은 관리자 전용.
+                        // 아직 ADMIN 을 부여하는 절차가 없어 사실상 전면 차단된다(fail-closed).
                         .requestMatchers("/api/accommodations/**", "/api/event/**", "/api/banner/**")
                         .hasRole("ADMIN")
                         .requestMatchers(
@@ -83,9 +80,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/**").denyAll()
                         .anyRequest().permitAll()
                 )
-                // /api/**는 브라우저 로그인 페이지가 아니라 JSON API이므로, 인증/인가 실패 시
-                // oauth2Login의 loginPage("/login")로 리다이렉트되지 않고 바로 401/403을 반환해야 한다.
-                // 과거에는 리다이렉트를 따라가다 존재하지 않는 정적 리소스를 찾으며 500으로 귀결됐다.
+                // /api/** 는 JSON API 이므로 인증/인가 실패 시 로그인 페이지로 리다이렉트하지 않고 401/403 을 반환한다.
                 .exceptionHandling(exceptions -> exceptions
                         .defaultAuthenticationEntryPointFor(
                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
@@ -109,8 +104,7 @@ public class SecurityConfig {
 
     /**
      * CORS 허용 Origin 목록 (쉼표 구분). 운영(prod)에서는 APP_CORS_ORIGINS 환경변수로 정한다.
-     * 단일 서버 배포는 SPA 와 API 가 같은 Origin(Caddy 뒤)이라 CORS 가 사실상 쓰이지 않지만,
-     * 프론트를 다른 Origin 에 둘 때를 대비해 코드 수정 없이 바꿀 수 있게 한다.
+     * 단일 서버 배포는 같은 Origin 이라 쓰이지 않지만 프론트를 분리할 때를 위해 설정으로 둔다.
      */
     @Value("${app.cors.allowed-origins:http://localhost:5173,https://honeyrest-user-react.vercel.app}")
     private String corsAllowedOrigins;

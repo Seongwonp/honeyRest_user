@@ -41,7 +41,7 @@ public class Coupon extends BaseEntity {
     private BigDecimal minOrderAmount; // 최소 주문 금액
 
     @Column(name = "max_discount_amount", precision = 10, scale = 2)
-    private BigDecimal maxDiscountAmount; // 최대 할인 금액 [통합] 사용자 쪽 이름 maxOrderAmount → 컬럼명/호스트와 같은 maxDiscountAmount
+    private BigDecimal maxDiscountAmount; // 최대 할인 금액
 
     @Column(name = "target_type", nullable = false, length = 20)
     private String targetType; // 적용대상
@@ -60,18 +60,12 @@ public class Coupon extends BaseEntity {
 
     /**
      * 주문 금액(amount)에 이 쿠폰을 적용한 할인액 (원 단위 정수).
-     * <ul>
-     *   <li>정률(RATE/PERCENT/PERCENTAGE): amount × discountValue / 100</li>
-     *   <li>정액(FIXED/AMOUNT): discountValue</li>
-     * </ul>
-     * 그 뒤 maxDiscountAmount(있으면)와 amount 를 넘지 않도록 자르고, 음수면 0 으로 만든 다음
-     * <b>원 단위 미만은 버린다(scale 0, RoundingMode.DOWN)</b>. 프론트엔드도 같은 규칙(Math.floor)으로 계산하므로
-     * 과거처럼 서버(소수 둘째 자리 반올림)와 화면 금액이 달라 결제 금액 검증이 실패하지 않는다.
-     * 예: 33,333원 × 10% = 3,333원.
-     * 사용 가능 여부(기간·활성·최소 주문 금액·적용 대상)는 검사하지 않는다 — {@link #isUsableAt},
-     * {@link #meetsMinOrder}, {@link #isApplicableToAccommodation} 으로 호출자가 먼저 확인한다.
+     * 정률은 amount × discountValue / 100, 정액은 discountValue. maxDiscountAmount 와 amount 를 넘지 않게 자르고
+     * 원 단위 미만은 버린다(RoundingMode.DOWN). 프론트도 Math.floor 로 같은 규칙을 쓴다.
+     * 사용 가능 여부는 검사하지 않는다 — {@link #isUsableAt}, {@link #meetsMinOrder},
+     * {@link #isApplicableToAccommodation} 으로 호출자가 먼저 확인한다.
      *
-     * @throws IllegalStateException 지원하지 않는 할인 유형 (과거처럼 정액으로 조용히 처리하지 않는다)
+     * @throws IllegalStateException 지원하지 않는 할인 유형
      */
     public BigDecimal calculateDiscount(BigDecimal amount) {
         if (amount == null) {
@@ -106,11 +100,8 @@ public class Coupon extends BaseEntity {
     }
 
     /**
-     * 이 숙소에 적용 가능한 쿠폰인지. 사용 가능 쿠폰 목록 조회(UserCouponQueryRepository)와 같은 규칙이다.
-     * <ul>
-     *   <li>targetType 은 ALL 또는 ACCOMMODATION 만 숙소 예약에 쓸 수 있다.</li>
-     *   <li>targetId 가 있으면 그 숙소에만 적용된다 (NULL 이면 전체).</li>
-     * </ul>
+     * 이 숙소에 적용 가능한 쿠폰인지. targetType 은 ALL/ACCOMMODATION 만 허용하고, targetId 가 있으면 그 숙소에만 적용된다.
+     * UserCouponQueryRepository 의 사용 가능 쿠폰 조회와 같은 규칙이다.
      */
     public boolean isApplicableToAccommodation(Long accommodationId) {
         if (!"ALL".equals(targetType) && !"ACCOMMODATION".equals(targetType)) {

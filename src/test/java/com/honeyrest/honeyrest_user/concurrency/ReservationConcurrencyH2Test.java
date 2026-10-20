@@ -19,11 +19,9 @@ import java.time.LocalDate;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 예약 생성의 객실 락 + 잠금 읽기 경로를 H2 에서 실행한다 (e2e 프로필도 H2 이므로 네이티브 FOR UPDATE 쿼리 호환성 확인 겸).
- * 실제 InnoDB 동작 검증은 {@link ReservationConcurrencyMySqlIntegrationTest} (integrationTest 태스크).
- * <p>
- * REPEATABLE READ 스냅샷 시나리오는 여기서 검증하지 않는다: H2 는 REPEATABLE READ 에서 FOR UPDATE 도 스냅샷을 읽어
- * InnoDB(잠금 읽기는 항상 최신 커밋을 읽음)와 동작이 다르다. 운영·e2e 모두 READ COMMITTED 로 설정돼 있다.
+ * 예약 생성의 객실 락 + 잠금 읽기 경로를 H2 에서 실행한다 (네이티브 FOR UPDATE 쿼리 호환성 확인 겸).
+ * InnoDB 동작 검증은 {@link ReservationConcurrencyMySqlIntegrationTest}. H2 는 REPEATABLE READ 에서
+ * FOR UPDATE 도 스냅샷을 읽어 InnoDB 와 다르므로 스냅샷 시나리오는 여기서 다루지 않는다.
  */
 @DisplayName("예약 동시성: 객실 락 + 잠금 읽기 (H2)")
 class ReservationConcurrencyH2Test extends H2IntegrationTestSupport {

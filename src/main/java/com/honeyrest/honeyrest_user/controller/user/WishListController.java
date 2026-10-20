@@ -23,7 +23,7 @@ public class WishListController {
     @PostMapping("/toggle")
     public ResponseEntity<?> toggleWish(@AuthenticationPrincipal CustomUserPrincipal principal,
                                         @RequestBody WishToggleRequestDTO dto) {
-        // 요청 바디의 userId를 신뢰하면 타인의 찜 목록을 임의로 추가/삭제할 수 있었다(P1-4).
+        // 요청 바디의 userId 는 신뢰하지 않는다.
         Long userId = principal.getUserId();
         log.info("🧡 찜 토글 요청: userId={}, accommodationId={}", userId, dto.getAccommodationId());
 

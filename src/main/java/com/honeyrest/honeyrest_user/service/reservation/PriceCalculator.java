@@ -18,14 +18,11 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * 숙박 요금(원가) 계산의 단일 진입점.
- * 예약 폼 조회(ReserveInfoService)와 결제 승인 검증(PaymentOrchestrationService)이 반드시 같은 결과를 내도록
- * 요금 규칙은 이 클래스에만 둔다.
- *
+ * 숙박 요금(원가) 계산. 예약 폼 조회와 결제 승인 검증이 같은 결과를 내도록 요금 규칙은 여기에만 둔다.
  * <ul>
- *   <li>1박 요금: price_calendar 에 (room_id, date) 행이 있고 price 가 있으면 그 값, 없으면 room.price(기본가)</li>
- *   <li>숙박일: 체크인일 ~ 체크아웃 전날 (체크아웃 당일은 과금하지 않음)</li>
- *   <li>추가 인원 요금: extra_person_fee × max(0, 인원 - 기준 인원) × 숙박 일수 (fee 가 null 이면 0)</li>
+ *   <li>1박 요금: price_calendar 값이 있으면 그 값, 없으면 room.price</li>
+ *   <li>숙박일: 체크인일 ~ 체크아웃 전날</li>
+ *   <li>추가 인원 요금: extra_person_fee × max(0, 인원 - 기준 인원) × 숙박 일수</li>
  * </ul>
  */
 @Component

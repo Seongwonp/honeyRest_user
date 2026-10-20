@@ -67,7 +67,7 @@ public class PasswordResetService {
         User user = token.getUser();
 
         user.setPassword(passwordEncoder.encode(newPassword));
-        // 비밀번호 재설정 = 계정 탈취 대응 경로이므로 기존 access/refresh token을 모두 폐기한다(로그아웃과 동일).
+        // 계정 탈취 대응 경로이므로 기존 access/refresh token 을 모두 폐기한다.
         user.revokeExistingTokens();
         userRepository.save(user);
         refreshTokenService.invalidateAllByUser(user);

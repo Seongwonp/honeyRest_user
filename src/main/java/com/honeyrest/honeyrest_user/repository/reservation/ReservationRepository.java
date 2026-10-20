@@ -21,8 +21,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     boolean existsByReservationNumber(String reservationNumber);
 
     /**
-     * 예약 행을 FOR UPDATE 로 잠가 조회한다. 같은 예약에 대한 리뷰 동시 작성(더블 클릭 등)을 직렬화해
-     * "예약당 리뷰 1건" 검사가 경쟁 상태에서도 지켜지게 한다. 반드시 트랜잭션 안에서 호출해야 한다.
+     * 예약 행을 FOR UPDATE 로 잠가 조회한다. 리뷰 동시 작성을 직렬화한다. 트랜잭션 안에서 호출해야 한다.
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from Reservation r where r.reservationId = :reservationId")
@@ -45,12 +44,9 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
                           @Param("statuses") Collection<String> statuses);
 
     /**
-     * {@link #countOverlapping} 의 잠금 읽기(locking read) 버전: 겹치는 예약 id 를 {@code SELECT ... FOR UPDATE} 로 읽는다.
-     * <p>
-     * 일반 SELECT 는 MySQL REPEATABLE READ 에서 트랜잭션의 첫 일관된 읽기 시점 스냅샷을 보므로, 객실 행 락을 기다리는 동안
-     * 다른 트랜잭션이 커밋한 예약을 놓칠 수 있다. 잠금 읽기는 격리 수준과 상관없이 항상 최신 커밋 데이터를 읽는다.
-     * 집계(COUNT) 에는 FOR UPDATE 를 붙일 수 없는 DB(H2)가 있어 id 목록을 읽고 개수는 호출자가 센다.
-     * 객실 행 락(RoomRepository#findByIdForUpdate)을 먼저 잡은 트랜잭션 안에서만 호출한다.
+     * {@link #countOverlapping} 의 잠금 읽기 버전. 겹치는 예약 id 를 {@code SELECT ... FOR UPDATE} 로 읽는다.
+     * 일반 SELECT 는 REPEATABLE READ 스냅샷이라 락 대기 중 커밋된 예약을 놓칠 수 있다.
+     * H2 는 COUNT 에 FOR UPDATE 를 붙일 수 없어 id 목록을 읽는다. 객실 행 락을 잡은 트랜잭션 안에서만 호출한다.
      */
     @Query(value = """
             select r.reservation_id from reservation r

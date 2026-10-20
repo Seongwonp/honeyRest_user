@@ -40,10 +40,7 @@ public class EmailVerificationToken {
 
     private Boolean isVerified;
 
-    /**
-     * [통합] 사용자 사본: createdAt/expiryDate(+24h) 설정, 호스트 사본: createdAt/isVerified=false 설정.
-     * 두 동작을 합쳤다. is_verified 는 NOT NULL 이므로 빌더에서 비워 둔 경우에만 false 로 채운다.
-     */
+    /** createdAt·expiryDate(+24h)를 채우고, NOT NULL 인 is_verified 가 비어 있으면 false 로 둔다. */
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

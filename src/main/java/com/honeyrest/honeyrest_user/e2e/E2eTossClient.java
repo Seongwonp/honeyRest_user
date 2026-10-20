@@ -15,18 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * e2e·demo 프로필 전용 토스 결제 스텁.
- * <p>
- * 헤드리스 브라우저에서는 토스 결제 위젯을 띄울 수 없으므로, 프론트의 "테스트 결제" 버튼이 가짜 paymentKey 로
- * 성공 페이지에 진입하고 서버는 이 스텁으로 승인한다. 외부 네트워크 호출은 전혀 하지 않는다.
- * <ul>
- *     <li>승인: 어떤 paymentKey/orderId/amount 든 {@code status=DONE} 으로 승인하고 요청 금액을 totalAmount 로 돌려준다.
- *         금액·재고·중복 검증은 실제와 똑같이 PaymentOrchestrationService 가 수행한다.</li>
- *     <li>조회: 승인한 주문은 {@code DONE}, 모르는 주문은 empty(404 와 동일).</li>
- *     <li>취소: 요청을 {@link #cancellations()} 에 기록하고 {@code CANCELED} 를 돌려준다.</li>
- * </ul>
- * demo 프로필(Render 무료 데모)에서는 프론트의 "테스트 결제(데모)" 버튼이 같은 경로로 승인을 받는다. 실제 청구는 없다.
- * 운영/로컬/test 프로필에는 등록되지 않는다 (그쪽은 {@code HttpTossClient}).
+ * e2e·demo 프로필 전용 토스 결제 스텁. 외부 호출 없이 승인은 항상 DONE, 취소는 {@link #cancellations()} 에 기록한다.
+ * 금액·재고·중복 검증은 실제와 같이 PaymentOrchestrationService 가 수행한다.
  */
 @Log4j2
 @Component

@@ -45,19 +45,14 @@ public class JwtTokenProvider {
     }
 
     /**
-     * 사용자 엔티티 기준 Access Token 생성.
-     * 로그아웃·비밀번호 변경으로 tokenValidAfter가 설정된 사용자에게 발급할 때는 반드시 이 메서드를 사용해야
-     * 같은 초 안의 재로그인 토큰이 거부되지 않는다.
+     * 사용자 기준 Access Token 생성. tokenValidAfter 가 있는 사용자는 반드시 이 메서드로 발급한다.
      */
     public String createAccessToken(User user) {
         return createAccessToken(user.getUserId(), user.getRole(), user.getTokenValidAfter());
     }
 
     /**
-     * iat = max(현재 시각, tokenValidAfter) 로 발급한다.
-     * tokenValidAfter는 "폐기 시각(초 단위 내림) + 1초"라서 폐기 직후 같은 초에 발급하는 토큰은 iat가 최대 1초
-     * 미래로 잡힌다. 이렇게 해야 폐기 이전 토큰은 항상 거부되고(iat &lt; tokenValidAfter), 재발급 토큰은 항상 통과한다.
-     * 만료 시각도 iat 기준으로 계산한다(최대 1초 늘어남).
+     * iat = max(현재 시각, tokenValidAfter) 로 발급한다. 폐기 직후 같은 초에 재발급해도 통과하고 이전 토큰은 거부된다.
      */
     private String createAccessToken(Long userId, String role, LocalDateTime tokenValidAfter) {
         Claims claims = Jwts.claims().setSubject(String.valueOf(userId));
@@ -138,7 +133,7 @@ public class JwtTokenProvider {
             log.debug("📦 Authorization 헤더에서 AccessToken 추출 완료");
             return token;
         }
-        // 비로그인 요청(공개 API, 헬스 체크)마다 발생하는 정상 상황이라 DEBUG 로 남긴다 (운영 로그 소음 방지)
+        // 비로그인 요청마다 생기는 정상 상황이라 DEBUG 로 남긴다
         log.debug("❌ Authorization 헤더 없음 또는 형식 오류");
         return null;
     }
@@ -160,9 +155,7 @@ public class JwtTokenProvider {
                     return new RuntimeException("User not found");
                 });
 
-        // 로그아웃/비밀번호 변경 시각(tokenValidAfter)보다 이 토큰이 먼저 발급됐다면 이미 폐기된 토큰이다(P1-10).
-        // 만료 전이라도 인증을 거부한다. JWT iat는 초 단위이므로 양쪽 모두 epoch 초로 맞춰 비교한다.
-        // (tokenValidAfter = 폐기 시각 초 내림 + 1초, 재발급 iat = max(now, tokenValidAfter) → 결정적으로 동작)
+        // 폐기 시각(tokenValidAfter)보다 먼저 발급된 토큰은 거부한다. iat 가 초 단위라 epoch 초로 비교한다.
         if (user.getTokenValidAfter() != null && issuedAt != null
                 && isIssuedBefore(issuedAt, user.getTokenValidAfter())) {
             log.warn("❌ 폐기된 토큰: userId={}, issuedAt={}", userId, issuedAt);

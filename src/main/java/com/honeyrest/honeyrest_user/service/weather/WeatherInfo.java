@@ -17,7 +17,7 @@ import java.util.Map;
 public record WeatherInfo(String name, double temp, String condition, String description, String icon,
                           Integer humidity, boolean sample) {
 
-    /** 기존 응답 형식(name/temp/condition/description/icon)에 humidity·sample 을 더한 JSON 본문. */
+    /** name/temp/condition/description/icon/humidity/sample JSON 본문. */
     public Map<String, Object> toResponse() {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("name", name);

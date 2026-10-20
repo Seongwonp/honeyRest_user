@@ -4,17 +4,9 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 토스페이먼츠 결제 API 호출 경계.
- * <p>
- * {@link TossService} 는 이 인터페이스만 보고 승인/조회/취소를 호출하며, 타임아웃 보상 같은 비즈니스 규칙은
- * TossService 에 남긴다. 구현체는 프로필로 하나만 등록된다.
- * <ul>
- *     <li>{@link HttpTossClient} — 기본(운영/로컬/test) 프로필. 실제 토스 API 를 RestTemplate 으로 호출한다.</li>
- *     <li>{@code e2e.E2eTossClient} — {@code e2e}·{@code demo} 프로필 전용 스텁. 외부 호출 없이 항상 승인한다.</li>
- * </ul>
- * 응답은 토스 API 의 JSON 바디를 그대로 담은 Map 이다.
- * 실패 규약: 토스가 2xx 가 아닌 응답을 주면 {@code ApiException(400/502)}, 통신 실패(타임아웃 등)는
- * {@code ApiException(504 GATEWAY_TIMEOUT)} 을 던진다. TossService 는 504 를 보고 보상 절차를 밟는다.
+ * 토스페이먼츠 결제 API 호출 경계. 타임아웃 보상 같은 규칙은 {@link TossService} 에 둔다.
+ * 구현은 {@link HttpTossClient}(기본)와 {@code e2e.E2eTossClient}(e2e·demo 스텁)다.
+ * 2xx 가 아니면 {@code ApiException(400/502)}, 통신 실패는 {@code ApiException(504)} 를 던진다.
  */
 public interface TossClient {
 

@@ -18,7 +18,6 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 /**
  * principal 이 없을 때(미인증) 컨트롤러가 403 이 아니라 401 을 내는지 확인한다.
- * 과거에는 AccessDeniedException("로그인이 필요합니다") 를 던져 GlobalExceptionHandler 가 403 으로 매핑했다.
  */
 @ExtendWith(MockitoExtension.class)
 class UnauthenticatedPrincipalTest {

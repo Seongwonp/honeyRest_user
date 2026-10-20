@@ -12,8 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * P0-3 회귀 테스트: 배너/이벤트 쓰기 API는 더 이상 익명 사용자에게 열려 있지 않아야 한다.
- * 읽기(GET)는 비회원도 계속 볼 수 있어야 한다(공개 목록/상세).
+ * 배너/이벤트 쓰기 API 는 익명 사용자에게 열려 있지 않아야 하고, 읽기(GET)는 비회원도 볼 수 있어야 한다.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")

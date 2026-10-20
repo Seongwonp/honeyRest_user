@@ -13,12 +13,8 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * OpenWeather "현재 날씨" API 클라이언트.
- * <ul>
- *     <li>API 키가 비어 있으면 외부 호출 없이 바로 {@link WeatherUnavailableException} (위젯이 무한 로딩에 빠지지 않게)</li>
- *     <li>연결 3초 / 응답 5초 제한</li>
- *     <li>도시를 찾지 못하면(404) empty</li>
- * </ul>
+ * OpenWeather "현재 날씨" API 클라이언트. 키가 없으면 호출 없이 {@link WeatherUnavailableException}.
+ * 연결 3초 / 응답 5초 제한, 도시를 찾지 못하면 empty.
  */
 @Log4j2
 public class OpenWeatherClient implements WeatherClient {

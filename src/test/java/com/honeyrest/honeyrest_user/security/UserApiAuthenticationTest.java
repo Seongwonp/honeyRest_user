@@ -14,8 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * UserController 의 {@code principal == null} 분기를 지운 근거: {@code /api/user/**} 는 SecurityConfig 에서
- * 인증 필수라 익명 요청은 컨트롤러에 닿기 전에 401 이 된다 (NPE → 500 이 되지 않는다).
+ * {@code /api/user/**} 는 인증 필수라 익명 요청은 컨트롤러에 닿기 전에 401 이 된다.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")

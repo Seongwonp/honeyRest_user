@@ -13,11 +13,8 @@ import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Room.images 연관관계(cascade) 가 두 앱의 실제 사용 방식과 충돌하지 않는지 확인한다 (H2).
- * - 객실을 지우면 이미지도 함께 지워진다 (room_image FK 로 객실 삭제가 실패하지 않음).
- * - 호스트 RoomServiceImpl.removeRoom 처럼 이미지를 먼저 일괄 삭제(+영속성 컨텍스트 clear)한 뒤 객실을 지워도 중복 삭제 오류가 없다.
- * - 호스트 updateRoom 처럼 빌더로 다시 만든 Room 을 merge 해도 이미지가 지워지지 않는다.
- * - 사용자 API 의 이미지 조회(RoomImage 를 room_id 로 조회)는 그대로 동작한다.
+ * Room.images cascade 가 두 앱의 사용 방식과 충돌하지 않는지 확인한다 (H2).
+ * 객실 삭제 시 이미지 동반 삭제, 이미지 선삭제 후 객실 삭제, 빌더로 만든 Room merge 시 이미지 보존.
  */
 @DisplayName("Room.images: 객실 삭제 시 이미지 연쇄 삭제 · 호스트 삭제/수정 흐름과 충돌 없음 (H2)")
 class RoomImageCascadeH2Test extends H2IntegrationTestSupport {

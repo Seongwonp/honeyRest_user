@@ -35,7 +35,7 @@ class RatingCacheServiceTest {
                 "accommodation:tags:7",
                 "accommodation:tagmap:7",
                 "accommodation:rating:7",
-                // 과거 KEYS accommodation:*:{id} 패턴으로는 지워지지 않던 키들
+                // KEYS accommodation:*:{id} 패턴으로는 지워지지 않는 키들
                 "reviewCount:accommodation:7",
                 "reviewList:accommodation:7",
                 "cancellationPolicy:accommodation:7");

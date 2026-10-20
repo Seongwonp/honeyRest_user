@@ -25,9 +25,7 @@ public class CouponUsageService {
 
     /**
      * 쿠폰 사용 처리 + 사용 기록(coupon_usage) 저장.
-     * <p>
-     * 상태 변경은 조건부 UPDATE(본인 소유 + status='ISSUED')로 원자적으로 한다. 같은 쿠폰으로 동시에 결제한 두 요청 중
-     * 하나만 성공하고, 나머지는 409 로 실패해 예약 저장 트랜잭션이 롤백된다(결제 오케스트레이션이 결제를 자동 취소).
+     * 조건부 UPDATE(본인 소유 + status='ISSUED')로 동시 결제 중 하나만 성공하고, 나머지는 409 로 롤백된다.
      *
      * @param userCouponId 사용자 쿠폰(user_coupon) id
      * @param userId       결제한 로그인 사용자 id (소유권 조건)

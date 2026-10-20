@@ -47,17 +47,9 @@ public class CouponService {
 
     /**
      * 결제 시 선택한 사용자 쿠폰을 검증하고 할인액(원 단위)을 계산한다.
-     * 사용 가능 쿠폰 목록({@link UserCouponQueryRepository#findAvailableCoupons})과 같은 조건을 결제 시점에 다시 확인한다.
-     * 과거에는 목록에서만 적용 대상·사용 이력을 걸러 결제 요청을 직접 만들면 다른 숙소 전용 쿠폰이나
-     * 이미 사용 기록이 있는 쿠폰도 적용됐다.
-     * <ul>
-     *   <li>본인 소유, 상태 ISSUED, 사용자 쿠폰 만료 전</li>
-     *   <li>쿠폰 활성 + 사용 기간 안</li>
-     *   <li>최소 주문 금액 (NULL 이면 제한 없음)</li>
-     *   <li>적용 대상: targetType ALL/ACCOMMODATION, targetId 가 있으면 해당 숙소만</li>
-     *   <li>coupon_usage 에 사용 기록이 없을 것</li>
-     * </ul>
-     * 실제 사용 처리(이중 사용 방지)는 예약 저장 트랜잭션의 {@link CouponUsageService#recordUsage} 가 원자적으로 한다.
+     * 사용 가능 쿠폰 목록({@link UserCouponQueryRepository#findAvailableCoupons})과 같은 조건을 다시 확인한다:
+     * 본인 소유·ISSUED·만료 전, 쿠폰 활성·기간 안, 최소 주문 금액, 적용 대상, 사용 기록 없음.
+     * 실제 사용 처리는 예약 저장 트랜잭션의 {@link CouponUsageService#recordUsage} 가 원자적으로 한다.
      *
      * @throws IllegalArgumentException 검증 실패 (400, 결제 승인 전이라 과금 없음)
      */

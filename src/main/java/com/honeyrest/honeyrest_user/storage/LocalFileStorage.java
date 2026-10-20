@@ -15,12 +15,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 /**
- * 로컬 디스크 기반 파일 저장소 (기본값).
- * <p>
- * {@code app.storage.type=local} 이거나 값이 없을 때 빈으로 등록된다.
- * 파일은 {@code app.storage.local.dir}(기본 ./uploads) 아래 {@code {folder}/{uuid}.{확장자}} 로 저장되고,
- * {@code config/WebConfig} 의 {@code /uploads/**} 리소스 핸들러로 서빙된다.
- * 반환 URL은 {@code app.storage.local.public-url-prefix}(기본 /uploads) + "/{folder}/{파일명}" 이다.
+ * 로컬 디스크 기반 파일 저장소 (기본값). {@code app.storage.local.dir}/{folder}/{uuid}.{확장자} 로 저장하고
+ * WebConfig 의 {@code /uploads/**} 핸들러로 서빙한다.
  */
 @Log4j2
 @Component
@@ -46,8 +42,7 @@ public class LocalFileStorage implements FileStorage {
     public String upload(MultipartFile file, String folder) throws IOException {
         FileValidator.requireSafeFolder(folder);
 
-        // 원본 파일명은 경로 조작 위험이 있으므로 확장자만 사용한다.
-        // 업로드 파일은 /uploads/** 로 공개 서빙되므로 크기·확장자·매직 바이트를 FileValidator 로 검증한다.
+        // 원본 파일명은 쓰지 않고 검증된 확장자만 쓴다.
         String lowerExt = fileValidator.validate(file);
         String filename = UUID.randomUUID() + "." + lowerExt;
 

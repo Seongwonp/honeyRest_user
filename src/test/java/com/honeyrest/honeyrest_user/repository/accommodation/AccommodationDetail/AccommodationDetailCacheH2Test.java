@@ -85,7 +85,7 @@ class AccommodationDetailCacheH2Test extends H2IntegrationTestSupport {
         String key = AccommodationCacheKeys.images(TestFixtures.unique("").hashCode() & 0x7fffffffL);
         List<String> images = List.of("/images/a.jpg", "/images/b.jpg");
 
-        // 과거 구현(이미지마다 RPUSH)이라면 두 번 쓰면 4개가 된다.
+        // 이미지마다 RPUSH 했다면 두 번 쓰면 4개가 된다.
         detailQueryRepository.cacheImages(key, images);
         detailQueryRepository.cacheImages(key, images);
 

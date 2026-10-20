@@ -22,17 +22,12 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class TossService {
 
-    /**
-     * 토스 API 호출 경계. 기본 프로필은 실제 API 를 호출하는 {@link HttpTossClient},
-     * e2e·demo 프로필은 항상 승인하는 스텁이 주입된다 (운영 배선은 그대로).
-     */
+    /** 토스 API 호출 경계. e2e·demo 프로필은 스텁이 주입된다. */
     private final TossClient tossClient;
 
     /**
-     * 토스 결제 승인 (POST /v1/payments/confirm). 이 호출이 성공하면 실제 과금이 일어난다.
-     * 토스가 2xx 가 아닌 응답을 주면 토스 에러 메시지를 담은 ApiException 을 던진다.
-     * 응답을 받지 못하면(타임아웃) 결제 상태를 조회해 승인된 결제는 취소하고
-     * {@link PaymentConfirmTimeoutException} 을 던진다 ({@link #reconcileTimedOutConfirm}).
+     * 토스 결제 승인. 성공하면 실제 과금이 일어난다.
+     * 타임아웃이면 결제 상태를 조회해 승인된 결제를 취소하고 {@link PaymentConfirmTimeoutException} 을 던진다.
      */
     public TossPaymentResult confirmPayment(TossConfirmRequest request) {
         Map<String, Object> body = new HashMap<>();
@@ -85,10 +80,7 @@ public class TossService {
         return result;
     }
 
-    /**
-     * 승인된 결제 전액 취소 (POST /v1/payments/{paymentKey}/cancel).
-     * 승인 후 예약 저장이 실패했을 때 보상 트랜잭션으로 사용한다.
-     */
+    /** 승인된 결제 전액 취소. 승인 후 예약 저장이 실패했을 때 보상으로 쓴다. */
     public void cancelPayment(String paymentKey, String cancelReason) {
         if (paymentKey == null || paymentKey.isBlank()) {
             throw new IllegalArgumentException("취소할 paymentKey 가 없습니다.");
@@ -98,13 +90,8 @@ public class TossService {
     }
 
     /**
-     * 승인 호출 타임아웃 보상.
-     * {@code GET /v1/payments/orders/{orderId}} 로 실제 결제 상태를 확인해
-     * <ul>
-     *     <li>DONE(승인 완료) → 예약을 만들지 않았으므로 즉시 전액 취소하고 reversed=true 로 알린다.</li>
-     *     <li>조회 결과 없음(404)·ABORTED·EXPIRED 등 → 과금되지 않았으므로 실패로만 알린다.</li>
-     *     <li>조회/취소 자체가 실패 → 과금 여부를 확정할 수 없으므로 수동 확인 로그를 남긴다.</li>
-     * </ul>
+     * 승인 호출 타임아웃 보상. 주문번호로 결제 상태를 조회해
+     * DONE 이면 전액 취소(reversed=true), 결제가 없으면 실패로만 알리고, 조회/취소가 실패하면 수동 확인 로그를 남긴다.
      */
     PaymentConfirmTimeoutException reconcileTimedOutConfirm(String orderId) {
         Optional<Map<String, Object>> payment;

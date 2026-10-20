@@ -22,8 +22,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * P1-5 회귀 테스트: 이미지 삭제는 화이트리스트에 없는 folder나 본인 소유가 아닌 imgUrl을
- * 거부해야 한다.
+ * 이미지 삭제는 화이트리스트에 없는 folder 나 본인 소유가 아닌 imgUrl 을 거부해야 한다.
  */
 @ExtendWith(MockitoExtension.class)
 class FileControllerTest {

@@ -7,14 +7,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 /**
- * 메일 설정이 없을 때 쓰는 "발송하지 않는" {@link EmailService} 구현.
- * <p>
- * {@link MailEnabledCondition} 이 false 일 때(예: 운영 배포에서 MAIL_USERNAME 을 비워 둔 경우)만 등록된다.
- * JavaMailSender 에 의존하지 않으므로 SMTP 연결을 시도할 수 없고, 받는 사람 주소·토큰·링크는 로그에 남기지 않는다.
- * e2e·demo 프로필은 별도의 {@code e2e.E2eNoOpEmailService} 를 쓰므로 여기서 제외한다.
- * <p>
- * 주의: 메일이 꺼져 있으면 이메일 인증 링크가 발송되지 않아 일반 회원가입의 인증 단계를 마칠 수 없다.
- * 공개 데모라면 Gmail 앱 비밀번호를 설정하는 것을 권장한다 (docs/DEPLOY.md 참고).
+ * 메일 설정이 없을 때 쓰는 "발송하지 않는" {@link EmailService} 구현 ({@link MailEnabledCondition} 이 false 일 때).
+ * 받는 사람 주소·토큰·링크는 로그에 남기지 않는다. 메일이 꺼져 있으면 일반 가입의 이메일 인증을 마칠 수 없다.
  */
 @Log4j2
 @Service

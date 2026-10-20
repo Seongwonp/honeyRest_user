@@ -74,8 +74,7 @@ public class InquiryService {
     }
 
     /**
-     * 수정. 관리 중인 엔티티를 도메인 메서드로 바꿔 답변(reply/isReplied)·카테고리·숙소를 보존한다.
-     * (과거에는 빌더로 새 엔티티를 만들어 save 해 reply·category 가 NULL 로 지워졌다.)
+     * 수정. 관리 중인 엔티티를 도메인 메서드로 바꿔 답변·카테고리·숙소를 보존한다.
      * 답변이 달린 문의는 수정할 수 없다 → IllegalStateException(409).
      */
     @Transactional
@@ -84,7 +83,7 @@ public class InquiryService {
         inquiry.editQuestion(dto.getTitle(), dto.getContent(), dto.getCategory());
     }
 
-    /** 문의가 없으면 404, 다른 사용자의 문의면 403. (과거에는 RuntimeException 으로 500 이 났다.) */
+    /** 문의가 없으면 404, 다른 사용자의 문의면 403. */
     private Inquiry findOwnedInquiry(Long inquiryId, Long userId) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
                 .orElseThrow(() -> new NotFoundException("문의 내역을 찾을 수 없습니다."));

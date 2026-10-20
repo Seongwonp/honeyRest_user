@@ -228,17 +228,16 @@ public class UserService {
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
-        // 비밀번호 변경 전에 유출됐을 수 있는 기존 access token을 모두 무효화한다(P1-10).
+        // 비밀번호 변경 전에 유출됐을 수 있는 access token 을 모두 무효화한다.
         user.revokeExistingTokens();
         userRepository.save(user);
-        // 유출됐을 수 있는 refresh token으로 access token을 다시 받지 못하도록 DB 저장분도 전부 삭제한다(로그아웃과 동일).
-        // 쿠키 삭제는 응답을 다루는 컨트롤러(UserController.changePassword)에서 수행한다.
+        // refresh token 도 전부 삭제한다. 쿠키 삭제는 컨트롤러에서 한다.
         refreshTokenService.invalidateAllByUser(user);
 
         log.info("✅ 비밀번호 변경 완료: userId={}", userId);
     }
 
-    /** 로그아웃 시 호출: 기존에 발급된 access token을 모두 무효화한다(P1-10). */
+    /** 로그아웃 시 호출: 기존에 발급된 access token 을 모두 무효화한다. */
     @Transactional
     public void revokeTokens(Long userId) {
         userRepository.findById(userId).ifPresent(user -> {

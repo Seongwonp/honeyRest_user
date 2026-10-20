@@ -47,10 +47,7 @@ public class AccommodationDetailQueryRepository {
     private final ObjectMapper objectMapper;
     private final ReviewRedisLikeRepository reviewRedisLikeRepository;
 
-    /**
-     * 숙소 상세·이미지·태그·취소 정책 캐시 TTL. 과거에는 TTL 없이 저장해 호스트가 무효화하지 못한 변경
-     * (예: 다른 경로의 숙소 정보 수정)이 영원히 반영되지 않았다. 무효화가 누락돼도 이 시간이 지나면 갱신된다.
-     */
+    /** 숙소 상세·이미지·태그·취소 정책 캐시 TTL. 무효화가 누락돼도 이 시간이 지나면 갱신된다. */
     @Value("${app.cache.accommodation-detail-ttl:10m}")
     private Duration detailCacheTtl = Duration.ofMinutes(10);
 
@@ -70,7 +67,7 @@ public class AccommodationDetailQueryRepository {
         QCancellationPolicy qCancellationPolicy = QCancellationPolicy.cancellationPolicy;
 
         // Redis 키 정의
-        // 키 문자열은 무효화 쪽(RatingCacheService)과 공유하기 위해 AccommodationCacheKeys 에서만 만든다.
+        // 키는 무효화 쪽과 공유하도록 AccommodationCacheKeys 에서만 만든다.
         String detailKey = AccommodationCacheKeys.detail(id);
         String imagesKey = AccommodationCacheKeys.images(id);
         String tagsKey = AccommodationCacheKeys.tags(id);
@@ -145,7 +142,7 @@ public class AccommodationDetailQueryRepository {
                         .ownerName(flat.getOwnerName())
                         .phone(flat.getPhone())
                         .email(flat.getEmail())
-                        .address(flat.getCompanyAddress()) // 업체 주소 (과거에는 숙소 주소를 잘못 넣었다)
+                        .address(flat.getCompanyAddress())
                         .build())
                 .mainRegion(RegionDTO.builder()
                         .regionId(flat.getMainRegionId())
@@ -418,10 +415,7 @@ public class AccommodationDetailQueryRepository {
 
     /**
      * 이미지 목록 캐시를 한 번에 교체한다: MULTI → DEL → RPUSH(전체) → EXPIRE → EXEC.
-     * <p>
-     * 과거에는 캐시 MISS 때 이미지마다 RPUSH 를 따로 보내, 동시에 MISS 난 두 요청이 같은 목록을 두 번 쌓아
-     * 이미지가 중복 표시됐고 TTL 도 없었다. 키 이름과 Redis 자료형(List)은 그대로라 호스트의
-     * {@code AccommodationCacheKeys.allFor(id)} 무효화도 그대로 동작한다.
+     * 동시에 캐시 MISS 난 요청이 목록을 중복으로 쌓지 않도록 트랜잭션으로 묶는다.
      */
     void cacheImages(String imagesKey, List<String> images) {
         if (images == null || images.isEmpty()) {

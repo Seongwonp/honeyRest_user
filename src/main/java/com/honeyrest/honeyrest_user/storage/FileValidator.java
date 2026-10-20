@@ -15,14 +15,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 업로드 파일 공통 검증 (LocalFileStorage / FirebaseFileStorage 가 함께 사용).
- * <ol>
- *     <li>폴더명: 영문/숫자/-/_ 만 허용 (경로 조작 차단)</li>
- *     <li>크기: {@code app.storage.max-file-size} (기본 5MB) 초과 시 413</li>
- *     <li>확장자: jpg/jpeg/png/gif/webp 만 허용</li>
- *     <li>내용 스니핑: 파일 앞부분 매직 바이트가 확장자와 같은 이미지 형식인지 확인
- *         (확장자만 바꾼 HTML/SVG/실행 파일이 /uploads/** 로 공개 서빙되는 것을 막는다)</li>
- * </ol>
+ * 업로드 파일 공통 검증: 폴더명(영문/숫자/-/_), 크기(기본 5MB, 초과 시 413), 확장자(jpg/jpeg/png/gif/webp),
+ * 매직 바이트. 확장자만 바꾼 HTML/SVG 가 /uploads/** 로 공개 서빙되는 것을 막는다.
  */
 @Component
 public class FileValidator {

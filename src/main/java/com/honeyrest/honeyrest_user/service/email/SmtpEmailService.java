@@ -15,13 +15,6 @@ import jakarta.mail.internet.MimeMessage;
 
 /**
  * {@link EmailService} 의 실제 구현: Gmail SMTP({@link JavaMailSender})로 HTML 메일을 보낸다.
- * <p>
- * 프로필/조건별로 {@link EmailService} 구현은 정확히 하나만 등록된다.
- * <ul>
- *   <li>e2e·demo 프로필: {@code e2e.E2eNoOpEmailService} (인증 토큰은 {@code GET /e2e/verification-token} 으로 조회)</li>
- *   <li>e2e·demo 가 아니고 메일 설정 있음({@link MailEnabledCondition}): 이 클래스</li>
- *   <li>e2e·demo 가 아니고 메일 설정 없음({@link MailEnabledCondition.Disabled}): {@link NoOpEmailService}</li>
- * </ul>
  */
 @Log4j2
 @Service

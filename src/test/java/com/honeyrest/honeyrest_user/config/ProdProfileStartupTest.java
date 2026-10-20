@@ -16,13 +16,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 운영(prod) 프로필 설정 파일(application-prod.properties)이 "필수 환경변수만" 있는 상태에서
- * 해석되지 않는 placeholder 없이 컨텍스트를 띄우는지 검증한다.
- * <p>
- * - 필수: DB_URL / DB_USERNAME / DB_PASSWORD / JWT_SECRET / APP_BASE_URL 만 준다 (docker-compose 가 주는 값과 같은 이름).
- * - 선택(MAIL_*, TOSS_*, GOOGLE_*, KAKAO_*, WEATHER_API_KEY)은 일부러 주지 않는다 → 기동이 실패하면 안 된다.
- * - MySQL·Redis·Flyway 는 이 테스트 환경에 없으므로 H2 + Flyway 끔 + simple 캐시로만 바꾼다.
- *   (마이그레이션 자체는 integrationTest 의 FlywayMigrationMySqlIntegrationTest 가 MySQL 8.0 으로 검증한다)
+ * 운영(prod) 프로필이 필수 환경변수(DB_*, JWT_SECRET, APP_BASE_URL)만으로 기동하는지 검증한다.
+ * 선택 값(MAIL_*, TOSS_*, 소셜 키 등)은 주지 않는다. MySQL·Redis·Flyway 는 H2·simple 캐시로 대체한다.
  */
 @SpringBootTest(properties = {
         // ---- 운영 compose 가 넣는 필수 환경변수 (값만 테스트용) ----

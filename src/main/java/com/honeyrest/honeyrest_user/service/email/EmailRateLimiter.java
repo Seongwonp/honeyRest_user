@@ -15,12 +15,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 인증/비밀번호 재설정/이메일 변경 메일 발송 남용 방지 (고정 윈도 카운터).
- * <p>
- * 같은 (용도, 이메일) 조합으로 {@code window} 안에 {@code maxRequests} 회를 넘으면 429 를 던진다.
- * 카운터는 Redis {@code rate:email:{용도}:{이메일}} 에 INCR + EXPIRE 로 두어 인스턴스 간 공유하고,
- * Redis 에 접근할 수 없으면(로컬/테스트 프로필, 장애) 인스턴스 로컬 메모리 카운터로 대체한다.
- * <p>
+ * 메일 발송 남용 방지 (고정 윈도 카운터). (용도, 이메일)별로 window 안에 maxRequests 회를 넘으면 429.
+ * 카운터는 Redis {@code rate:email:{용도}:{이메일}} 에 두고, Redis 를 쓸 수 없으면 로컬 메모리로 대체한다.
  * 계정 존재 여부를 노출하지 않도록 사용자 조회 <b>전에</b> 호출한다.
  */
 @Log4j2

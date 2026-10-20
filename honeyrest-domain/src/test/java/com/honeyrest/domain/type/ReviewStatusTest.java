@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** 공유 ReviewStatus: 저장 가능한 값은 PUBLISHED/HIDDEN/DELETED, 과거 VISIBLE 은 PUBLISHED 로 취급한다. */
+/** ReviewStatus: 저장 가능한 값은 PUBLISHED/HIDDEN/DELETED, VISIBLE 은 PUBLISHED 로 취급한다. */
 class ReviewStatusTest {
 
     @Test

@@ -17,8 +17,7 @@ import java.util.Set;
 @RequestMapping("/api/files")
 public class FileController {
 
-    // banner/event는 관리자 전용 업로드 흐름(BannerService/EventService)을 따로 쓰므로
-    // 이 사용자용 엔드포인트에서는 다루지 않는다.
+    // banner/event 는 관리자 업로드 흐름(BannerService/EventService)을 쓰므로 여기서 다루지 않는다.
     private static final Set<String> ALLOWED_FOLDERS = Set.of("reviews", "profile");
 
     private final FileStorage fileStorage;
@@ -47,9 +46,7 @@ public class FileController {
 
     /**
      * 이미지 삭제 (FileStorage: local 또는 firebase)
-     * 과거에는 folder/imgUrl을 그대로 신뢰해 로그인만 하면 타인의 리뷰·프로필 이미지는 물론
-     * banner/event 같은 임의 경로의 파일까지 삭제할 수 있었다(P1-5). folder를 화이트리스트로
-     * 제한하고, imgUrl이 실제로 호출자 소유 리소스에 연결돼 있는지 DB로 재확인한다.
+     * folder 는 화이트리스트로 제한하고, imgUrl 이 호출자 소유 리소스에 연결돼 있는지 DB 로 확인한다.
      * @param folder 삭제할 폴더명
      * @param imgUrl 삭제할 이미지 URL
      */

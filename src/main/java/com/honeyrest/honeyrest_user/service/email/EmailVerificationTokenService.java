@@ -68,7 +68,7 @@ public class EmailVerificationTokenService {
         if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
             throw new IllegalStateException("토큰이 만료되었습니다.");
         }
-        // EMAIL_CHANGE 토큰으로 가입 인증을 처리하지 않는다. (tokenType 이 없는 과거 행은 SIGNUP 으로 간주)
+        // EMAIL_CHANGE 토큰으로 가입 인증을 처리하지 않는다. (tokenType 이 없는 행은 SIGNUP 으로 간주)
         if (token.getTokenType() != null && !"SIGNUP".equals(token.getTokenType())) {
             throw new IllegalArgumentException("가입 인증용 토큰이 아닙니다.");
         }
@@ -92,8 +92,7 @@ public class EmailVerificationTokenService {
             throw new IllegalStateException("이미 인증된 사용자입니다.");
         }
 
-        // 새 토큰 발송 (이전 SIGNUP 토큰 무효화와 발송 한도 검사는 sendVerificationEmail 이 처리한다.
-        // 과거에는 findAll() 로 전체 토큰 테이블을 읽어 걸렀다.)
+        // 이전 토큰 무효화와 발송 한도 검사는 sendVerificationEmail 이 처리한다.
         sendVerificationEmail(new EmailRequestDTO(dto.getEmail()));
     }
 
@@ -139,9 +138,7 @@ public class EmailVerificationTokenService {
 
 
     /**
-     * requestingUserId는 인증된 호출자의 id다. 과거에는 (1) 토큰 종류를 확인하지 않아 SIGNUP 토큰으로도
-     * 이메일을 바꿀 수 있었고, (2) 승인된 이메일을 서버에 저장하지 않아 newEmail 파라미터를 신뢰했으며,
-     * (3) 엔드포인트가 인증 없이 열려 있었다(P0-8). 넷 다 여기서 막는다.
+     * requestingUserId 는 인증된 호출자의 id 다. 토큰 종류(EMAIL_CHANGE), 소유자, 토큰에 저장된 새 이메일을 모두 확인한다.
      */
     @Transactional
     public void confirmEmailChange(Long requestingUserId, String tokenValue, String newEmail) {

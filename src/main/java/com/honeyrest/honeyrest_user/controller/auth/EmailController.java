@@ -47,7 +47,7 @@ public class EmailController {
         return ResponseEntity.ok(status);
     }
 
-    // 이메일 변경 인증 처리 (본인 인증 필요 - SecurityConfig에서 이 경로만 별도로 authenticated 처리)
+    // 이메일 변경 인증 처리 (SecurityConfig 에서 이 경로만 authenticated)
     @PostMapping("/verify-change")
     public ResponseEntity<String> verifyEmailChange(
             @AuthenticationPrincipal CustomUserPrincipal principal,

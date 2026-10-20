@@ -148,11 +148,8 @@ tasks.named('test') {
     }
 }
 
-// integrationTest: @Tag("integration") 테스트만 실행한다 (Testcontainers MySQL 8.0).
-// - Docker 가 없으면 해당 테스트는 실패가 아니라 건너뛴다(skip).
-// - CI 처럼 반드시 실행돼야 하는 환경에서는 INTEGRATION_REQUIRE_DOCKER=true 로 두면
-//   Docker 부재 시 DockerAvailabilityGuardTest 가 실패해 '조용히 전부 skip 된 초록불'을 막는다.
-// 실행: ./gradlew test integrationTest
+// integrationTest: @Tag("integration") 테스트만 실행한다 (Testcontainers MySQL 8.0). Docker 가 없으면 skip.
+// CI 에서는 INTEGRATION_REQUIRE_DOCKER=true 로 Docker 부재 시 DockerAvailabilityGuardTest 가 실패하게 한다.
 tasks.register('integrationTest', Test) {
     description = 'Testcontainers(MySQL 8.0) 로 Flyway 마이그레이션과 엔티티 스키마 검증을 실행한다.'
     group = 'verification'

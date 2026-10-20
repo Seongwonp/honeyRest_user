@@ -251,7 +251,7 @@ class JwtTokenProviderTest {
 
         assertThat(JwtTokenProvider.isIssuedBefore(sameSecond, validAfter)).isFalse();
         assertThat(JwtTokenProvider.isIssuedBefore(previousSecond, validAfter)).isTrue();
-        // tokenValidAfter에 나노초가 남아 있어도(마이그레이션 이전 데이터) 같은 초의 iat는 거부하지 않는다
+        // tokenValidAfter 에 나노초가 남아 있어도 같은 초의 iat 는 거부하지 않는다
         assertThat(JwtTokenProvider.isIssuedBefore(
                 java.util.Date.from(validAfter.atZone(java.time.ZoneId.systemDefault()).toInstant()),
                 validAfter.plusNanos(500_000_000))).isFalse();

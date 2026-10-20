@@ -16,10 +16,8 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * JSON 컬럼(room.bed_info/amenities, accommodation.amenities, company.bank_info) 이 H2(demo/e2e/test 프로필)에서
- * 저장할 때마다 JSON 문자열 값으로 한 겹씩 감싸지지 않는지 확인한다 (엔티티 매핑을 실제 스키마와 같은 LONGTEXT 로 맞춤).
- * 과거에는 String 을 VARCHAR 로 바인딩해 H2 가 '["킹 베드"]' 를 JSON 문자열 "\"[\\\"킹 베드\\\"]\"" 로 저장했고,
- * 리뷰 작성 → Accommodation.updateRating(더티 체킹 = 전체 컬럼 UPDATE) 때마다 따옴표가 누적됐다.
+ * JSON 컬럼(room.bed_info/amenities, accommodation.amenities, company.bank_info)이 H2 에서
+ * 저장할 때마다 JSON 문자열로 한 겹씩 감싸지지 않는지 확인한다 (매핑은 스키마와 같은 LONGTEXT).
  */
 @DisplayName("JSON 컬럼: H2 에서 저장·재저장해도 JSON 텍스트가 그대로 유지된다")
 class JsonColumnH2Test extends H2IntegrationTestSupport {

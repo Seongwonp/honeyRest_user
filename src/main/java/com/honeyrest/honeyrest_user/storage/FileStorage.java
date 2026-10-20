@@ -3,14 +3,8 @@ package com.honeyrest.honeyrest_user.storage;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * 이미지 등 업로드 파일 저장소 추상화.
- * <p>
- * 구현체는 {@code app.storage.type} 프로퍼티로 선택한다.
- * <ul>
- *     <li>{@code local} (기본값) — {@link LocalFileStorage}: 로컬 디스크에 저장하고 {@code /uploads/**} 로 서빙</li>
- *     <li>{@code firebase} — {@link FirebaseFileStorage}: Firebase(Google Cloud) Storage 버킷에 저장</li>
- * </ul>
- * 두 구현체 모두 업로드 전에 {@link FileValidator} 로 크기·확장자·매직 바이트·폴더명을 검증한다.
+ * 업로드 파일 저장소. {@code app.storage.type} 으로 {@link LocalFileStorage}(기본)/{@link FirebaseFileStorage} 를 고른다.
+ * 두 구현 모두 업로드 전에 {@link FileValidator} 로 검증한다.
  */
 public interface FileStorage {
 

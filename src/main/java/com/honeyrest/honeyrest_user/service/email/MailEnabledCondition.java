@@ -8,13 +8,7 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 
 /**
  * 실제 메일(SMTP) 발송을 켤지 결정하는 조건.
- * <ol>
- *   <li>{@code app.mail.enabled} 를 명시하면 그 값(true/false)을 그대로 따른다.</li>
- *   <li>명시하지 않으면 {@code spring.mail.username} 이 채워져 있을 때만 켠다.
- *       (운영 prod 프로필은 {@code MAIL_USERNAME} 환경변수가 비어 있으면 빈 값이 된다)</li>
- * </ol>
- * 꺼지면 {@link SmtpEmailService} 대신 {@link NoOpEmailService} 가 {@link EmailService} 로 등록되어, Gmail 앱 비밀번호 없이도
- * 기동·가입·결제가 실패하지 않는다(메일만 발송되지 않음).
+ * {@code app.mail.enabled} 를 명시하면 그 값을 따르고, 없으면 {@code spring.mail.username} 이 있을 때만 켠다.
  */
 public class MailEnabledCondition extends SpringBootCondition {
 

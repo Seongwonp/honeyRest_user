@@ -108,7 +108,7 @@ class ReserveServiceTest {
 
         assertThat(result.getReservationNumber()).isEqualTo("RES-001");
         assertThat(result.getStatus()).isEqualTo("CONFIRMED");
-        // 숙소명 스냅샷(accommodation_name, NOT NULL)이 객실의 숙소명으로 채워져야 호스트 화면/검증과 맞는다.
+        // 숙소명 스냅샷(accommodation_name, NOT NULL)이 채워져야 한다.
         assertThat(result.getAccommodationName()).isEqualTo("테스트 숙소");
         // 재고가 바뀌었으므로 검색 결과 캐시 세대를 올려야 한다.
         verify(searchCacheVersionService).bumpAfterCommit();
@@ -217,7 +217,7 @@ class ReserveServiceTest {
         verify(roomRepository, never()).findById(any());
         verify(reservationRepository, never()).save(any());
         verifyNoInteractions(couponUsageService, pointService);
-        // 락 안의 최종 판정은 스냅샷을 읽는 일반 COUNT 가 아니라 잠금 읽기(FOR UPDATE)여야 한다 (REPEATABLE READ 초과 예약 회귀 방지)
+        // 락 안의 최종 판정은 일반 COUNT 가 아니라 잠금 읽기(FOR UPDATE)여야 한다
         verify(reservationRepository, never()).countOverlapping(any(), any(), any(), anyCollection());
     }
 

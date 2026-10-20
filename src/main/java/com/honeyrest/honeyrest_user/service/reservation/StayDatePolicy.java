@@ -6,13 +6,8 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 /**
- * 숙박 날짜 규칙 (서버 검증의 단일 출처). 예약 폼 조회와 결제 승인(예약 생성) 전에 확인한다.
- * <ul>
- *   <li>체크인 ≥ 오늘 (Asia/Seoul 기준 — 서버 JVM 시간대와 무관)</li>
- *   <li>체크아웃 &gt; 체크인</li>
- *   <li>최대 {@value #MAX_NIGHTS}박</li>
- * </ul>
- * 위반 시 {@link IllegalArgumentException}(→ 400) 을 던진다. 과거에는 지난 날짜도 그대로 예약·결제됐다.
+ * 숙박 날짜 규칙. 체크인 ≥ 오늘(Asia/Seoul), 체크아웃 &gt; 체크인, 최대 {@value #MAX_NIGHTS}박.
+ * 위반 시 {@link IllegalArgumentException}(→ 400).
  */
 public final class StayDatePolicy {
 

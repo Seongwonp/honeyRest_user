@@ -50,12 +50,8 @@ public class PaymentOrchestrationService {
 
     /**
      * 결제 승인 + 예약 저장.
-     * <ol>
-     *   <li>사전 검증 (토스 호출 전, 과금 없음): 중복 결제/예약번호, 주문번호·금액 일치, 서버 금액 재계산, 재고(락 없음)</li>
-     *   <li>토스 승인 (실제 과금)</li>
-     *   <li>트랜잭션 안에서 객실 행 락(트랜잭션의 첫 문장) + 잠금 읽기로 재고 재확인 후 예약/결제 저장</li>
-     *   <li>3 단계가 실패하면 토스 결제를 취소(보상)하고 사용자에게 결제가 취소되었음을 알린다</li>
-     * </ol>
+     * 사전 검증(과금 전) → 토스 승인 → 트랜잭션 안에서 객실 행 락 후 재고 재확인·저장.
+     * 저장이 실패하면 토스 결제를 취소(보상)한다.
      */
     public ReservationCompleteDTO confirmAndSave(TossConfirmRequest request) {
         ReservationRequestDTO reservationInfo = request.getReservationInfo();
@@ -80,9 +76,7 @@ public class PaymentOrchestrationService {
         reservationInfo.setDiscountAmount(normalized.discountAmount());
         reservationInfo.setUsedPoint(normalized.usedPoint());
 
-        // 2. 토스 승인 — 2xx 가 아니면 TossService 가 ApiException 을 던진다 (과금 없음).
-        //    타임아웃이면 TossService 가 주문번호로 결제를 조회해 승인된 결제를 취소한 뒤
-        //    PaymentConfirmTimeoutException(504) 을 던진다. 아직 예약을 만들기 전이므로 여기서 더 할 일은 없다.
+        // 2. 토스 승인. 타임아웃이면 TossService 가 승인된 결제를 취소하고 504 를 던진다.
         TossPaymentResult result = tossService.confirmPayment(request);
         if ("FAILED".equals(result.getStatus())) {
             throw new ApiException("결제 승인 실패", HttpStatus.BAD_REQUEST);
@@ -93,10 +87,8 @@ public class PaymentOrchestrationService {
         try {
             validateApprovedResult(request, result);
             dto = transactionTemplate.execute(status -> {
-                // 객실 행 락을 트랜잭션의 "첫 문장"으로 잡는다. 과거에는 아래 중복 확인 SELECT 가 먼저 실행돼
-                // MySQL REPEATABLE READ 스냅샷이 락 대기 전에 고정됐고, 락을 얻은 뒤의 재고 COUNT(일반 SELECT)가
-                // 앞 트랜잭션이 막 커밋한 예약을 보지 못해 total_rooms 를 초과 예약할 수 있었다.
-                // (재고 판정 자체도 ReserveService 에서 잠금 읽기로 하고, 운영 격리 수준은 READ COMMITTED 다.)
+                // 객실 행 락을 트랜잭션의 첫 문장으로 잡는다. 다른 SELECT 가 먼저 실행되면 REPEATABLE READ
+                // 스냅샷이 락 대기 전에 고정돼 방금 커밋된 예약을 못 보고 초과 예약할 수 있다.
                 roomRepository.findByIdForUpdate(reservationInfo.getRoomId())
                         .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 객실입니다."));
                 if (paymentRepository.existsByTransactionId(result.getPaymentKey())) {
@@ -237,7 +229,7 @@ public class PaymentOrchestrationService {
             return BigDecimal.ZERO;
         }
         Long accommodationId = roomRepository.findAccommodationIdByRoomId(room.getRoomId()).orElse(null);
-        // 소유·상태·기간·최소 금액·적용 대상·사용 이력 검증과 할인액(원 단위) 계산은 CouponService 가 담당한다.
+        // 쿠폰 검증과 할인액 계산은 CouponService 가 담당한다.
         return couponService.calculateDiscountForPayment(
                 request.getUserId(), request.getUserCouponId(), original, accommodationId);
     }

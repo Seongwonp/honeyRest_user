@@ -28,7 +28,7 @@ public class ReviewController {
     }
 
     // 좋아요 토글 API
-    // 사용자별 멱등: 같은 사용자가 여러 번 호출해도 좋아요는 1회만 반영된다.
+    // 사용자별 멱등: 같은 사용자가 여러 번 호출해도 1회만 반영된다.
     @PostMapping("/{reviewId}/like")
     public ResponseEntity<Integer> toggleLike(
             @AuthenticationPrincipal CustomUserPrincipal principal,

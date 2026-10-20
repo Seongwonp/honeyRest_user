@@ -18,7 +18,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
      * 포인트 원자적 차감: 잔액이 충분할 때만 차감한다 (UPDATE ... WHERE point >= :amount).
-     * 과거에는 엔티티의 잔액을 읽어 계산한 값을 덮어써(read-modify-write) 동시 결제 두 건이 같은 잔액을 두 번 쓸 수 있었다.
      *
      * @return 변경된 행 수 (0 이면 잔액 부족 또는 사용자 없음)
      */

@@ -9,13 +9,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 /**
  * 숙소 검색 결과 캐시(search:recommend:*)의 세대(version) 관리.
- * <p>
- * 검색 캐시 키에는 체크인/체크아웃·인원·필터·페이지가 모두 들어가므로, 예약 1건이 영향을 주는 키를
- * 특정해 지울 수 없다. KEYS/SCAN 으로 패턴 삭제하는 대신 키에 세대 번호를 넣고,
- * 재고·평점이 바뀌면 세대를 INCR 해서 이전 세대 키를 모두 "고아"로 만든다(남은 키는 TTL 6시간 후 자연 소멸).
- * <p>
- * Redis 장애 시에도 예약/리뷰 트랜잭션이 실패하지 않도록 예외를 삼키고 로그만 남긴다.
- * <b>호스트 저장소(honeyRest_host)에서 예약을 취소(CANCELLED)할 때도 같은 키를 INCR 해야 검색 재고가 즉시 반영된다.</b>
+ * 검색 키는 조건이 많아 특정해 지울 수 없으므로, 재고·평점이 바뀌면 세대를 INCR 해 이전 키를 버린다(TTL 로 소멸).
+ * Redis 장애가 예약/리뷰 트랜잭션을 깨지 않도록 예외는 로그만 남긴다.
+ * 호스트 앱도 예약 취소 시 같은 키를 INCR 해야 한다.
  */
 @Log4j2
 @Service
@@ -37,10 +33,7 @@ public class SearchCacheVersionService {
         }
     }
 
-    /**
-     * 세대를 올린다. 트랜잭션 안이면 커밋 이후에 올린다.
-     * (커밋 전에 올리면 그 사이 다른 요청이 아직 커밋되지 않은 옛 재고로 새 세대 캐시를 채울 수 있다.)
-     */
+    /** 세대를 올린다. 커밋 전에 올리면 옛 재고로 새 세대 캐시가 채워질 수 있어 트랜잭션 안이면 커밋 후에 올린다. */
     public void bumpAfterCommit() {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {

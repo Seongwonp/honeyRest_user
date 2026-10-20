@@ -24,7 +24,7 @@ public class AccommodationRequestMap extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "requestmap_id")
-    private Long requestMapId; // [통합] 두 사본 모두 RequestMapId(대문자 필드)였다. getter 이름(getRequestMapId)은 동일
+    private Long requestMapId;
 
     // 숙소 엔티티와의 다대일 관계를 나타냄
     @ManyToOne(fetch = FetchType.LAZY)

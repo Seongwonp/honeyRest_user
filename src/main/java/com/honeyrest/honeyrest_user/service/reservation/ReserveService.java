@@ -52,8 +52,7 @@ public class ReserveService {
 
     @Transactional
     public Reservation createReservation(ReservationRequestDTO request, BigDecimal amount, BigDecimal discountAmount) {
-        // 객실 행을 FOR UPDATE 로 잠가 같은 객실의 동시 예약을 직렬화한 뒤 재고를 다시 확인한다.
-        // (결제 승인 전 사전 확인은 락 없이 수행되므로 여기서의 재확인이 최종 판정이다.)
+        // 객실 행을 FOR UPDATE 로 잠가 동시 예약을 직렬화한 뒤 재고를 다시 확인한다 (최종 판정).
         Room room = roomRepository.findByIdForUpdate(request.getRoomId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 객실입니다"));
         assertRoomAvailableLocked(room, request.getCheckIn(), request.getCheckOut());
@@ -67,7 +66,7 @@ public class ReserveService {
         Reservation reservation = Reservation.builder()
                 .room(room)
                 .accommodation(accommodation)
-                .accommodationName(accommodation.getName()) // 숙소명 스냅샷 (reservation.accommodation_name NOT NULL)
+                .accommodationName(accommodation.getName()) // 숙소명 스냅샷
                 .roomName(room.getName())
                 .checkInDate(request.getCheckIn())
                 .checkOutDate(request.getCheckOut())
@@ -77,7 +76,7 @@ public class ReserveService {
                 .specialRequest(request.getSpecialRequest())
                 .user(user)
                 .price(amount)
-                // 서버가 PriceCalculator 로 다시 계산해 넣은 숙박 원가. 없으면(구 경로) 기본가로 대체.
+                // 서버가 PriceCalculator 로 다시 계산한 숙박 원가. 없으면 기본가.
                 .originalPrice(request.getOriginalPrice() != null ? request.getOriginalPrice() : room.getPrice())
                 .discountAmount(discountAmount)
                 .reservationNumber(request.getReservationCode())
@@ -88,12 +87,12 @@ public class ReserveService {
         // 재고가 줄었으므로 검색 결과(예약 가능 여부) 캐시 세대를 커밋 후 올린다.
         searchCacheVersionService.bumpAfterCommit();
 
-        // 쿠폰 사용 처리 (조건부 UPDATE 로 원자적 — 동시에 같은 쿠폰을 쓰면 하나만 성공, 나머지는 409)
+        // 쿠폰 사용 처리 (조건부 UPDATE, 동시 사용 시 하나만 성공)
         if (request.getUserCouponId() != null) {
             couponUsageService.recordUsage(request.getUserCouponId(), request.getUserId(), reservation, discountAmount);
         }
 
-        // 포인트 사용 처리 (잔액 차감 + 이력 기록을 한 번에)
+        // 포인트 사용 처리
         if (request.getUsedPoint() != null && request.getUsedPoint() > 0) {
             if (user == null) {
                 throw new NotFoundException("사용자 정보를 찾을 수 없습니다");
@@ -117,9 +116,8 @@ public class ReserveService {
     }
 
     /**
-     * 객실 행 락(FOR UPDATE)을 잡은 트랜잭션 안에서 쓰는 최종 재고 판정.
-     * 겹치는 예약을 잠금 읽기(SELECT ... FOR UPDATE)로 세므로 MySQL REPEATABLE READ 스냅샷이 락 대기 전에
-     * 고정됐더라도 방금 커밋된 예약을 놓치지 않는다 (일반 SELECT COUNT 는 스냅샷을 읽어 초과 예약이 가능했다).
+     * 객실 행 락을 잡은 트랜잭션 안에서 쓰는 최종 재고 판정.
+     * 잠금 읽기(FOR UPDATE)로 세므로 REPEATABLE READ 스냅샷과 무관하게 방금 커밋된 예약도 센다.
      */
     private void assertRoomAvailableLocked(Room room, LocalDate checkIn, LocalDate checkOut) {
         validateDates(checkIn, checkOut);

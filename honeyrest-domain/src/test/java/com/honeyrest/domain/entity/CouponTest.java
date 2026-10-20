@@ -44,7 +44,7 @@ class CouponTest {
 
     @Test
     void 정률은_원_단위_미만을_버린다_프론트_Math_floor_와_같다() {
-        // 과거: 소수 둘째 자리 HALF_UP → 3333.30 이 되어 프론트(3,333원)와 결제 금액이 어긋났다.
+        // HALF_UP 이면 3333.30 이 되어 프론트(3,333원)와 어긋난다.
         BigDecimal discount = coupon("PERCENT", "10", null).calculateDiscount(new BigDecimal("33333"));
         assertThat(discount).isEqualByComparingTo("3333");
         assertThat(discount.scale()).isZero();

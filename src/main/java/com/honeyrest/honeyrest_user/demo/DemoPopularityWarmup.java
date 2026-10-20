@@ -13,11 +13,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * demo 프로필 전용: 기동 직후 "인기 숙소 / 인기 지역" 점수를 채운다.
- * <p>
- * 두 목록은 원래 사용자 조회·검색이 쌓은 Redis ZSet 점수로 만든다
- * ({@code AccommodationService#getPopularByCategory}, {@code RegionService#getTopRegions}).
- * demo 는 인메모리 Redis 대체(재시작 시 비어 있음)라 첫 화면이 비어 보이지 않도록 시드 숙소의 평점·리뷰 수로 점수를 넣는다.
+ * demo 프로필 전용: 기동 직후 인기 숙소/인기 지역 점수를 채운다.
+ * demo 는 인메모리 Redis 라 재시작 시 비어 있으므로 시드 숙소의 평점·리뷰 수로 점수를 넣는다.
  * 키 형식은 서비스 코드와 같다: {@code popular:accommodation:{카테고리명}}, {@code regions:popular:count}.
  */
 @Log4j2

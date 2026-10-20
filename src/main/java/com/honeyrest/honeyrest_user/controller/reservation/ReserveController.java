@@ -34,9 +34,8 @@ public class ReserveController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOut,
             @RequestParam Integer guests
     ) {
-        // 이 엔드포인트는 비회원 예약도 지원해야 하므로 permitAll이지만, userId를 요청 파라미터로
-        // 받으면 토큰 없이 userId만 바꿔가며 타인의 실명·전화번호·포인트·쿠폰을 조회할 수 있었다(P0-4).
-        // 이제 인증된 사용자의 userId만 사용하고, 비로그인 상태면 게스트로 취급한다.
+        // 비회원 예약 때문에 permitAll 이지만 userId 는 요청 파라미터가 아니라 인증 정보에서만 꺼낸다.
+        // 비로그인이면 게스트로 취급한다.
         Long userId = (principal != null) ? principal.getUserId() : null;
         ReservationFormInfoDTO dto = reserveInfoService.getFormInfo(roomId, userId, checkIn, checkOut, guests);
         // dto에는 예약자 실명/전화번호/포인트/쿠폰이 포함되어 있어 통째로 로깅하지 않는다.

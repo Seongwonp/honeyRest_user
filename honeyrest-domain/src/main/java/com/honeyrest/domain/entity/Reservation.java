@@ -38,7 +38,7 @@ public class Reservation extends BaseEntity{
     @JoinColumn(name = "accommodation_id", nullable = false)
     private Accommodation accommodation;
 
-    // 숙소명 스냅샷 (V10, NOT NULL). 예약 생성 시 반드시 채운다.
+    // 숙소명 스냅샷 (NOT NULL). 예약 생성 시 반드시 채운다.
     @Column(name = "accommodation_name", nullable = false, length = 255)
     private String accommodationName;
 
@@ -64,7 +64,7 @@ public class Reservation extends BaseEntity{
     private String guestPhone;
 
     @Column(name = "price", nullable = false, precision = 10, scale = 2)
-    private BigDecimal price; // 최종 결제 금액 (스키마 DECIMAL(10,2) — 사용자 사본에 precision 누락)
+    private BigDecimal price; // 최종 결제 금액
 
     @Column(name = "original_price",precision = 10, scale = 2)
     private BigDecimal originalPrice; // 할인 전 원가
@@ -72,9 +72,7 @@ public class Reservation extends BaseEntity{
     @Column(name = "discount_amount", precision = 10, scale = 2)
     private BigDecimal discountAmount; // 총 할인 금액
 
-    // 상태는 setter 없이 아래 도메인 메서드(requestCancel/complete/cancel/approveCancelRequest/rejectCancelRequest/
-    // markNoShow/changeStatus)로만 바꾼다.
-    // 허용 전이는 ReservationStatus.canTransition 표가 기준이다.
+    // 상태는 setter 없이 아래 도메인 메서드로만 바꾼다. 허용 전이는 ReservationStatus.canTransition 기준.
     @Column(name = "status", nullable = false, length = 20)
     private String status; // 예약 상태
 
@@ -84,10 +82,9 @@ public class Reservation extends BaseEntity{
     @Column(name = "special_requests", columnDefinition = "TEXT")
     private String specialRequest; // 특별 요청 사항
 
-    // 공유 스키마(Flyway)에 version 컬럼이 없어 @Version 필드를 두지 않는다.
-    // 동시성은 예약 생성/점유 전환 시 room 행 비관적 락으로 제어한다 (사용자/호스트 각 서비스).
+    // 공유 스키마에 version 컬럼이 없어 @Version 을 두지 않는다. 동시성은 room 행 비관적 락으로 제어한다.
 
-    // ===== 이하 호스트 사본에서 합친 도메인 메서드 =====
+    // ===== 도메인 메서드 =====
 
     /** 생성 시 필수값 검증 (엔티티 내부). */
     public void validateNew() {
@@ -114,10 +111,7 @@ public class Reservation extends BaseEntity{
     }
 
     /**
-     * 부분 업데이트: null 이 아닌 값만 반영한다.
-     * [통합] 호스트 사본은 호스트 ReservationDTO 를 직접 받았다. 공유 모듈은 앱 DTO 에 의존할 수 없어
-     * {@link ReservationChanges} 인터페이스로 받는다 (호스트 ReservationDTO 가 구현).
-     * 예약번호(reservationNumber)는 불변으로 취급해 바꾸지 않는다.
+     * 부분 업데이트: null 이 아닌 값만 반영한다. 예약번호는 바꾸지 않는다.
      */
     public void update(ReservationChanges changes, User newUser, Room newRoom, Accommodation newAccommodation) {
         if (changes.getCheckInDate() != null)  this.checkInDate = changes.getCheckInDate();
@@ -171,7 +165,7 @@ public class Reservation extends BaseEntity{
         if (reason != null) this.cancelReason = reason;
     }
 
-    /** 호스트 취소 거부: CANCEL_REQUEST → CONFIRMED. 사유는 "[REJECT] " 접두어로 남긴다 (호스트 기존 JPQL 과 같은 형식). */
+    /** 호스트 취소 거부: CANCEL_REQUEST → CONFIRMED. 사유는 "[REJECT] " 접두어로 남긴다. */
     public void rejectCancelRequest(String reason) {
         requireCancelRequest();
         transitionTo(ReservationStatus.CONFIRMED);
@@ -193,9 +187,8 @@ public class Reservation extends BaseEntity{
     }
 
     /**
-     * 범용 상태 전이 (호스트 관리자 화면처럼 목표 상태를 입력으로 받는 경우용).
-     * 목표 상태를 정규화하고 {@link ReservationStatus#canTransition} 표에 없으면 IllegalStateException.
-     * 현재와 같은 상태면 아무것도 바꾸지 않는다. 재고 검사·캐시 무효화는 호출자 책임이다.
+     * 목표 상태를 받아 전이한다 (호스트 관리자 화면용). 같은 상태면 아무것도 바꾸지 않는다.
+     * 재고 검사·캐시 무효화는 호출자 책임이다.
      *
      * @throws IllegalArgumentException 허용 목록({@link ReservationStatus#ALL})에 없는 상태
      * @throws IllegalStateException    허용되지 않는 전이

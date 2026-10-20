@@ -16,13 +16,8 @@ import java.time.LocalDateTime;
 
 /**
  * 포인트 잔액 변경과 이력(point_history) 기록을 한 트랜잭션에서 함께 처리한다.
- * <p>
- * 과거에는 호출자가 {@code UserService.usePoint/addPoint} 로 잔액을 바꾸고 {@code PointHistoryService} 로 이력을
- * 따로 남겨, 한쪽만 호출되거나 순서가 바뀌면 잔액과 이력(balance)이 어긋날 수 있었다(SRP).
- * 이제 잔액을 바꾸는 모든 경로는 이 서비스의 {@link #earn}/{@link #earnOnce}/{@link #use}/{@link #refund} 만 쓴다.
- * 잔액은 조건부/증분 UPDATE 로 DB 에서 원자적으로 바꾸고(동시성), 이력은 변동 후 DB 잔액으로 남긴다.
- * <p>
- * 호출자의 트랜잭션에 참여하므로(기본 전파 REQUIRED) 예약 저장 등이 롤백되면 잔액·이력도 함께 롤백된다.
+ * 잔액을 바꾸는 경로는 모두 이 서비스를 거친다. 잔액은 조건부/증분 UPDATE 로 원자적으로 바꾸고,
+ * 이력에는 변동 후 DB 잔액을 남긴다. 호출자 트랜잭션에 참여하므로 함께 롤백된다.
  */
 @Log4j2
 @Service
@@ -48,10 +43,7 @@ public class PointService {
     }
 
     /**
-     * 1회성 적립: 같은 사용자·사유·관련 ID 로 이미 적립(SAVE) 이력이 있으면 적립하지 않는다.
-     * <p>
-     * 리뷰 적립처럼 "예약당 한 번"이어야 하는 적립에 쓴다. 과거에는 리뷰를 삭제한 뒤 다시 쓰면
-     * (리뷰 존재 검사만 했기 때문에) 매번 다시 적립돼 포인트를 무한히 얻을 수 있었다.
+     * 1회성 적립: 같은 사용자·사유·관련 ID 로 이미 적립 이력이 있으면 적립하지 않는다 (리뷰 적립용).
      * 동시 호출 직렬화는 호출자 책임이다 (리뷰는 예약 행 FOR UPDATE 락 안에서 호출한다).
      *
      * @return 적립 이력, 이미 적립된 적이 있으면 null
@@ -89,8 +81,7 @@ public class PointService {
         requireUser(user);
         Long userId = user.getUserId();
 
-        // 잔액 변경은 DB 에서 원자적으로 한다. 엔티티 값으로 계산해 덮어쓰면(read-modify-write)
-        // 동시 요청이 서로의 변경을 덮어써 같은 포인트를 두 번 쓸 수 있다.
+        // read-modify-write 로 덮어쓰면 동시 요청이 같은 포인트를 두 번 쓸 수 있어 DB 에서 원자적으로 바꾼다.
         int changed = delta < 0
                 ? userRepository.deductPointIfEnough(userId, -delta)
                 : userRepository.addPoint(userId, delta);
@@ -104,7 +95,7 @@ public class PointService {
         // 방금 UPDATE 한 행은 이 트랜잭션이 잠그고 있으므로 다시 읽은 값이 곧 변동 후 잔액이다.
         int updated = userRepository.findPointByUserId(userId)
                 .orElseThrow(() -> new NotFoundException("포인트 대상 사용자를 찾을 수 없습니다."));
-        // 관리 중인 엔티티도 DB 값과 맞춘다 (이후 같은 트랜잭션에서 user.getPoint() 를 읽는 코드 대비).
+        // 같은 트랜잭션에서 user.getPoint() 를 읽는 코드를 위해 엔티티도 맞춘다.
         user.updatePoint(updated);
 
         PointHistory history = pointHistoryRepository.save(PointHistory.builder()

@@ -47,7 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 실제 MySQL 8.0(InnoDB) 에서 예약·쿠폰·포인트 동시성을 검증한다. H2 는 MVCC/잠금 동작이 달라 이 경쟁을 재현하지 못한다.
  * <ul>
  *   <li>total_rooms=1 객실에 동시 예약 → 정확히 1건만 성공 (나머지 409)</li>
- *   <li>REPEATABLE READ 에서 객실 락 전에 스냅샷이 고정돼도 방금 커밋된 예약을 놓치지 않는다 (잠금 읽기 회귀)</li>
+ *   <li>REPEATABLE READ 에서 객실 락 전에 스냅샷이 고정돼도 방금 커밋된 예약을 놓치지 않는다</li>
  *   <li>같은 쿠폰/같은 포인트 잔액 동시 사용 → 하나만 성공</li>
  * </ul>
  * Docker 가 없으면 건너뛴다. 실행: {@code ./gradlew integrationTest}
@@ -174,7 +174,7 @@ class ReservationConcurrencyMySqlIntegrationTest {
         firstCommitted.countDown();
         second.get(60, TimeUnit.SECONDS);
 
-        // 과거(일반 SELECT COUNT)라면 B 는 스냅샷에서 0건을 보고 두 번째 예약을 만들었다(초과 예약).
+        // 일반 SELECT COUNT 였다면 B 는 스냅샷에서 0건을 보고 초과 예약을 만든다.
         assertThat(secondOutcome.get())
                 .isInstanceOf(ApiException.class)
                 .extracting(e -> ((ApiException) e).getStatus()).isEqualTo(HttpStatus.CONFLICT);

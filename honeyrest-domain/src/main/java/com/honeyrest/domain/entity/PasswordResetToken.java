@@ -44,10 +44,7 @@ public class PasswordResetToken {
                 .build();
     }
 
-    /**
-     * [통합] 호스트 사본의 @PrePersist(createdAt/isUsed 기본값)를 합쳤다.
-     * {@link #create} 로 만든 토큰은 이미 값이 있으므로 비어 있을 때만 채운다.
-     */
+    /** createdAt·isUsed 가 비어 있을 때만 기본값을 채운다. */
     @PrePersist
     protected void onCreate() {
         if (this.createdAt == null) {
